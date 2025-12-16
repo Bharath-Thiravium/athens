@@ -1,0 +1,35 @@
+Subject: Project Information Required - Registration Template
+
+Dear [Company Name],
+
+We are collecting project information for registration in our system. Please find the attached Excel template that needs to be completed with your project details.
+
+REQUIRED INFORMATION:
+✓ Complete the attached "Project_Information_Template.csv" file
+✓ All fields marked as "Required: Yes" are mandatory
+✓ Follow the format specified in the example column
+
+KEY REQUIREMENTS:
+• Project location must be within India
+• Contact numbers must be 10-digit Indian numbers
+• Dates should be in YYYY-MM-DD format
+• Coordinates should be accurate GPS coordinates
+
+NEXT STEPS:
+1. Download and open the attached CSV file in Excel
+2. Fill in your project details in the "Your Input" column
+3. Save and return the completed file to us
+4. We will process your project registration within 2-3 business days
+
+For any clarifications, please contact us at [your-email@company.com] or [phone-number].
+
+Thank you for your cooperation.
+
+Best regards,
+[Your Name]
+[Your Title]
+[Company Name]
+[Contact Information]
+
+---
+Attachment: Project_Information_Template.csv

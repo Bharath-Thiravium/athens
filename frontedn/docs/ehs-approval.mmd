@@ -1,0 +1,11 @@
+%% Auth + Approval Flow
+flowchart TD
+  A[Login]-->B{django_user_type}
+  B--projectadmin-->C[Open Admin Detail]
+  B--adminuser-->D[Open Profile]
+  C-->E[Submit for approval]
+  D-->E
+  E-->F[Master reviews]
+  F-->G[Approved]
+  G-->H[Full menu access]
+

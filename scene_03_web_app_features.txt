@@ -1,0 +1,72 @@
+SCENE 3: WEB APP CORE FEATURES & SYSTEMS (7 seconds)
+====================================================
+
+CINEMATIC PROMPT:
+"Pure visual process demonstration with minimal text. Open with notification bell icon pulsing red, then show: Alert badge (3) appearing on dashboard → Approval workflow arrows moving left to right with green checkmarks → Incident form auto-filling with dropdown selections → 8D methodology circles connecting with animated lines → Mobile phone showing photo being uploaded → Risk matrix squares changing colors from red to green → Dashboard charts updating with live data bars rising → Multiple module icons connecting with flowing data streams. Focus on smooth animations, process flows, and visual interactions. No text overlays except small UI labels. Use bright tech colors and fluid transitions between each process step."
+
+VISUAL PROCESS FLOW:
+1. Notification alert animation (1 sec)
+2. Approval workflow movement (1 sec) 
+3. Incident reporting process (1.5 sec)
+4. 8D methodology connection (1 sec)
+5. Mobile photo upload (1 sec)
+6. Risk assessment color change (1 sec)
+7. Dashboard data visualization (0.5 sec)
+
+CORE FEATURES HIGHLIGHTED:
+
+NOTIFICATION SYSTEM:
+- Real-time alert notifications with badge counters
+- Multi-channel notifications (email, SMS, push, in-app)
+- Priority-based notification routing
+- Escalation workflows for overdue items
+- Custom notification rules and triggers
+- Mobile push notifications for field workers
+
+APPROVAL SYSTEM:
+- Multi-level approval workflows
+- Role-based approval permissions
+- Digital signature integration
+- Approval status tracking with timestamps
+- Automated escalation for delayed approvals
+- Approval history and audit trails
+- QR code verification for permits
+
+INCIDENT REPORTING SYSTEM:
+- 17 comprehensive incident types
+- 8D problem-solving methodology integration
+- Risk assessment matrix with automated scoring
+- Cost impact analysis (13 categories)
+- AI-powered root cause analysis
+- Photo documentation and evidence capture
+- Real-time incident status tracking
+
+WEB APP STRENGTHS:
+- React TypeScript frontend with Ant Design
+- Django REST Framework backend
+- PostgreSQL database with Redis caching
+- Real-time data synchronization
+- Mobile-responsive progressive web app
+- Role-based access control
+- JWT authentication security
+- Microservices architecture
+
+VISUAL ELEMENTS:
+- Modern dashboard interfaces with live data
+- Notification badges and alert animations
+- Approval workflow diagrams with status indicators
+- Incident forms with dropdown menus and photo uploads
+- Risk matrix color-coding (green/yellow/red)
+- Mobile interface responsiveness
+- Real-time chart updates and analytics
+
+AUDIO:
+- Modern tech music with digital beats
+- Notification sound effects
+- Smooth UI interaction sounds
+- Professional, confident atmosphere
+
+DURATION: Exactly 7 seconds
+STYLE: High-tech, professional, feature-focused
+MOOD: Powerful, comprehensive, intelligent
+TRANSITION: Seamless continuation from digital solution to specific features

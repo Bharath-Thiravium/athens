@@ -1,0 +1,38 @@
+SCENE 5: FINAL CALL TO ACTION (7 seconds)
+=========================================
+
+CINEMATIC PROMPT:
+"Powerful closing scene with minimal text overlay. Open with all previous modules connecting into one unified EHS Pro logo → Logo transforms into modern office setting with confident safety manager using the system → Quick montage: Multiple industries (construction, oil & gas, manufacturing) workers using mobile app → Screen zooms out to show global map with connection points lighting up → Athena Solutions logo appears with elegant animation → Contact information displays with phone and email icons → End with tagline animation. Use inspiring music, bright professional colors, and confident imagery."
+
+VISUAL SEQUENCE:
+1. Module integration to EHS Pro logo (1 sec)
+2. Professional using system confidently (1.5 sec)
+3. Multi-industry workers montage (2 sec)
+4. Global connectivity visualization (1 sec)
+5. Athena Solutions branding (1 sec)
+6. Contact information display (0.5 sec)
+
+TEXT OVERLAYS:
+- "Want EHS System Modern Solution?"
+- "Don't Hesitate to Contact"
+- "Athena Software Solutions"
+- Phone: 9080654027
+- Email: info@athenas.co.in
+- Website: athenas.co.in
+
+VISUAL ELEMENTS:
+- Unified system integration
+- Professional confidence
+- Multi-industry applications
+- Global reach visualization
+- Clean company branding
+- Clear contact information
+
+AUDIO:
+- Inspiring, uplifting music
+- Professional confidence tone
+- Call-to-action emphasis
+
+DURATION: Exactly 7 seconds
+STYLE: Professional, inspiring, action-oriented
+MOOD: Confident, trustworthy, accessible

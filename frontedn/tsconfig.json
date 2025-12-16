@@ -1,0 +1,28 @@
+// tsconfig.json (THE CORRECTED VERSION)
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noImplicitAny": true,
+    "baseUrl": ".",
+    // --- REMOVE THE "types" ARRAY COMPLETELY ---
+    // "types": ["vite/client", "@react-three/fiber"], 
+    "paths": {
+      "@common/*": ["src/common/*"],
+      "@features/*": ["src/features/*"],
+      "@assets/*": ["src/assets/*"]
+    }
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}

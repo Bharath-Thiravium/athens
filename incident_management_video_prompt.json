@@ -1,0 +1,196 @@
+{
+  "video_generation_prompt": {
+    "company_name": "Athena's Solutions",
+    "product_name": "EHS Pro - Incident Management System",
+    "module_focus": "Incident Management with 8D Problem Solving Methodology",
+    "video_specifications": {
+      "duration": "90-120 seconds",
+      "style": "Professional corporate presentation",
+      "tone": "Authoritative, trustworthy, innovative",
+      "target_audience": "Safety managers, EHS professionals, corporate executives",
+      "resolution": "1920x1080 (Full HD)",
+      "format": "MP4"
+    },
+    "key_features_to_highlight": [
+      {
+        "feature": "Comprehensive Incident Reporting",
+        "description": "Advanced incident reporting system with 17 different incident types including injury, near miss, environmental, and equipment failure",
+        "visual_elements": [
+          "Dashboard showing incident statistics",
+          "Mobile-friendly incident reporting form",
+          "Real-time incident tracking interface"
+        ]
+      },
+      {
+        "feature": "8D Problem Solving Methodology",
+        "description": "Industry-standard 8-discipline problem-solving process for systematic incident investigation",
+        "visual_elements": [
+          "8D process workflow diagram",
+          "Team collaboration interface",
+          "Root cause analysis tools (5 Whys, Fishbone, Fault Tree)"
+        ]
+      },
+      {
+        "feature": "Risk Assessment Matrix",
+        "description": "Advanced risk scoring with probability and impact assessment, automated risk level calculation",
+        "visual_elements": [
+          "Interactive risk matrix visualization",
+          "Risk scoring interface",
+          "Risk level color-coded indicators"
+        ]
+      },
+      {
+        "feature": "Cost Impact Analysis",
+        "description": "Comprehensive financial tracking with 13 cost categories and budget impact assessment",
+        "visual_elements": [
+          "Cost tracking dashboard",
+          "Financial impact charts",
+          "Budget allocation interface"
+        ]
+      },
+      {
+        "feature": "Regulatory Compliance",
+        "description": "Built-in compliance tracking for OSHA, ISO 45001, ISO 14001, and local regulations",
+        "visual_elements": [
+          "Compliance dashboard",
+          "Regulatory reporting interface",
+          "Audit trail visualization"
+        ]
+      },
+      {
+        "feature": "Advanced Analytics",
+        "description": "Real-time dashboards with trend analysis, performance metrics, and predictive insights",
+        "visual_elements": [
+          "Executive dashboard with KPIs",
+          "Trend analysis charts",
+          "Performance metrics visualization"
+        ]
+      }
+    ],
+    "technical_capabilities": [
+      {
+        "capability": "Backend Architecture",
+        "details": "Django REST Framework with PostgreSQL database, Redis caching, and Celery task processing"
+      },
+      {
+        "capability": "Frontend Technology",
+        "details": "React TypeScript with Ant Design components, responsive design for mobile and desktop"
+      },
+      {
+        "capability": "AI Integration",
+        "details": "OpenAI and Anthropic integration for intelligent incident analysis and recommendations"
+      },
+      {
+        "capability": "Security Features",
+        "details": "Role-based permissions, audit logging, secure file attachments, and data encryption"
+      },
+      {
+        "capability": "Scalability",
+        "details": "Microservices architecture supporting multi-project environments with Docker deployment"
+      }
+    ],
+    "script_structure": {
+      "opening": {
+        "duration": "0-15 seconds",
+        "content": "Introducing Athena's Solutions EHS Pro - The next generation of incident management technology",
+        "visuals": "Company logo animation, modern workplace safety scenes"
+      },
+      "problem_statement": {
+        "duration": "15-30 seconds",
+        "content": "Traditional incident management is reactive, fragmented, and lacks systematic problem-solving approaches",
+        "visuals": "Split screen showing old vs new methods, frustrated safety managers"
+      },
+      "solution_overview": {
+        "duration": "30-60 seconds",
+        "content": "EHS Pro transforms incident management with comprehensive reporting, 8D methodology, and intelligent analytics",
+        "visuals": "Product interface walkthrough, key features demonstration"
+      },
+      "key_benefits": {
+        "duration": "60-90 seconds",
+        "content": "Reduce incident recurrence by 75%, improve investigation quality, ensure regulatory compliance, and drive continuous improvement",
+        "visuals": "Statistics animation, before/after comparisons, success metrics"
+      },
+      "call_to_action": {
+        "duration": "90-120 seconds",
+        "content": "Transform your safety culture with Athena's Solutions EHS Pro. Contact us for a personalized demonstration",
+        "visuals": "Contact information, website, demo booking interface"
+      }
+    },
+    "visual_style_guide": {
+      "color_palette": {
+        "primary": "#1890ff",
+        "secondary": "#52c41a",
+        "accent": "#faad14",
+        "warning": "#ff4d4f",
+        "background": "#f0f2f5"
+      },
+      "typography": {
+        "primary_font": "Inter, sans-serif",
+        "heading_style": "Bold, modern",
+        "body_style": "Clean, readable"
+      },
+      "animation_style": "Smooth transitions, professional motion graphics",
+      "ui_elements": "Modern dashboard interfaces, clean data visualizations"
+    },
+    "data_points_to_showcase": [
+      "17 different incident types supported",
+      "8-discipline problem solving methodology",
+      "5 risk assessment levels with automated scoring",
+      "13 cost tracking categories",
+      "Multi-framework regulatory compliance (OSHA, ISO 45001, ISO 14001)",
+      "Real-time analytics and reporting",
+      "Mobile-responsive design",
+      "AI-powered insights and recommendations"
+    ],
+    "competitive_advantages": [
+      "Only system with integrated 8D methodology",
+      "Comprehensive cost impact analysis",
+      "AI-powered root cause analysis",
+      "Multi-regulatory framework support",
+      "Advanced risk assessment matrix",
+      "Real-time collaboration tools",
+      "Scalable multi-project architecture"
+    ],
+    "target_industries": [
+      "Construction and Infrastructure",
+      "Manufacturing and Industrial",
+      "Oil, Gas and Energy",
+      "Chemical and Pharmaceutical",
+      "Mining and Resources",
+      "Transportation and Logistics"
+    ],
+    "roi_metrics": [
+      "75% reduction in incident recurrence",
+      "60% faster investigation completion",
+      "90% improvement in regulatory compliance",
+      "50% reduction in incident-related costs",
+      "85% increase in safety culture engagement"
+    ],
+    "contact_information": {
+      "company": "Athena's Solutions",
+      "website": "www.athenassolutions.com",
+      "email": "info@athenassolutions.com",
+      "phone": "+1-XXX-XXX-XXXX",
+      "demo_booking": "Schedule your personalized demo today"
+    },
+    "additional_modules_preview": [
+      "Permit to Work (PTW) System",
+      "Safety Observation Management",
+      "Toolbox Talk Management",
+      "Inspection and Audit Management",
+      "Training and Induction Management",
+      "Manpower and Worker Management",
+      "Minutes of Meeting (MOM) System"
+    ],
+    "technical_specifications_highlight": [
+      "Cloud-native architecture",
+      "99.9% uptime guarantee",
+      "Enterprise-grade security",
+      "API-first design",
+      "Multi-tenant support",
+      "Real-time notifications",
+      "Offline capability",
+      "Integration ready"
+    ]
+  }
+}

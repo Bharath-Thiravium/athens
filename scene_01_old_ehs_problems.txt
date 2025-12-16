@@ -1,0 +1,25 @@
+SCENE 1: OLD EHS SYSTEM STRUGGLES (7 seconds)
+==============================================
+
+CINEMATIC PROMPT:
+"Create a dramatic 7-second opening scene showing the chaos of traditional EHS management. Start with a wide shot of a busy industrial facility at dawn, then quick-cut montage: A safety manager drowning in paperwork at his desk with stacks of incident reports, a worker frantically searching through filing cabinets for permit documents, another employee filling out paper forms with a pen while standing in harsh industrial lighting, close-up of a frustrated supervisor's face checking his watch as he waits for approvals, papers scattered and flying in slow motion, old computer screens showing basic spreadsheets, and end with a dramatic zoom-out showing multiple office workers looking overwhelmed. Use desaturated colors (grays, muted blues), harsh fluorescent lighting, and add subtle industrial ambient sounds. Text overlay appears at the end: 'Traditional EHS Management: Inefficient, Disconnected, Overwhelming'"
+
+VISUAL ELEMENTS:
+- Desaturated color palette (grays, muted blues, harsh whites)
+- Industrial facility background
+- Stacks of paperwork and filing cabinets
+- Frustrated workers and managers
+- Old computer systems and spreadsheets
+- Slow-motion paper flying effect
+- Harsh fluorescent office lighting
+
+AUDIO:
+- Industrial ambient sounds
+- Paper rustling
+- Keyboard typing
+- Phone ringing
+- Subtle tension-building music
+
+DURATION: Exactly 7 seconds
+STYLE: Cinematic, dramatic, problem-focused
+MOOD: Frustration, chaos, inefficiency

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EHS Authentication Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 EHS Authentication & Dashboard Test</h1>
+        
+        <div class="section info">
+            <h3>Master User Credentials</h3>
+            <p><strong>Username:</strong> ilaiaraja</p>
+            <p><strong>Password:</strong> master123</p>
+        </div>
+
+        <div class="section">
+            <h3>Step 1: Login Test</h3>
+            <input type="text" id="username" placeholder="Username" value="ilaiaraja">
+            <input type="password" id="password" placeholder="Password" value="master123">
+            <button onclick="testLogin()">🔑 Test Login</button>
+            <div id="loginResult"></div>
+        </div>
+
+        <div class="section">
+            <h3>Step 2: Dashboard Test</h3>
+            <button onclick="testDashboard()">📊 Test Dashboard Overview</button>
+            <div id="dashboardResult"></div>
+        </div>
+
+        <div class="section">
+            <h3>Step 3: Incident Management Test</h3>
+            <button onclick="testIncidents()">🚨 Test Incidents Access</button>
+            <div id="incidentsResult"></div>
+        </div>
+
+        <div class="section">
+            <h3>Step 4: System Management Test</h3>
+            <button onclick="testSystemAccess()">⚙️ Test System Access</button>
+            <div id="systemResult"></div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = null;
+        const API_BASE = 'http://localhost:8000';
+
+        async function makeRequest(url, options = {}) {
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Origin': 'http://localhost:5173',
+                    ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+                }
+            };
+            
+            const response = await fetch(url, { ...defaultOptions, ...options });
+            const data = await response.json().catch(() => ({}));
+            
+            return { response, data };
+        }
+
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('loginResult');
+            
+            try {
+                const { response, data } = await makeRequest(`${API_BASE}/authentication/login/`, {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    authToken = data.access;
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Login Successful!</h4>
+                            <p><strong>User:</strong> ${data.username}</p>
+                            <p><strong>User Type:</strong> ${data.usertype}</p>
+                            <p><strong>User ID:</strong> ${data.userId}</p>
+                            <p><strong>Token:</strong> ${authToken.substring(0, 50)}...</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Login Failed</h4>
+                            <p>Status: ${response.status}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Login Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testDashboard() {
+            const resultDiv = document.getElementById('dashboardResult');
+            
+            if (!authToken) {
+                resultDiv.innerHTML = '<div class="error">❌ Please login first!</div>';
+                return;
+            }
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE}/authentication/dashboard/overview/?period=week`);
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Dashboard Access Successful!</h4>
+                            <p><strong>Period:</strong> ${data.period}</p>
+                            <p><strong>Total Workers:</strong> ${data.statistics?.workers?.total || 0}</p>
+                            <p><strong>Total Incidents:</strong> ${data.statistics?.pending_approvals?.incidents || 0}</p>
+                            <p><strong>Safety Observations:</strong> ${data.statistics?.safety_observations?.total || 0}</p>
+                            <details>
+                                <summary>View Full Response</summary>
+                                <pre>${JSON.stringify(data, null, 2)}</pre>
+                            </details>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Dashboard Access Failed</h4>
+                            <p>Status: ${response.status}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Dashboard Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testIncidents() {
+            const resultDiv = document.getElementById('incidentsResult');
+            
+            if (!authToken) {
+                resultDiv.innerHTML = '<div class="error">❌ Please login first!</div>';
+                return;
+            }
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE}/api/v1/incidentmanagement/incidents/`);
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Incident Management Access Successful!</h4>
+                            <p><strong>Total Incidents:</strong> ${data.results?.length || 0}</p>
+                            <details>
+                                <summary>View Incidents</summary>
+                                <pre>${JSON.stringify(data, null, 2)}</pre>
+                            </details>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Incident Management Access Failed</h4>
+                            <p>Status: ${response.status}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Incident Management Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testSystemAccess() {
+            const resultDiv = document.getElementById('systemResult');
+            
+            if (!authToken) {
+                resultDiv.innerHTML = '<div class="error">❌ Please login first!</div>';
+                return;
+            }
+
+            const endpoints = [
+                '/authentication/company-data/',
+                '/authentication/userdetail/',
+                '/authentication/admin/me/'
+            ];
+
+            let results = '<h4>🔍 System Access Test Results:</h4>';
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const { response, data } = await makeRequest(`${API_BASE}${endpoint}`);
+                    
+                    if (response.ok) {
+                        results += `<p>✅ ${endpoint} - <span style="color: green;">SUCCESS</span></p>`;
+                    } else {
+                        results += `<p>❌ ${endpoint} - <span style="color: red;">FAILED (${response.status})</span></p>`;
+                    }
+                } catch (error) {
+                    results += `<p>❌ ${endpoint} - <span style="color: red;">ERROR: ${error.message}</span></p>`;
+                }
+            }
+            
+            resultDiv.innerHTML = `<div class="info">${results}</div>`;
+        }
+    </script>
+</body>
+</html>

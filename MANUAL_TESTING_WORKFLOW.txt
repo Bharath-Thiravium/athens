@@ -1,0 +1,1083 @@
+================================================================================
+                    UPATEPRO EHS MANAGEMENT SYSTEM
+                      MANUAL TESTING WORKFLOW
+                         Version 1.0
+                    Date: January 25, 2025
+================================================================================
+
+TABLE OF CONTENTS
+=================
+1. SYSTEM OVERVIEW
+2. PRE-TESTING SETUP
+3. AUTHENTICATION & USER MANAGEMENT TESTING
+4. SAFETY OBSERVATION TESTING
+5. INCIDENT MANAGEMENT & 8D TESTING
+6. PERMIT TO WORK (PTW) TESTING
+7. WORKER MANAGEMENT TESTING
+8. MEETING MANAGEMENT (MOM) TESTING
+9. TRAINING MANAGEMENT TESTING
+10. INSPECTION MANAGEMENT TESTING
+11. MANPOWER MANAGEMENT TESTING
+12. CHAT SYSTEM TESTING
+13. NOTIFICATION SYSTEM TESTING
+14. REPORTING & ANALYTICS TESTING
+15. MOBILE RESPONSIVENESS TESTING
+16. SECURITY TESTING
+17. PERFORMANCE TESTING
+18. INTEGRATION TESTING
+19. REGRESSION TESTING
+20. USER ACCEPTANCE TESTING
+
+================================================================================
+1. SYSTEM OVERVIEW
+================================================================================
+
+System Name: UpatePro EHS Management System
+Frontend: React 19.1.0 + TypeScript
+Backend: Django 5.2.1 + Django REST Framework
+Database: PostgreSQL
+Real-time: WebSocket (Django Channels)
+
+Test Environment URLs:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- Admin Panel: http://localhost:8000/admin
+
+================================================================================
+2. PRE-TESTING SETUP
+================================================================================
+
+2.1 ENVIRONMENT VERIFICATION
+-----------------------------
+□ Verify backend server is running on port 8000
+□ Verify frontend server is running on port 5173
+□ Verify PostgreSQL database is accessible
+□ Verify media files directory exists and is writable
+□ Check all environment variables are set correctly
+□ Verify CORS settings allow frontend-backend communication
+
+2.2 TEST DATA PREPARATION
+-------------------------
+□ Create test project: "Test Project Alpha"
+□ Create master admin user: master_admin / password123
+□ Create client admin: client_admin / password123
+□ Create EPC admin: epc_admin / password123
+□ Create contractor admin: contractor_admin / password123
+□ Create regular users for each admin type
+□ Prepare test files (images, PDFs) for upload testing
+□ Set up test worker data with valid Aadhaar/PAN numbers
+
+2.3 BROWSER COMPATIBILITY
+-------------------------
+□ Chrome (latest version)
+□ Firefox (latest version)
+□ Safari (latest version)
+□ Edge (latest version)
+□ Mobile browsers (Chrome Mobile, Safari Mobile)
+
+================================================================================
+3. AUTHENTICATION & USER MANAGEMENT TESTING
+================================================================================
+
+3.1 LOGIN FUNCTIONALITY
+------------------------
+Test Case: TC_AUTH_001 - Valid Login
+Steps:
+1. Navigate to http://localhost:5173
+2. Enter valid username and password
+3. Click "Login" button
+Expected Result: User redirected to dashboard based on role
+
+Test Case: TC_AUTH_002 - Invalid Login
+Steps:
+1. Navigate to login page
+2. Enter invalid credentials
+3. Click "Login" button
+Expected Result: Error message displayed, user remains on login page
+
+Test Case: TC_AUTH_003 - Empty Fields
+Steps:
+1. Navigate to login page
+2. Leave username/password empty
+3. Click "Login" button
+Expected Result: Validation errors displayed
+
+Test Case: TC_AUTH_004 - Password Reset Required
+Steps:
+1. Login with user having is_password_reset_required=True
+2. Verify redirect to reset password page
+3. Reset password successfully
+Expected Result: User can access system after password reset
+
+3.2 USER ROLE VERIFICATION
+---------------------------
+Test Case: TC_AUTH_005 - Master Admin Access
+Steps:
+1. Login as master admin
+2. Verify access to all system modules
+3. Check project management capabilities
+4. Verify user creation permissions
+Expected Result: Full system access granted
+
+Test Case: TC_AUTH_006 - Client Admin Access
+Steps:
+1. Login as client admin
+2. Verify limited access based on role
+3. Check user creation within client domain
+4. Verify project-specific data access
+Expected Result: Role-appropriate access granted
+
+Test Case: TC_AUTH_007 - Regular User Access
+Steps:
+1. Login as regular user (clientuser/epcuser/contractoruser)
+2. Verify read-only or limited write access
+3. Check module restrictions
+Expected Result: Appropriate restrictions enforced
+
+3.3 JWT TOKEN MANAGEMENT
+------------------------
+Test Case: TC_AUTH_008 - Token Expiry
+Steps:
+1. Login successfully
+2. Wait for token expiry (or manually expire)
+3. Attempt API call
+4. Verify automatic token refresh
+Expected Result: Token refreshed automatically or user redirected to login
+
+Test Case: TC_AUTH_009 - Logout Functionality
+Steps:
+1. Login successfully
+2. Click logout button
+3. Verify token invalidation
+4. Attempt to access protected route
+Expected Result: User logged out, tokens cleared, redirected to login
+
+================================================================================
+4. SAFETY OBSERVATION TESTING
+================================================================================
+
+4.1 OBSERVATION CREATION
+-------------------------
+Test Case: TC_SAFETY_001 - Create New Observation
+Steps:
+1. Login as authorized user
+2. Navigate to Safety Observation → Form
+3. Fill all required fields:
+   - Date: Current date
+   - Time: Current time
+   - Location: "Test Location Alpha"
+   - Department: "Production"
+   - Observation: "Unsafe condition observed"
+   - Type: "Unsafe Condition"
+   - Classification: Select multiple options
+   - Risk Assessment: Severity=3, Likelihood=2
+   - Corrective Action: "Immediate action required"
+   - Assigned To: Select user
+4. Upload before photos (JPG/PNG, <5MB)
+5. Submit form
+Expected Result: 
+- Observation created with auto-generated OBS-XXXXXXXXX ID
+- Success message displayed
+- Notification sent to assigned person
+
+Test Case: TC_SAFETY_002 - Form Validation
+Steps:
+1. Navigate to observation form
+2. Submit with empty required fields
+3. Test file upload with invalid formats
+4. Test file upload with oversized files
+Expected Result: Appropriate validation errors displayed
+
+Test Case: TC_SAFETY_003 - Risk Score Calculation
+Steps:
+1. Create observation with Severity=4, Likelihood=3
+2. Verify risk score = 12 (4×3)
+3. Check risk level classification
+Expected Result: Risk score calculated correctly, appropriate risk level assigned
+
+4.2 OBSERVATION WORKFLOW
+------------------------
+Test Case: TC_SAFETY_004 - Assignment Workflow
+Steps:
+1. Create observation assigned to User A
+2. Login as User A
+3. Navigate to assigned observations
+4. Set commitment date
+5. Update status to "In Progress"
+Expected Result: Status updated, notifications sent
+
+Test Case: TC_SAFETY_005 - Completion Workflow
+Steps:
+1. Continue from TC_SAFETY_004
+2. Upload after photos
+3. Add completion notes
+4. Mark as completed
+5. Verify reporter notification
+Expected Result: Observation marked complete, reporter notified for review
+
+Test Case: TC_SAFETY_006 - Review and Closure
+Steps:
+1. Login as original reporter
+2. Review completed observation
+3. Accept or reject completion
+4. Close observation if satisfied
+Expected Result: Observation closed, final status updated
+
+4.3 OBSERVATION MANAGEMENT
+--------------------------
+Test Case: TC_SAFETY_007 - List and Filter
+Steps:
+1. Navigate to Safety Observation → List
+2. Test filters: Status, Department, Date Range, Risk Level
+3. Test search functionality
+4. Test sorting options
+Expected Result: Filtering and search work correctly
+
+Test Case: TC_SAFETY_008 - Edit Observation
+Steps:
+1. Open existing observation
+2. Click edit button
+3. Modify fields (if user has permission)
+4. Save changes
+Expected Result: Changes saved successfully (based on user permissions)
+
+================================================================================
+5. INCIDENT MANAGEMENT & 8D TESTING
+================================================================================
+
+5.1 INCIDENT CREATION
+----------------------
+Test Case: TC_INCIDENT_001 - Create Incident
+Steps:
+1. Navigate to Incident Management → Create
+2. Fill incident details:
+   - Title: "Test Incident Alpha"
+   - Description: Detailed description
+   - Type: "Injury"
+   - Severity: "High"
+   - Location: "Production Floor"
+   - Date/Time: Current timestamp
+   - Reporter: Current user
+3. Submit incident
+Expected Result:
+- Incident created with INC-YYYY-NNNN format
+- 8D process auto-created with 8D-YYYY-NNNN format
+- Status changed to "8D Initiated"
+
+Test Case: TC_INCIDENT_002 - 8D Process Initiation
+Steps:
+1. Verify 8D process created automatically
+2. Check 8D team assignment
+3. Verify champion assignment
+4. Check initial discipline status
+Expected Result: 8D process properly initialized
+
+5.2 8D METHODOLOGY WORKFLOW
+---------------------------
+Test Case: TC_8D_001 - D1 Team Formation
+Steps:
+1. Navigate to 8D process
+2. Go to D1: Establish Team
+3. Add team members with roles:
+   - Champion
+   - Team Leader
+   - Subject Expert
+   - Process Owner
+4. Save team composition
+Expected Result: Team members added with appropriate roles
+
+Test Case: TC_8D_002 - D2 Problem Description
+Steps:
+1. Navigate to D2: Describe Problem
+2. Update problem statement
+3. Add detailed problem description
+4. Mark D2 as completed
+Expected Result: Problem description updated, D2 marked complete
+
+Test Case: TC_8D_003 - D3 Containment Actions
+Steps:
+1. Navigate to D3: Containment Actions
+2. Add containment action:
+   - Description: "Immediate isolation of affected area"
+   - Responsible person: Select user
+   - Implementation date: Current date
+3. Mark as implemented
+4. Verify effectiveness
+Expected Result: Containment action tracked through implementation
+
+Test Case: TC_8D_004 - D4 Root Cause Analysis
+Steps:
+1. Navigate to D4: Root Cause Analysis
+2. Add root causes:
+   - Immediate cause
+   - Contributing cause
+   - Root cause
+3. Select analysis method (5 Whys, Fishbone, etc.)
+4. Add supporting evidence
+5. Verify causes
+Expected Result: Root causes documented with evidence
+
+Test Case: TC_8D_005 - D5 Corrective Actions
+Steps:
+1. Navigate to D5: Corrective Actions
+2. Create corrective actions for each root cause
+3. Set target dates and responsible persons
+4. Add implementation plans
+Expected Result: Corrective actions planned and assigned
+
+Test Case: TC_8D_006 - D6 Implementation
+Steps:
+1. Navigate to D6: Implementation
+2. Track implementation progress
+3. Update progress percentages
+4. Add progress notes
+5. Upload completion evidence
+Expected Result: Implementation progress tracked
+
+Test Case: TC_8D_007 - D7 Prevention Actions
+Steps:
+1. Navigate to D7: Prevention
+2. Create prevention actions
+3. Define scope of application
+4. Set implementation timeline
+Expected Result: Prevention actions defined
+
+Test Case: TC_8D_008 - D8 Team Recognition
+Steps:
+1. Navigate to D8: Recognition
+2. Add recognition notes for team members
+3. Mark team members as recognized
+4. Complete 8D process
+Expected Result: Team recognized, 8D process completed
+
+5.3 INCIDENT ANALYTICS
+----------------------
+Test Case: TC_INCIDENT_003 - Cost Tracking
+Steps:
+1. Add cost centers to incident
+2. Track estimated vs actual costs
+3. Verify cost calculations
+Expected Result: Cost tracking accurate
+
+Test Case: TC_INCIDENT_004 - Metrics Calculation
+Steps:
+1. Verify time-to-report calculation
+2. Check investigation quality scores
+3. Validate compliance metrics
+Expected Result: Metrics calculated correctly
+
+================================================================================
+6. PERMIT TO WORK (PTW) TESTING
+================================================================================
+
+6.1 PERMIT CREATION
+--------------------
+Test Case: TC_PTW_001 - Create Hot Work Permit
+Steps:
+1. Navigate to PTW → Create Permit
+2. Select permit type: "Hot Work"
+3. Fill permit details:
+   - Title: "Welding Work - Tank Repair"
+   - Description: Detailed work description
+   - Location: "Tank Farm Area"
+   - Planned start: Tomorrow 8:00 AM
+   - Planned end: Tomorrow 5:00 PM
+   - Work nature: "Day Work"
+4. Add hazards and control measures
+5. Specify PPE requirements
+6. Submit permit
+Expected Result:
+- Permit created with PTW-YYYY-NNNNNN format
+- Status: "Draft"
+- Risk assessment initiated
+
+Test Case: TC_PTW_002 - Risk Assessment
+Steps:
+1. Complete risk assessment for created permit
+2. Set probability and severity scores
+3. Verify risk score calculation
+4. Check risk level assignment
+Expected Result: Risk properly assessed and categorized
+
+6.2 PERMIT WORKFLOW
+-------------------
+Test Case: TC_PTW_003 - Verification Process
+Steps:
+1. Submit permit for verification
+2. Login as safety officer
+3. Review permit details
+4. Verify safety requirements
+5. Approve or reject verification
+Expected Result: Permit moves to verification status
+
+Test Case: TC_PTW_004 - Approval Process
+Steps:
+1. Continue from verified permit
+2. Submit for management approval
+3. Login as approver
+4. Review and approve permit
+Expected Result: Permit status changes to "Approved"
+
+Test Case: TC_PTW_005 - Permit Activation
+Steps:
+1. Activate approved permit at start time
+2. Verify status change to "Active"
+3. Check work hour compliance
+Expected Result: Permit activated successfully
+
+Test Case: TC_PTW_006 - Work Completion
+Steps:
+1. Complete work activities
+2. Upload completion photos
+3. Mark permit as completed
+4. Close permit
+Expected Result: Permit closed successfully
+
+6.3 PERMIT EXTENSIONS
+---------------------
+Test Case: TC_PTW_007 - Time Extension
+Steps:
+1. Request permit extension before expiry
+2. Provide justification
+3. Submit extension request
+4. Approve extension
+5. Verify new end time
+Expected Result: Permit extended with proper approval
+
+6.4 PERMIT MANAGEMENT
+---------------------
+Test Case: TC_PTW_008 - Permit List and Search
+Steps:
+1. Navigate to PTW → List
+2. Test filters: Status, Type, Date Range
+3. Search by permit number
+4. Sort by different columns
+Expected Result: List functionality works correctly
+
+Test Case: TC_PTW_009 - Mobile Permit View
+Steps:
+1. Generate QR code for permit
+2. Scan QR code on mobile device
+3. Verify mobile-optimized view
+Expected Result: Mobile view displays correctly
+
+================================================================================
+7. WORKER MANAGEMENT TESTING
+================================================================================
+
+7.1 WORKER REGISTRATION
+-----------------------
+Test Case: TC_WORKER_001 - Create New Worker
+Steps:
+1. Navigate to Workers → Create
+2. Fill worker details:
+   - Name: "John"
+   - Surname: "Doe"
+   - Father/Spouse: "Robert Doe"
+   - DOB: "1990-01-15"
+   - Gender: "Male"
+   - Nationality: "Indian"
+   - Education: "High School Diploma"
+   - Joining Date: Current date
+   - Designation: "Machine Operator"
+   - Category: "Skilled"
+   - Department: "Production"
+   - Phone: "9876543210"
+   - Aadhaar: "123456789012"
+   - PAN: "ABCDE1234F"
+   - UAN: "123456789012"
+3. Upload worker photo
+4. Add addresses
+5. Submit form
+Expected Result:
+- Worker created with auto-generated WRK-NNNN ID
+- Status: "Initiated"
+- All validations pass
+
+Test Case: TC_WORKER_002 - Document Validation
+Steps:
+1. Test Aadhaar validation (12 digits)
+2. Test PAN validation (ABCDE1234F format)
+3. Test phone number validation (10 digits, starts with 6-9)
+4. Test duplicate document prevention
+Expected Result: Proper validation and uniqueness enforced
+
+7.2 WORKER LIFECYCLE
+--------------------
+Test Case: TC_WORKER_003 - Worker Approval
+Steps:
+1. Create worker (status: Initiated)
+2. Login as admin
+3. Review worker details
+4. Approve worker
+5. Change status to "Deployed"
+Expected Result: Worker status updated, ready for work assignment
+
+Test Case: TC_WORKER_004 - Worker Status Management
+Steps:
+1. Change worker status to different states:
+   - Active
+   - Inactive
+   - On Leave
+   - Terminated
+   - Site Transferred
+2. Verify status change effects
+Expected Result: Status changes tracked properly
+
+7.3 WORKER SEARCH AND MANAGEMENT
+--------------------------------
+Test Case: TC_WORKER_005 - Worker List and Filter
+Steps:
+1. Navigate to Workers list
+2. Test filters: Department, Designation, Status
+3. Search by name, worker ID, phone
+4. Test sorting options
+Expected Result: Search and filter functionality works
+
+Test Case: TC_WORKER_006 - Worker Profile Update
+Steps:
+1. Open worker profile
+2. Update contact information
+3. Change employment details
+4. Upload new photo
+5. Save changes
+Expected Result: Profile updated successfully
+
+================================================================================
+8. MEETING MANAGEMENT (MOM) TESTING
+================================================================================
+
+8.1 MEETING SCHEDULING
+----------------------
+Test Case: TC_MOM_001 - Schedule Meeting
+Steps:
+1. Navigate to MOM → Schedule
+2. Fill meeting details:
+   - Title: "Weekly Safety Review"
+   - Agenda: "Review safety incidents and observations"
+   - Date/Time: Tomorrow 10:00 AM
+   - Location: "Conference Room A"
+   - Department: "Safety"
+3. Add participants (select multiple users)
+4. Schedule meeting
+Expected Result:
+- Meeting created successfully
+- Invitations sent to participants
+- Status: "Scheduled"
+
+Test Case: TC_MOM_002 - Participant Response
+Steps:
+1. Login as invited participant
+2. Check notification for meeting invitation
+3. Click on meeting invitation link
+4. Respond with "Accept" or "Reject"
+Expected Result: Response recorded, organizer notified
+
+8.2 MEETING EXECUTION
+---------------------
+Test Case: TC_MOM_003 - Live Meeting
+Steps:
+1. At meeting time, start live meeting
+2. Mark participant attendance
+3. Add discussion points during meeting
+4. Update meeting status to "Live"
+Expected Result: Meeting marked as live, attendance tracked
+
+Test Case: TC_MOM_004 - Meeting Completion
+Steps:
+1. End live meeting
+2. Calculate meeting duration
+3. Mark status as "Completed"
+4. Generate meeting summary
+Expected Result: Meeting completed with proper duration tracking
+
+8.3 MEETING MANAGEMENT
+----------------------
+Test Case: TC_MOM_005 - Meeting List and History
+Steps:
+1. Navigate to MOM → List
+2. View scheduled, live, and completed meetings
+3. Filter by date range and status
+4. Search meetings by title
+Expected Result: Meeting history properly displayed
+
+Test Case: TC_MOM_006 - Meeting Cancellation
+Steps:
+1. Cancel scheduled meeting
+2. Notify participants of cancellation
+3. Update meeting status
+Expected Result: Meeting cancelled, participants notified
+
+================================================================================
+9. TRAINING MANAGEMENT TESTING
+================================================================================
+
+9.1 INDUCTION TRAINING
+----------------------
+Test Case: TC_TRAINING_001 - Schedule Induction
+Steps:
+1. Navigate to Induction Training
+2. Create new induction session
+3. Set date, time, and location
+4. Add participants
+5. Schedule training
+Expected Result: Induction training scheduled
+
+Test Case: TC_TRAINING_002 - Training Attendance
+Steps:
+1. Conduct induction training
+2. Mark participant attendance
+3. Record training completion
+4. Generate certificates
+Expected Result: Attendance tracked, certificates generated
+
+9.2 JOB TRAINING
+----------------
+Test Case: TC_TRAINING_003 - Job-Specific Training
+Steps:
+1. Navigate to Job Training
+2. Create job-specific training program
+3. Assign to relevant workers
+4. Track completion status
+Expected Result: Job training managed effectively
+
+9.3 TOOLBOX TALKS
+-----------------
+Test Case: TC_TRAINING_004 - Toolbox Talk Session
+Steps:
+1. Navigate to Toolbox Talk
+2. Create daily safety briefing
+3. Add safety topic and discussion points
+4. Record participant attendance with photos
+5. Complete session
+Expected Result: Toolbox talk recorded with attendance
+
+================================================================================
+10. INSPECTION MANAGEMENT TESTING
+================================================================================
+
+10.1 INSPECTION FORMS
+---------------------
+Test Case: TC_INSPECTION_001 - AC Cable Testing Form
+Steps:
+1. Navigate to Inspection → Forms → AC Cable Testing
+2. Create new inspection form
+3. Fill technical parameters
+4. Add test results
+5. Upload supporting documents
+6. Submit form
+Expected Result: Inspection form completed and saved
+
+Test Case: TC_INSPECTION_002 - Civil Work Checklist
+Steps:
+1. Navigate to Civil Work Checklist
+2. Complete checklist items
+3. Mark pass/fail for each item
+4. Add remarks and photos
+5. Submit checklist
+Expected Result: Checklist completed with proper validation
+
+10.2 INSPECTION REPORTS
+-----------------------
+Test Case: TC_INSPECTION_003 - Generate Reports
+Steps:
+1. Navigate to Inspection → Reports
+2. Select date range and inspection type
+3. Generate comprehensive report
+4. Export to PDF/Excel
+Expected Result: Reports generated accurately
+
+================================================================================
+11. MANPOWER MANAGEMENT TESTING
+================================================================================
+
+11.1 DAILY ATTENDANCE
+---------------------
+Test Case: TC_MANPOWER_001 - Record Attendance
+Steps:
+1. Navigate to Manpower → Add Attendance
+2. Select date and shift
+3. Mark worker attendance with photos
+4. Record working hours
+5. Submit attendance
+Expected Result: Attendance recorded with photo verification
+
+11.2 MANPOWER ANALYTICS
+-----------------------
+Test Case: TC_MANPOWER_002 - Visualization Dashboard
+Steps:
+1. Navigate to Manpower → Reports
+2. View attendance analytics
+3. Check department-wise distribution
+4. Analyze attendance trends
+Expected Result: Analytics displayed correctly
+
+================================================================================
+12. CHAT SYSTEM TESTING
+================================================================================
+
+12.1 REAL-TIME MESSAGING
+------------------------
+Test Case: TC_CHAT_001 - Send Message
+Steps:
+1. Navigate to Chatbox
+2. Select recipient or group
+3. Type message and send
+4. Verify real-time delivery
+Expected Result: Message sent and received instantly
+
+Test Case: TC_CHAT_002 - File Sharing
+Steps:
+1. In chat interface
+2. Upload file (document/image)
+3. Send file to recipient
+4. Verify file download
+Expected Result: File shared successfully
+
+12.2 CHAT MANAGEMENT
+--------------------
+Test Case: TC_CHAT_003 - Message History
+Steps:
+1. View chat history
+2. Search messages
+3. Filter by date/user
+Expected Result: Chat history properly maintained
+
+================================================================================
+13. NOTIFICATION SYSTEM TESTING
+================================================================================
+
+13.1 REAL-TIME NOTIFICATIONS
+----------------------------
+Test Case: TC_NOTIFY_001 - WebSocket Notifications
+Steps:
+1. Login with User A
+2. Perform action that triggers notification (create observation)
+3. Login with User B (assigned person)
+4. Verify real-time notification appears
+5. Click notification to navigate
+Expected Result: Real-time notification works correctly
+
+Test Case: TC_NOTIFY_002 - Notification Types
+Steps:
+1. Test different notification types:
+   - Safety observation assignment
+   - Incident assignment
+   - Meeting invitation
+   - PTW approval request
+   - 8D process updates
+Expected Result: All notification types work properly
+
+13.2 NOTIFICATION MANAGEMENT
+----------------------------
+Test Case: TC_NOTIFY_003 - Mark as Read
+Steps:
+1. Receive notifications
+2. Click to mark as read
+3. Verify read status
+Expected Result: Read status updated correctly
+
+================================================================================
+14. REPORTING & ANALYTICS TESTING
+================================================================================
+
+14.1 DASHBOARD ANALYTICS
+------------------------
+Test Case: TC_REPORT_001 - Dashboard KPIs
+Steps:
+1. Navigate to Dashboard
+2. Verify KPI calculations:
+   - Total safety observations
+   - Open incidents
+   - Active permits
+   - Worker count
+3. Check data accuracy
+Expected Result: KPIs display correct values
+
+Test Case: TC_REPORT_002 - Charts and Graphs
+Steps:
+1. Verify chart rendering
+2. Test interactive features
+3. Check data drill-down
+Expected Result: Charts display correctly with interactions
+
+14.2 REPORT GENERATION
+----------------------
+Test Case: TC_REPORT_003 - Safety Reports
+Steps:
+1. Generate safety observation report
+2. Select date range and filters
+3. Export to PDF/Excel
+4. Verify report content
+Expected Result: Reports generated accurately
+
+Test Case: TC_REPORT_004 - Incident Reports
+Steps:
+1. Generate incident analysis report
+2. Include 8D process status
+3. Add cost analysis
+4. Export report
+Expected Result: Comprehensive incident report generated
+
+================================================================================
+15. MOBILE RESPONSIVENESS TESTING
+================================================================================
+
+15.1 MOBILE INTERFACE
+---------------------
+Test Case: TC_MOBILE_001 - Login on Mobile
+Steps:
+1. Access system on mobile browser
+2. Test login functionality
+3. Verify responsive design
+Expected Result: Mobile login works properly
+
+Test Case: TC_MOBILE_002 - Form Submission
+Steps:
+1. Create safety observation on mobile
+2. Upload photos using camera
+3. Submit form
+Expected Result: Mobile form submission works
+
+Test Case: TC_MOBILE_003 - Navigation
+Steps:
+1. Test mobile navigation menu
+2. Verify touch interactions
+3. Check screen adaptation
+Expected Result: Mobile navigation intuitive
+
+================================================================================
+16. SECURITY TESTING
+================================================================================
+
+16.1 AUTHENTICATION SECURITY
+----------------------------
+Test Case: TC_SEC_001 - SQL Injection
+Steps:
+1. Attempt SQL injection in login fields
+2. Test in search and filter fields
+3. Verify input sanitization
+Expected Result: SQL injection prevented
+
+Test Case: TC_SEC_002 - XSS Prevention
+Steps:
+1. Attempt script injection in text fields
+2. Test file upload with malicious content
+3. Verify output encoding
+Expected Result: XSS attacks prevented
+
+Test Case: TC_SEC_003 - CSRF Protection
+Steps:
+1. Test cross-site request forgery
+2. Verify CSRF token validation
+3. Check referrer validation
+Expected Result: CSRF attacks prevented
+
+16.2 AUTHORIZATION TESTING
+--------------------------
+Test Case: TC_SEC_004 - Role-Based Access
+Steps:
+1. Login as different user roles
+2. Attempt unauthorized actions
+3. Verify permission enforcement
+Expected Result: Proper access control enforced
+
+Test Case: TC_SEC_005 - API Security
+Steps:
+1. Test API endpoints without authentication
+2. Verify JWT token validation
+3. Test token expiry handling
+Expected Result: API properly secured
+
+================================================================================
+17. PERFORMANCE TESTING
+================================================================================
+
+17.1 LOAD TESTING
+-----------------
+Test Case: TC_PERF_001 - Concurrent Users
+Steps:
+1. Simulate 50 concurrent users
+2. Perform various operations
+3. Monitor response times
+4. Check system stability
+Expected Result: System handles load gracefully
+
+Test Case: TC_PERF_002 - Database Performance
+Steps:
+1. Test with large datasets
+2. Monitor query performance
+3. Check pagination efficiency
+Expected Result: Database queries optimized
+
+17.2 FRONTEND PERFORMANCE
+------------------------
+Test Case: TC_PERF_003 - Page Load Times
+Steps:
+1. Measure initial page load
+2. Test navigation between pages
+3. Monitor bundle sizes
+Expected Result: Fast page loads and navigation
+
+================================================================================
+18. INTEGRATION TESTING
+================================================================================
+
+18.1 API INTEGRATION
+--------------------
+Test Case: TC_INT_001 - Frontend-Backend Integration
+Steps:
+1. Test all API endpoints from frontend
+2. Verify data consistency
+3. Check error handling
+Expected Result: Seamless integration
+
+Test Case: TC_INT_002 - WebSocket Integration
+Steps:
+1. Test real-time features
+2. Verify connection stability
+3. Check message delivery
+Expected Result: Real-time features work reliably
+
+18.2 DATABASE INTEGRATION
+-------------------------
+Test Case: TC_INT_003 - Data Integrity
+Steps:
+1. Test CRUD operations
+2. Verify foreign key constraints
+3. Check transaction handling
+Expected Result: Data integrity maintained
+
+================================================================================
+19. REGRESSION TESTING
+================================================================================
+
+19.1 CORE FUNCTIONALITY
+-----------------------
+Test Case: TC_REG_001 - Critical Path Testing
+Steps:
+1. Re-run all critical test cases
+2. Verify no functionality broken
+3. Check new features don't affect existing ones
+Expected Result: All existing functionality works
+
+19.2 USER WORKFLOWS
+-------------------
+Test Case: TC_REG_002 - End-to-End Workflows
+Steps:
+1. Complete full safety observation workflow
+2. Complete full incident management workflow
+3. Complete full PTW workflow
+Expected Result: All workflows function correctly
+
+================================================================================
+20. USER ACCEPTANCE TESTING
+================================================================================
+
+20.1 BUSINESS SCENARIOS
+-----------------------
+Test Case: TC_UAT_001 - Real-World Safety Scenario
+Steps:
+1. Simulate actual safety observation scenario
+2. Follow complete workflow from observation to closure
+3. Verify business rules and notifications
+Expected Result: System meets business requirements
+
+Test Case: TC_UAT_002 - Incident Management Scenario
+Steps:
+1. Create realistic incident
+2. Follow 8D methodology completely
+3. Verify all stakeholders receive proper notifications
+Expected Result: Incident management meets business needs
+
+20.2 USER EXPERIENCE
+--------------------
+Test Case: TC_UAT_003 - Usability Testing
+Steps:
+1. Have end users perform common tasks
+2. Gather feedback on interface
+3. Identify usability issues
+Expected Result: System is user-friendly and intuitive
+
+================================================================================
+TEST EXECUTION CHECKLIST
+================================================================================
+
+PRE-EXECUTION:
+□ Test environment setup complete
+□ Test data prepared
+□ All test accounts created
+□ Browser compatibility verified
+□ Network connectivity confirmed
+
+DURING EXECUTION:
+□ Document all test results
+□ Capture screenshots for failures
+□ Log defects with proper details
+□ Verify fixes before marking complete
+□ Update test status regularly
+
+POST-EXECUTION:
+□ Generate test execution report
+□ Document known issues
+□ Provide recommendations
+□ Archive test artifacts
+□ Plan regression testing
+
+================================================================================
+DEFECT REPORTING TEMPLATE
+================================================================================
+
+Defect ID: DEF_YYYYMMDD_NNN
+Test Case ID: TC_XXX_NNN
+Module: [Module Name]
+Severity: Critical/High/Medium/Low
+Priority: P1/P2/P3/P4
+
+Steps to Reproduce:
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
+
+Expected Result:
+[What should happen]
+
+Actual Result:
+[What actually happened]
+
+Environment:
+Browser: [Browser name and version]
+OS: [Operating system]
+URL: [Page URL where issue occurred]
+
+Attachments:
+- Screenshot
+- Console logs
+- Network logs
+
+================================================================================
+TEST COMPLETION CRITERIA
+================================================================================
+
+ENTRY CRITERIA:
+□ All modules deployed and accessible
+□ Test environment stable
+□ Test data available
+□ Test team ready
+
+EXIT CRITERIA:
+□ All planned test cases executed
+□ Critical and high severity defects resolved
+□ System performance acceptable
+□ Security vulnerabilities addressed
+□ User acceptance criteria met
+□ Test coverage > 90%
+
+SIGN-OFF:
+Test Lead: _________________ Date: _________
+Project Manager: __________ Date: _________
+Business Analyst: _________ Date: _________
+
+================================================================================
+END OF MANUAL TESTING WORKFLOW
+================================================================================

@@ -1,0 +1,35 @@
+EHS Management System — Video Narration Script
+
+Slide 1 — Title
+Welcome to the EHS Management System enterprise overview. In the next few minutes, we will cover the platform’s architecture, key capabilities, security posture, and commercial value.
+
+Slide 2 — Problem & Opportunity
+Most organizations struggle with fragmented EHS data and manual workflows. This increases regulatory exposure and makes audits expensive. Our platform unifies EHS processes with real-time visibility and standardization.
+
+Slide 3 — Solution Snapshot
+The solution spans incidents, safety observations, trainings, permits-to-work, meetings and minutes, manpower tracking, and projects. It provides a role and approval-aware UX, notifications, and analytics.
+
+Slide 4 — Architecture
+The frontend is a React and TypeScript single-page application. It communicates with a Django REST Framework API secured by JSON Web Tokens. Notifications are delivered via WebSockets. Data resides in PostgreSQL and object storage, and everything is served securely behind Nginx with TLS.
+
+Slide 5 — Key Differentiators
+We model two kinds of roles. The organizational user type controls route access, while the Django user type controls approval workflows. Centralized menu gating keeps the user interface consistent with approval status, and notifications keep everyone aligned.
+
+Slide 6 — Capabilities
+Incidents support the full lifecycle from reporting to verification and analytics. Safety observations and job or induction training are first-class modules. Permits-to-work, meetings and minutes of meeting, and manpower attendance complete the operational coverage.
+
+Slide 7 — Security & Compliance
+Security includes JWT authentication with refresh, CSRF headers for non-GET requests, and least-privilege data access. The system aligns with ISO 45001 and ISO 14001 and supports OSHA recordkeeping.
+
+Slide 8 — Deployment & Operations
+The platform is containerized and deployable behind Nginx with TLS. We recommend staging and production environments, automated backups, and observability for logs and metrics.
+
+Slide 9 — ROI & KPIs
+Organizations typically see faster incident closeouts, fewer missing training records, and significantly reduced audit preparation time.
+
+Slide 10 — Roadmap
+Future enhancements include single sign-on and multi-factor authentication, advanced analytics, offline capture, and IoT integrations.
+
+Slide 11 — Next Steps
+Contact us for a tailored demo, pilot with one or two sites, and a full enterprise rollout plan.
+

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        .warning { background: #fff3e0; color: #ef6c00; }
+        button { margin: 5px; padding: 10px 15px; }
+        input { margin: 5px; padding: 8px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>Authentication Debug Tool</h1>
+    
+    <div>
+        <h3>Login Test</h3>
+        <input type="text" id="username" placeholder="Username" value="ilaiaraja">
+        <input type="password" id="password" placeholder="Password" value="">
+        <button onclick="testLogin()">Test Login</button>
+    </div>
+    
+    <div>
+        <h3>WebSocket Test</h3>
+        <button onclick="testWebSocket()">Test WebSocket Connection</button>
+        <button onclick="closeWebSocket()">Close WebSocket</button>
+    </div>
+    
+    <div>
+        <h3>Token Test</h3>
+        <button onclick="testTokenRefresh()">Test Token Refresh</button>
+        <button onclick="testTokenValidation()">Test Token Validation</button>
+        <button onclick="clearTokens()">Clear All Tokens</button>
+    </div>
+    
+    <div id="logs"></div>
+
+    <script>
+        let ws = null;
+        let currentToken = null;
+        
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logs.appendChild(div);
+            logs.scrollTop = logs.scrollHeight;
+            console.log(message);
+        }
+        
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                log('Please enter username and password', 'error');
+                return;
+            }
+            
+            try {
+                log('🔐 Attempting login...', 'info');
+                
+                const response = await fetch('http://localhost:8000/authentication/login/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentToken = data.access;
+                    localStorage.setItem('token', data.access);
+                    localStorage.setItem('refreshToken', data.refresh);
+                    log(`✅ Login successful! Token: ${data.access.substring(0, 50)}...`, 'success');
+                    log(`✅ Refresh token: ${data.refresh.substring(0, 50)}...`, 'success');
+                } else {
+                    log(`❌ Login failed: ${data.detail || JSON.stringify(data)}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Login error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testWebSocket() {
+            const token = currentToken || localStorage.getItem('token');
+            
+            if (!token) {
+                log('❌ No token available for WebSocket test', 'error');
+                return;
+            }
+            
+            try {
+                log('🔌 Testing WebSocket connection...', 'info');
+                
+                const wsUrl = `ws://localhost:8000/ws/notifications/?token=${token}`;
+                log(`🔗 WebSocket URL: ${wsUrl.substring(0, 80)}...`, 'info');
+                
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = function(event) {
+                    log('✅ WebSocket connection opened successfully!', 'success');
+                };
+                
+                ws.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        log(`📨 WebSocket message: ${JSON.stringify(data)}`, 'success');
+                    } catch (e) {
+                        log(`📨 WebSocket raw message: ${event.data}`, 'info');
+                    }
+                };
+                
+                ws.onclose = function(event) {
+                    log(`🔌 WebSocket closed: Code ${event.code}, Reason: ${event.reason}`, 'warning');
+                    if (event.code === 4001) {
+                        log('❌ WebSocket closed due to authentication failure', 'error');
+                    }
+                };
+                
+                ws.onerror = function(error) {
+                    log('❌ WebSocket error occurred', 'error');
+                };
+                
+            } catch (error) {
+                log(`❌ WebSocket test error: ${error.message}`, 'error');
+            }
+        }
+        
+        function closeWebSocket() {
+            if (ws) {
+                ws.close();
+                log('🔌 WebSocket connection closed manually', 'info');
+            } else {
+                log('⚠️ No WebSocket connection to close', 'warning');
+            }
+        }
+        
+        async function testTokenRefresh() {
+            const refreshToken = localStorage.getItem('refreshToken');
+            
+            if (!refreshToken) {
+                log('❌ No refresh token available', 'error');
+                return;
+            }
+            
+            try {
+                log('🔄 Testing token refresh...', 'info');
+                
+                const response = await fetch('http://localhost:8000/authentication/token/refresh/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ refresh: refreshToken })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentToken = data.access;
+                    localStorage.setItem('token', data.access);
+                    log(`✅ Token refresh successful! New token: ${data.access.substring(0, 50)}...`, 'success');
+                } else {
+                    log(`❌ Token refresh failed: ${data.detail || JSON.stringify(data)}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Token refresh error: ${error.message}`, 'error');
+            }
+        }
+        
+        function testTokenValidation() {
+            const token = currentToken || localStorage.getItem('token');
+            
+            if (!token) {
+                log('❌ No token to validate', 'error');
+                return;
+            }
+            
+            try {
+                log('🔍 Validating token...', 'info');
+                
+                // Decode JWT payload
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    log('❌ Invalid token format', 'error');
+                    return;
+                }
+                
+                const payload = JSON.parse(atob(parts[1]));
+                const currentTime = Math.floor(Date.now() / 1000);
+                
+                log(`📋 Token payload: ${JSON.stringify(payload, null, 2)}`, 'info');
+                log(`⏰ Current time: ${currentTime}`, 'info');
+                log(`⏰ Token expires: ${payload.exp}`, 'info');
+                log(`⏰ Time until expiry: ${payload.exp - currentTime} seconds`, 'info');
+                
+                if (payload.exp && payload.exp > currentTime) {
+                    log('✅ Token is valid and not expired', 'success');
+                } else {
+                    log('❌ Token is expired', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Token validation error: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearTokens() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            currentToken = null;
+            log('🧹 All tokens cleared', 'info');
+        }
+        
+        // Auto-load token on page load
+        window.onload = function() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                currentToken = token;
+                log(`🔑 Loaded existing token: ${token.substring(0, 50)}...`, 'info');
+                testTokenValidation();
+            } else {
+                log('ℹ️ No existing token found', 'info');
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+%% Mermaid diagrams collection for PDF export
+
+%% System Architecture
+flowchart LR
+  User((User))-->|HTTPS|SPA[React SPA]
+  SPA-->|REST/JSON|API[(DRF API)]
+  SPA-->|WS|WS[WebSocket Gateway]
+  API-->DB[(PostgreSQL)]
+  API-->Store[(Object Storage)]
+  Nginx[Nginx/TLS]---SPA
+  Nginx---API
+
+%% Auth + Approval Flow
+flowchart TD
+  A[Login]-->B{django_user_type}
+  B--projectadmin-->C[Open Admin Detail]
+  B--adminuser-->D[Open Profile]
+  C-->E[Submit for approval]
+  D-->E
+  E-->F[Master reviews]
+  F-->G[Approved]
+  G-->H[Full menu access]
+

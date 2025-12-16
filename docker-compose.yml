@@ -1,0 +1,167 @@
+# ============================================================================
+# EHS Management System - Docker Compose Configuration
+# ============================================================================
+# Production-ready multi-service setup with security and monitoring
+#
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # Database Service
+  # ============================================================================
+  database:
+    image: postgres:15-alpine
+    container_name: ehs-database
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-ehs_management}
+      POSTGRES_USER: ${DB_USER:-ehs_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    networks:
+      - ehs-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ehs_user} -d ${DB_NAME:-ehs_management}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ============================================================================
+  # Redis Service (for caching and sessions)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: ehs-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - ehs-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # Backend Service
+  # ============================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: ehs-backend
+    restart: unless-stopped
+    environment:
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY}
+      - DB_NAME=${DB_NAME:-ehs_management}
+      - DB_USER=${DB_USER:-ehs_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=database
+      - DB_PORT=5432
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
+    volumes:
+      - media_files:/app/media
+      - static_files:/app/staticfiles
+      - app_logs:/app/logs
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    networks:
+      - ehs-network
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ============================================================================
+  # Frontend Service
+  # ============================================================================
+  frontend:
+    build:
+      context: ./frontedn
+      dockerfile: Dockerfile
+      target: production
+    container_name: ehs-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    networks:
+      - ehs-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # Nginx Load Balancer (Optional - for production scaling)
+  # ============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: ehs-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - static_files:/var/www/static:ro
+      - media_files:/var/www/media:ro
+    networks:
+      - ehs-network
+    depends_on:
+      - frontend
+      - backend
+    profiles:
+      - production
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  ehs-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  media_files:
+    driver: local
+  static_files:
+    driver: local
+  app_logs:
+    driver: local

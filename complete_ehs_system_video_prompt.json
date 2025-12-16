@@ -1,0 +1,369 @@
+{
+  "video_generation_prompt": {
+    "company_name": "Athena Solutions",
+    "product_name": "EHS Pro - Complete Safety Management System",
+    "system_overview": "Comprehensive Environment, Health & Safety Management Platform",
+    "video_specifications": {
+      "duration": "180-240 seconds",
+      "style": "Professional corporate presentation with dynamic transitions",
+      "tone": "Authoritative, innovative, comprehensive",
+      "target_audience": "Safety directors, EHS managers, corporate executives, project managers",
+      "resolution": "1920x1080 (Full HD)",
+      "format": "MP4"
+    },
+    "complete_system_modules": [
+      {
+        "module": "Incident Management System",
+        "description": "Advanced incident reporting with 8D problem-solving methodology",
+        "key_features": [
+          "17 incident types with comprehensive reporting",
+          "8-discipline problem solving process",
+          "Risk assessment matrix with automated scoring",
+          "Cost impact analysis with 13 categories",
+          "Regulatory compliance (OSHA, ISO 45001, ISO 14001)",
+          "AI-powered root cause analysis",
+          "Real-time analytics and dashboards"
+        ],
+        "visual_elements": [
+          "8D workflow diagram",
+          "Risk matrix visualization",
+          "Cost tracking dashboard",
+          "Mobile incident reporting"
+        ]
+      },
+      {
+        "module": "Permit to Work (PTW) System",
+        "description": "Comprehensive work authorization and safety permit management",
+        "key_features": [
+          "26 permit categories (hot work, confined space, electrical, etc.)",
+          "Multi-level approval workflow",
+          "Risk-based permit classification",
+          "Digital signatures and QR codes",
+          "Gas testing and isolation management",
+          "Real-time permit tracking",
+          "Mobile permit creation and approval"
+        ],
+        "visual_elements": [
+          "Permit workflow visualization",
+          "Digital signature interface",
+          "QR code scanning",
+          "Risk assessment forms"
+        ]
+      },
+      {
+        "module": "Safety Observation Management",
+        "description": "Behavioral safety observation and hazard identification system",
+        "key_features": [
+          "11 observation types (unsafe acts, conditions, near misses)",
+          "15 classification categories",
+          "Risk scoring with severity and likelihood",
+          "CAPA (Corrective and Preventive Actions)",
+          "Photo documentation",
+          "Trend analysis and reporting"
+        ],
+        "visual_elements": [
+          "Mobile observation forms",
+          "Risk scoring interface",
+          "Photo documentation",
+          "Trend analysis charts"
+        ]
+      },
+      {
+        "module": "Toolbox Talk Management",
+        "description": "Safety meeting and training session management",
+        "key_features": [
+          "Scheduled safety meetings",
+          "Attendance tracking with face recognition",
+          "Evidence photo capture",
+          "Duration and location tracking",
+          "Worker participation analytics",
+          "Compliance reporting"
+        ],
+        "visual_elements": [
+          "Meeting scheduling interface",
+          "Face recognition attendance",
+          "Evidence photo capture",
+          "Attendance analytics"
+        ]
+      },
+      {
+        "module": "Inspection & Audit Management",
+        "description": "Comprehensive safety inspection and audit system",
+        "key_features": [
+          "8 inspection types (safety, quality, environmental)",
+          "Customizable inspection checklists",
+          "Compliance status tracking",
+          "Photo documentation",
+          "Automated report generation",
+          "Non-compliance tracking"
+        ],
+        "visual_elements": [
+          "Digital inspection forms",
+          "Compliance dashboards",
+          "Photo documentation",
+          "Automated reports"
+        ]
+      },
+      {
+        "module": "Training & Induction Management",
+        "description": "Worker training and induction program management",
+        "key_features": [
+          "Induction training scheduling",
+          "Attendance tracking",
+          "Training completion certificates",
+          "Competency management",
+          "Training analytics",
+          "Compliance tracking"
+        ],
+        "visual_elements": [
+          "Training schedules",
+          "Digital certificates",
+          "Competency matrices",
+          "Training analytics"
+        ]
+      },
+      {
+        "module": "Manpower Management",
+        "description": "Workforce tracking and resource management",
+        "key_features": [
+          "Daily manpower tracking",
+          "Work type categorization",
+          "Shift management",
+          "Attendance status tracking",
+          "Overtime monitoring",
+          "Efficiency analytics"
+        ],
+        "visual_elements": [
+          "Manpower dashboards",
+          "Shift scheduling",
+          "Attendance tracking",
+          "Efficiency metrics"
+        ]
+      },
+      {
+        "module": "Minutes of Meeting (MOM) System",
+        "description": "Meeting documentation and action item tracking",
+        "key_features": [
+          "Meeting documentation",
+          "Action item assignment",
+          "Follow-up tracking",
+          "Participant management",
+          "Decision recording",
+          "Compliance documentation"
+        ],
+        "visual_elements": [
+          "Meeting templates",
+          "Action item tracking",
+          "Participant lists",
+          "Follow-up dashboards"
+        ]
+      }
+    ],
+    "technical_architecture": {
+      "backend": {
+        "framework": "Django REST Framework",
+        "database": "PostgreSQL with Redis caching",
+        "ai_integration": "OpenAI, Anthropic, LangChain",
+        "task_processing": "Celery with Redis",
+        "security": "JWT authentication, role-based permissions"
+      },
+      "frontend": {
+        "framework": "React TypeScript",
+        "ui_library": "Ant Design components",
+        "responsive": "Mobile-first responsive design",
+        "offline": "Progressive Web App capabilities"
+      },
+      "deployment": {
+        "containerization": "Docker containers",
+        "orchestration": "Docker Compose",
+        "cloud_ready": "AWS, Azure, GCP compatible",
+        "scalability": "Microservices architecture"
+      }
+    },
+    "script_structure": {
+      "opening": {
+        "duration": "0-20 seconds",
+        "content": "Introducing Athena's Solutions EHS Pro - The most comprehensive safety management platform for modern enterprises",
+        "visuals": "Company logo, industrial workplace montage, safety professionals at work"
+      },
+      "problem_statement": {
+        "duration": "20-40 seconds",
+        "content": "Traditional safety management is fragmented across multiple systems, lacks integration, and provides limited visibility into safety performance",
+        "visuals": "Split screen showing disconnected systems vs integrated platform"
+      },
+      "solution_overview": {
+        "duration": "40-120 seconds",
+        "content": "EHS Pro unifies all safety processes in one intelligent platform - from incident management to permit systems, observations to training",
+        "visuals": "System architecture diagram, module interconnections, unified dashboard"
+      },
+      "module_showcase": {
+        "duration": "120-180 seconds",
+        "content": "Eight integrated modules working seamlessly together - Incident Management with 8D methodology, Permit to Work with 26 categories, Safety Observations, Toolbox Talks, Inspections, Training, Manpower, and Meeting Management",
+        "visuals": "Quick showcase of each module's key interface, smooth transitions between modules"
+      },
+      "key_benefits": {
+        "duration": "180-210 seconds",
+        "content": "Reduce incidents by 75%, improve compliance by 90%, increase efficiency by 60%, and transform your safety culture with data-driven insights",
+        "visuals": "Statistics animation, ROI metrics, success stories, before/after comparisons"
+      },
+      "call_to_action": {
+        "duration": "210-240 seconds",
+        "content": "Transform your safety management with Athena's Solutions EHS Pro. Schedule your comprehensive demo today",
+        "visuals": "Contact information, demo booking interface, company branding"
+      }
+    },
+    "key_differentiators": [
+      "Only system with integrated 8D methodology for incident management",
+      "26 permit categories covering all industrial work types",
+      "AI-powered safety insights and recommendations",
+      "Complete mobile-first design for field operations",
+      "Face recognition for attendance and verification",
+      "Real-time risk assessment and scoring",
+      "Comprehensive regulatory compliance framework",
+      "Advanced analytics with predictive capabilities"
+    ],
+    "integration_capabilities": [
+      "ERP system integration",
+      "HR system connectivity",
+      "IoT sensor data integration",
+      "Third-party safety equipment",
+      "Notification systems (email, SMS, push)",
+      "Document management systems",
+      "Business intelligence platforms",
+      "Mobile device management"
+    ],
+    "compliance_standards": [
+      "OSHA (Occupational Safety and Health Administration)",
+      "ISO 45001 (Occupational Health and Safety)",
+      "ISO 14001 (Environmental Management)",
+      "ISO 9001 (Quality Management)",
+      "Local regulatory frameworks",
+      "Industry-specific standards",
+      "Corporate safety policies",
+      "International safety protocols"
+    ],
+    "target_industries": [
+      "Construction and Infrastructure",
+      "Oil, Gas and Energy",
+      "Manufacturing and Industrial",
+      "Chemical and Pharmaceutical",
+      "Mining and Resources",
+      "Transportation and Logistics",
+      "Utilities and Power Generation",
+      "Marine and Offshore Operations"
+    ],
+    "roi_metrics": [
+      "75% reduction in incident recurrence",
+      "90% improvement in regulatory compliance",
+      "60% increase in operational efficiency",
+      "50% reduction in safety-related costs",
+      "85% improvement in safety culture engagement",
+      "40% faster incident investigation completion",
+      "95% reduction in paperwork and manual processes",
+      "70% improvement in audit readiness"
+    ],
+    "visual_style_guide": {
+      "color_palette": {
+        "primary": "#1890ff",
+        "secondary": "#52c41a",
+        "accent": "#faad14",
+        "warning": "#ff4d4f",
+        "success": "#52c41a",
+        "background": "#f0f2f5"
+      },
+      "typography": {
+        "primary_font": "Inter, sans-serif",
+        "heading_style": "Bold, modern, clean",
+        "body_style": "Clear, readable, professional"
+      },
+      "animation_style": "Smooth transitions, professional motion graphics, data visualizations",
+      "ui_elements": "Modern dashboard interfaces, mobile-responsive designs, clean data visualizations"
+    },
+    "data_points_showcase": [
+      "8 integrated safety modules",
+      "26 permit categories supported",
+      "17 incident types with 8D methodology",
+      "11 safety observation types",
+      "15 classification categories",
+      "8 inspection types",
+      "Multi-level approval workflows",
+      "Real-time risk assessment",
+      "AI-powered analytics",
+      "Mobile-first design",
+      "Face recognition technology",
+      "Digital signatures and QR codes"
+    ],
+    "competitive_advantages": [
+      "Most comprehensive EHS platform in the market",
+      "Only system with integrated 8D problem-solving methodology",
+      "Advanced AI integration for predictive safety insights",
+      "Complete mobile-first architecture",
+      "Seamless module integration and data flow",
+      "Industry-leading face recognition technology",
+      "Extensive customization and configuration options",
+      "Proven ROI with measurable safety improvements"
+    ],
+    "security_features": [
+      "Enterprise-grade security architecture",
+      "Role-based access control",
+      "Multi-factor authentication",
+      "Data encryption at rest and in transit",
+      "Comprehensive audit trails",
+      "GDPR and privacy compliance",
+      "Secure API endpoints",
+      "Regular security assessments"
+    ],
+    "scalability_features": [
+      "Multi-tenant architecture",
+      "Cloud-native deployment",
+      "Horizontal scaling capabilities",
+      "Load balancing and failover",
+      "99.9% uptime guarantee",
+      "Global deployment options",
+      "Performance optimization",
+      "Resource auto-scaling"
+    ],
+    "contact_information": {
+      "company": "Athena Solutions",
+      "website": "athenas.co.in",
+      "email": "info@athenas.co.in",
+      "phone": "+91-9080654027",
+      "demo_booking": "Schedule your comprehensive system demo",
+      "support": "24/7 technical support available"
+    },
+    "call_to_action_options": [
+      "Schedule a personalized demo today",
+      "Request a comprehensive system evaluation",
+      "Start your free trial now",
+      "Contact our safety experts",
+      "Download detailed product specifications",
+      "Join thousands of satisfied customers"
+    ],
+    "success_metrics_animation": [
+      "Incident reduction: 0% → 75%",
+      "Compliance improvement: 60% → 95%",
+      "Efficiency gain: 40% → 100%",
+      "Cost savings: $0 → $500K annually",
+      "User satisfaction: 70% → 98%",
+      "Implementation time: 6 months → 30 days"
+    ],
+    "module_interconnection_flow": [
+      "Incident → Investigation → 8D Process → Lessons Learned",
+      "Permit → Risk Assessment → Approval → Work Execution",
+      "Observation → CAPA → Training → Verification",
+      "Inspection → Non-compliance → Corrective Action → Follow-up",
+      "Training → Competency → Work Assignment → Performance",
+      "Meeting → Action Items → Assignment → Tracking"
+    ],
+    "technology_highlights": [
+      "Artificial Intelligence for predictive safety analytics",
+      "Machine Learning for pattern recognition",
+      "Computer Vision for face recognition",
+      "Natural Language Processing for document analysis",
+      "Real-time data processing and notifications",
+      "Advanced reporting and business intelligence",
+      "Mobile-first progressive web application",
+      "Cloud-native microservices architecture"
+    ]
+  }
+}

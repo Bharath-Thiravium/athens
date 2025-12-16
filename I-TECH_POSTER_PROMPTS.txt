@@ -1,0 +1,324 @@
+🎨 I-TECH COMPANY POSTER DESIGN PROMPTS
+=====================================
+
+🚀 MAIN COMPANY POSTER PROMPT
+============================
+
+**For Midjourney, DALL-E, Leonardo AI, or Stable Diffusion:**
+
+Create a modern, professional poster for "I-TECH - Complete Digital Solutions Company" with these specifications:
+
+VISUAL COMPOSITION:
+- Futuristic tech company aesthetic with vibrant colors
+- Central focus: "I-TECH" logo in bold, modern typography
+- Background: Dynamic gradient from electric blue (#00D4FF) to purple (#8B5CF6)
+- Digital elements: Circuit patterns, code snippets, AI neural networks
+- Creative workspace imagery: computers, cameras, editing suites, design tablets
+
+MAIN HEADLINE:
+"I-TECH"
+Subtitle: "Complete Digital Solutions & Automation Services"
+
+CORE SERVICES TO SHOWCASE:
+- Custom Software Development
+- AI Agent Development & Automation
+- Professional Design Services
+- Video Editing & Production
+- Web & Mobile Applications
+- Digital Marketing Solutions
+- UI/UX Design
+- System Integration
+
+VISUAL ELEMENTS:
+- Multiple screens showing: code editor, design software, video timeline
+- AI robot/automation symbols
+- Creative tools: cameras, design tablets, editing equipment
+- Software interfaces and dashboards
+- Automation workflow diagrams
+- Video production equipment
+- Design mockups and prototypes
+- Professional team working on various projects
+
+TYPOGRAPHY:
+- Primary font: Futura or similar modern tech font
+- Company name: Bold, large, tech-style lettering
+- Services: Clean, organized grid layout
+- Color scheme: Electric blue (#00D4FF), Purple (#8B5CF6), Orange (#FF6B35), White (#FFFFFF)
+
+LAYOUT STRUCTURE:
+- Top: I-TECH logo with tagline
+- Center: Service grid with icons (4x2 layout)
+- Bottom: Contact information and social media
+- Background: Subtle tech patterns and geometric shapes
+
+TECHNICAL SPECIFICATIONS:
+- Resolution: 300 DPI for print quality
+- Dimensions: A2 size (16.5 x 23.4 inches) or 4961 x 7016 pixels
+- Format: High-resolution PNG or PDF
+- Style: Modern, vibrant, tech-forward
+
+🎯 SERVICE-SPECIFIC SECTIONS
+===========================
+
+SOFTWARE DEVELOPMENT SECTION:
+- Code editor screenshots
+- Multiple programming language logos
+- Database and cloud architecture diagrams
+- Mobile and web app mockups
+- API integration visualizations
+
+AI AUTOMATION SECTION:
+- Robot/AI assistant illustrations
+- Automation workflow charts
+- Machine learning model diagrams
+- Process automation icons
+- AI brain neural network graphics
+
+DESIGN SERVICES SECTION:
+- Creative design tools (Photoshop, Illustrator, Figma)
+- Logo design examples
+- Brand identity mockups
+- Print design samples
+- Digital art illustrations
+
+VIDEO EDITING SECTION:
+- Video editing timeline interface
+- Professional cameras and equipment
+- Film strips and video thumbnails
+- Motion graphics examples
+- Studio lighting setup
+
+🎨 ALTERNATIVE POSTER DESIGNS
+============================
+
+1. MINIMALIST TECH POSTER
+=========================
+
+"Create a clean, minimalist poster for I-TECH:
+- White background with subtle geometric patterns
+- I-TECH logo in gradient blue-purple
+- Services displayed as simple icons in grid
+- Minimal text, maximum visual impact
+- Professional, Apple-style aesthetic
+- Clean lines and plenty of white space
+- Single accent color: electric blue"
+
+2. DARK THEME TECH POSTER
+========================
+
+"Create a dark, futuristic poster for I-TECH:
+- Black/dark gray background (#1a1a1a)
+- Neon accent colors: cyan, purple, orange
+- Glowing effects on text and icons
+- Cyberpunk-inspired design elements
+- Matrix-style code rain background
+- Holographic UI elements
+- High-tech, gaming-inspired aesthetic"
+
+3. CREATIVE STUDIO POSTER
+========================
+
+"Create a creative agency style poster for I-TECH:
+- Bright, colorful design with creative chaos
+- Design tools scattered artistically
+- Paint splashes and creative elements
+- Hand-drawn illustrations mixed with digital
+- Playful, artistic typography
+- Creative workspace photography
+- Inspiring, artistic atmosphere"
+
+🎯 SPECIALIZED SERVICE POSTERS
+=============================
+
+AI AUTOMATION SERVICES POSTER
+=============================
+
+"Create an AI-focused poster for I-TECH:
+- Futuristic AI theme with neural networks
+- Robot assistants and automation symbols
+- Process flow diagrams showing before/after automation
+- AI brain illustrations with data connections
+- Machine learning model visualizations
+- Productivity improvement statistics
+- Tech companies using AI automation
+- Call-to-action: 'Automate Your Business Today'"
+
+VIDEO PRODUCTION POSTER
+======================
+
+"Create a video production poster for I-TECH:
+- Professional video equipment showcase
+- Film camera, lighting, microphones
+- Video editing timeline interfaces
+- Before/after video transformation
+- Motion graphics and visual effects examples
+- YouTube, social media platform logos
+- Professional video studio setup
+- Call-to-action: 'Bring Your Vision to Life'"
+
+CUSTOM SOFTWARE POSTER
+=====================
+
+"Create a software development poster for I-TECH:
+- Multiple device mockups (phone, tablet, laptop)
+- Code snippets in various programming languages
+- Database schemas and system architecture
+- Cloud deployment diagrams
+- API documentation interfaces
+- Software testing and deployment pipelines
+- Technology stack logos and icons
+- Call-to-action: 'Build Your Digital Solution'"
+
+📱 SOCIAL MEDIA VERSIONS
+=======================
+
+INSTAGRAM SQUARE POST (1080x1080)
+================================
+
+"Create a square Instagram post for I-TECH:
+- Vibrant gradient background (blue to purple)
+- I-TECH logo prominently centered
+- 4 service icons in corners: Code, AI, Design, Video
+- Minimal text for mobile viewing
+- High contrast colors for social media
+- Modern, eye-catching design
+- Contact info at bottom"
+
+LINKEDIN BANNER (1584x396)
+=========================
+
+"Create a professional LinkedIn banner for I-TECH:
+- Corporate blue and white color scheme
+- I-TECH logo on left side
+- Service offerings in horizontal layout
+- Professional team collaboration imagery
+- Technology elements subtly integrated
+- Contact information and website
+- Clean, business-focused design"
+
+FACEBOOK COVER (1200x630)
+========================
+
+"Create a Facebook cover image for I-TECH:
+- Wide format showcasing all services
+- Team working on various projects
+- Technology and creative tools displayed
+- I-TECH branding prominently featured
+- Social media friendly colors and fonts
+- Call-to-action button space consideration"
+
+🎨 INDUSTRY-SPECIFIC VERSIONS
+============================
+
+STARTUP TECH POSTER
+===================
+
+"Create a startup-focused poster for I-TECH:
+- Young, energetic team imagery
+- Modern co-working space environment
+- Startup growth charts and metrics
+- Innovation and disruption themes
+- Venture capital and funding symbols
+- Agile development methodology
+- MVP and rapid prototyping concepts"
+
+ENTERPRISE SOLUTIONS POSTER
+==========================
+
+"Create an enterprise-focused poster for I-TECH:
+- Corporate office environment
+- Large-scale system architecture diagrams
+- Enterprise software interfaces
+- Security and compliance badges
+- Fortune 500 company logos (generic)
+- Professional business attire
+- Scalability and reliability themes"
+
+CREATIVE AGENCY POSTER
+=====================
+
+"Create a creative agency poster for I-TECH:
+- Artistic, colorful design studio
+- Creative professionals at work
+- Design awards and recognition
+- Portfolio showcase of creative work
+- Brand identity and marketing materials
+- Creative process visualization
+- Inspiration and innovation themes"
+
+📞 CONTACT INFORMATION BLOCK
+===========================
+
+STANDARD CONTACT SECTION:
+- Company: I-TECH
+- Services: "Software • AI Automation • Design • Video"
+- Tagline: "Complete Digital Solutions"
+- Call-to-Action: "Transform Your Business Today"
+- Phone: +91-9080849708
+- WhatsApp: +91-9080849708
+- Email: ilaiarajacse@gmail.com
+- Website: [your-website]
+
+QR CODE INTEGRATION:
+- Portfolio showcase QR code
+- "Scan to View Our Work" text
+- High contrast for easy scanning
+- Bottom right corner placement
+
+🎯 CALL-TO-ACTION OPTIONS
+========================
+
+PRIMARY CTAs:
+- "Start Your Digital Transformation"
+- "Automate Your Business Today"
+- "Bring Your Ideas to Life"
+- "Get Your Free Consultation"
+- "See Our Portfolio"
+- "Transform Your Business"
+
+SECONDARY CTAs:
+- "Custom Solutions Available"
+- "24/7 Support Included"
+- "Free Initial Consultation"
+- "Portfolio Available Online"
+- "Trusted by 100+ Clients"
+
+🖼️ TECHNICAL SPECIFICATIONS
+===========================
+
+PRINT QUALITY:
+- Resolution: 300 DPI minimum
+- Color mode: CMYK for printing
+- File format: PDF or AI for print
+- Bleed: 0.125" on all sides
+- Safe area: 0.25" from edges
+
+DIGITAL QUALITY:
+- Resolution: 72-150 DPI for web
+- Color mode: RGB
+- File format: PNG or JPG
+- Multiple sizes for different platforms
+- Optimized for fast loading
+
+BRAND COLORS:
+- Primary: Electric Blue (#00D4FF)
+- Secondary: Purple (#8B5CF6)
+- Accent: Orange (#FF6B35)
+- Background: White (#FFFFFF) or Dark (#1a1a1a)
+- Text: Dark Gray (#333333) or White (#FFFFFF)
+
+🚀 USAGE INSTRUCTIONS
+====================
+
+1. Copy desired prompt from above
+2. Go to Leonardo AI, Midjourney, or DALL-E
+3. Paste prompt in generation box
+4. Add specific dimensions if needed
+5. Generate and download high-resolution version
+6. Edit contact details in design software if needed
+
+RECOMMENDED PLATFORMS:
+- Leonardo AI: Best for business posters
+- Midjourney: Highest artistic quality
+- Canva AI: Easiest to edit afterward
+- DALL-E: Most accurate to prompt details

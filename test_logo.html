@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Logo Test</title>
+</head>
+<body>
+    <h1>Logo Accessibility Test</h1>
+    
+    <h2>Default Logo Test</h2>
+    <img src="http://localhost:8000/media/company_logos/PROZEAL_GREEN_ENERGY_TM_LOGO.png" 
+         alt="Default Logo" 
+         style="max-width: 200px; border: 1px solid #ccc;"
+         onload="console.log('✅ Default logo loaded successfully')"
+         onerror="console.error('❌ Default logo failed to load')">
+    
+    <h2>Other Available Logos</h2>
+    <div id="logos"></div>
+    
+    <script>
+        // Test other logos
+        const logos = [
+            'http://localhost:8000/media/company_logos/123.jpg',
+            'http://localhost:8000/media/company_logos/bird_2.jpg',
+            'http://localhost:8000/media/admin_logos/image.webp',
+            'http://localhost:8000/media/admin_logos/monday.webp'
+        ];
+        
+        const logosDiv = document.getElementById('logos');
+        
+        logos.forEach(logoUrl => {
+            const img = document.createElement('img');
+            img.src = logoUrl;
+            img.alt = logoUrl;
+            img.style.maxWidth = '150px';
+            img.style.margin = '10px';
+            img.style.border = '1px solid #ccc';
+            
+            img.onload = () => {
+                console.log('✅ Logo loaded:', logoUrl);
+                logosDiv.appendChild(img);
+            };
+            
+            img.onerror = () => {
+                console.error('❌ Logo failed:', logoUrl);
+                const errorDiv = document.createElement('div');
+                errorDiv.textContent = `Failed: ${logoUrl}`;
+                errorDiv.style.color = 'red';
+                logosDiv.appendChild(errorDiv);
+            };
+        });
+    </script>
+</body>
+</html>

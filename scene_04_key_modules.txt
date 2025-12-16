@@ -1,0 +1,39 @@
+SCENE 4: KEY MODULES SHOWCASE (7 seconds)
+==========================================
+
+CINEMATIC PROMPT:
+"Pure visual module demonstration with smooth transitions. Open with 5 module icons appearing in a circle → Toolbox Talk module: Face recognition scanning worker's face with green checkmark → Safety Observation module: Mobile camera capturing hazard photo with risk score appearing (High/Medium/Low) → Permit to Work module: Digital signature being drawn on tablet with QR code generating → Manpower module: Worker attendance grid filling with green/red status indicators → Chatbox module: AI chat bubble responding with safety recommendations. Each module transition with flowing data connections. Focus on interactive elements, real-time processing, and visual feedback. Minimal text, maximum visual impact."
+
+VISUAL MODULE FLOW:
+1. Module icons circle formation (0.5 sec)
+2. TBT face recognition scan (1.5 sec)
+3. Safety observation photo + risk scoring (1.5 sec)
+4. PTW digital signature + QR generation (1.5 sec)
+5. Manpower attendance grid update (1.5 sec)
+6. AI chatbox interaction (0.5 sec)
+
+KEY VISUAL ADVANTAGES:
+- Face recognition technology in action
+- Real-time risk assessment scoring
+- Digital signature with QR code generation
+- Live attendance status updates
+- AI-powered safety recommendations
+- Mobile-first interface demonstrations
+
+ANIMATION ELEMENTS:
+- Smooth module transitions
+- Real-time data processing
+- Interactive touch gestures
+- Color-coded status indicators
+- Flowing data connections
+- Progressive loading animations
+
+AUDIO:
+- Tech interaction sounds
+- Success notification chimes
+- Smooth transition effects
+- Modern digital atmosphere
+
+DURATION: Exactly 7 seconds
+STYLE: Interactive, tech-focused, module-centric
+MOOD: Advanced, efficient, comprehensive

@@ -1,0 +1,10 @@
+%% System Architecture
+flowchart LR
+  User((User))-->|HTTPS|SPA[React SPA]
+  SPA-->|REST/JSON|API[(DRF API)]
+  SPA-->|WS|WS[WebSocket Gateway]
+  API-->DB[(PostgreSQL)]
+  API-->Store[(Object Storage)]
+  Nginx[Nginx/TLS]---SPA
+  Nginx---API
+

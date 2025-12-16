@@ -1,0 +1,119 @@
+SAFETY OBSERVATION PROCESS - PROMOTION VIDEO SCRIPT
+
+Scene 1: Dashboard View (0-5 seconds)
+Show the Safety Observation dashboard with statistics and metrics. Display "New Observation" button prominently. No human interaction - just the interface.
+
+Scene 2: Observation Form Opening (5-10 seconds)
+Automatically open the Safety Observation form. Show fields appearing one by one:
+- Observation ID auto-generating
+- Date and time auto-populating
+- Location field with dropdown options
+- Activity field with suggestions
+
+Scene 3: Observation Type Selection (10-15 seconds)
+Display the 11 observation types as clickable cards:
+- Unsafe Act
+- Unsafe Condition
+- Safe Act
+- Near Miss
+- At-Risk Behavior
+- Improvement Opportunity
+- Repeat Observation
+- PPE Non-Compliance
+- Violation of Procedure
+- Training Need
+- Emergency Preparedness
+
+Highlight "Unsafe Act" selection with animation.
+
+Scene 4: Classification Selection (15-20 seconds)
+Show the 15 classification categories as a grid:
+- PPE Compliance
+- Procedure Deviation
+- Emergency Preparedness
+- Electrical
+- Access Egress
+- Barricade
+- Housekeeping
+- Material Handling
+- Work at Height
+- Environment & Hygiene
+- Permit
+- Civil
+- Chemical Exposure
+- Fire Safety
+- Machinery & Equipment
+
+Multiple selections with checkmarks animation.
+
+Scene 5: Risk Assessment (20-25 seconds)
+Display risk scoring interface:
+- Severity slider moving from 1 to 3 (High)
+- Likelihood slider moving from 1 to 3 (Likely)
+- Risk Score auto-calculating: 3 × 3 = 9
+- Risk level indicator changing to "High Risk" with red color
+
+Scene 6: Photo Documentation (25-30 seconds)
+Show photo upload interface:
+- Camera icon with "Before Photo" label
+- Image placeholder filling with sample safety violation photo
+- "After Photo" option appearing
+- File upload progress bar
+
+Scene 7: CAPA Assignment (30-35 seconds)
+Display Corrective Action form:
+- "Corrective Action Required" toggle switching ON
+- Assigned person dropdown auto-selecting
+- Commitment date calendar opening and selecting future date
+- Priority level setting to "High"
+
+Scene 8: Real-time Notifications (35-45 seconds)
+Show notification system in action:
+- Bell icon with red notification badge appearing
+- Notification popup: "New Safety Observation Assigned - SO-2025-001"
+- Email notification preview showing recipient
+- SMS notification preview
+- Push notification on mobile device mockup
+- Notification appearing in assignee's dashboard
+
+Scene 9: Status Workflow (45-50 seconds)
+Display status progression:
+- Status changing from "Open" → "In Progress" → "Pending Verification" → "Closed"
+- Progress bar filling with each status change
+- Timestamp updating for each transition
+- Audit trail showing status history
+
+Scene 10: Analytics Dashboard (50-55 seconds)
+Show real-time analytics updating:
+- Total observations counter increasing
+- Risk distribution pie chart updating
+- Trend analysis line graph showing improvement
+- Department-wise statistics bar chart
+- Compliance percentage increasing
+
+Scene 11: Mobile Sync (55-60 seconds)
+Display mobile synchronization:
+- Data syncing icon with circular progress
+- Mobile app interface showing same observation
+- Offline capability indicator
+- Real-time updates across devices
+- "Observation Completed" success message
+
+TECHNICAL SPECIFICATIONS:
+- No human faces or people in the video
+- Focus only on UI/UX interfaces and process flow
+- Use smooth transitions between screens
+- Highlight interactive elements with subtle animations
+- Show real-time data updates and calculations
+- Include notification badges and alerts
+- Display mobile responsiveness
+- Use professional color scheme: Blue (#1890ff), Green (#52c41a), Red (#ff4d4f)
+
+VISUAL ELEMENTS TO EMPHASIZE:
+- Auto-generating observation IDs
+- Real-time risk calculations
+- Notification system workflow
+- Status progression indicators
+- Mobile-desktop synchronization
+- Data analytics and reporting
+- Process automation features

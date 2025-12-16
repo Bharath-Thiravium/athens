@@ -1,0 +1,262 @@
+# Rebuilt ESG Blueprint — refactored to **reuse your implemented modules** and avoid duplication
+
+Nice — I reviewed your earlier implementation notes (the UpatePro spec and the list of implemented modules / core tables in your project). Below is a rebuilt, **ESG-focused blueprint** that **links to your existing modules**, highlights what to *reuse or extend*, and clearly marks where *new development* is genuinely required. I avoided duplicating functionality already present in your stack.
+
+---
+
+# 1. Executive summary — approach
+
+* **Principle:** Reuse existing modules (Authentication, Safety Observation, Incident Management, PTW, Worker, MOM, Training, Inspection, Manpower, Chat/Realtime, Master Data in Accounts/Inventory/HR) wherever possible.
+* **Goal:** Add ESG-specific features as extensions to existing models/controllers/views and connect those to new ESG-only sub-modules (mostly reporting, GHG accounting, biodiversity, waste cradle-to-grave, and ESG governance).
+* **Result:** Minimal new code; most work = schema extensions, new services/APIs, new dashboard/reporting UIs, and workflows that glue the modules together.
+
+---
+
+# 2. Mapping: ESG modules → Existing modules (reuse / extend / new)
+
+| ESG Module                                     |                                                                                       Existing Module(s) | Action (Reuse / Extend / New)                                           | Key Notes                                                                                             |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------: | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Authentication & RBAC                          |                                                                              `authentication_customuser` | **Reuse / Extend**                                                      | Add ESG roles/permissions (ESG Admin, ESG Data Owner, ESG Auditor). Use existing JWT/RBAC.            |
+| Governance & Document Control                  |                                                                              None exact (use Superadmin) | **Extend** Superadmin module (new submodule: Policies & Legal Register) | Add version control, approvals, audit trail in Superadmin area.                                       |
+| Environmental Aspects & Impacts                |                                                                                                     None | **New** (lightweight module) + link to `safetyobservation` for evidence | Create `environment_aspect` table; link to assets in Master Data.                                     |
+| Energy & Generation (Wind/Solar)               |                                                     Inventory (assets), Accounts (metering/transactions) | **Extend** Inventory/Assets + new ingestion endpoints                   | Reuse asset models for WTGs/solar blocks. Add `generation_data` time-series table (or use Timescale). |
+| GHG & Carbon Accounting                        |                                                                        Accounts (financials) + Inventory | **New** service + small tables                                          | New `ghg_activity` and `emission_factors` tables; nightly aggregation job.                            |
+| Waste & Hazardous Materials                    |                                                             Inventory (stock), worker\_worker (handlers) | **Extend** Inventory + new `waste_manifest`                             | Reuse inventory vendors; add manifests & TSDF linkages.                                               |
+| Water / Emissions / Noise Sampling             |                                                                          Inspection module `inspection*` | **Extend** Inspection                                                   | Add sampling forms, thresholds, auto alerts.                                                          |
+| Biodiversity / Bird/Bat Mortality              |                                                      Incident Management (`incidentmanagement_incident`) | **Extend** Incidents + new `biodiversity_event`                         | Map bird/bat events to incidents; add mitigation plan link.                                           |
+| HIRA / JSA / LOTO                              |                                                                           PTW (`ptw_permit`), Inspection | **Extend** PTW & Inspection                                             | Link JSA checklists to PTW pre-reqs; store LOTO records in PTW workflow.                              |
+| PPE / Training Matrix / Medical                |                                                         Training (`training*`), Worker (`worker_worker`) | **Reuse / Extend**                                                      | Map trainings to worker\_worker, training certificates stored in existing structures.                 |
+| Permit to Work (PTW)                           |                                                                                             `ptw_permit` | **Reuse / Extend**                                                      | Add weather checks, JSA auto-check, PTW analytics.                                                    |
+| Incident & Observations (RCA, 8D)              | `safetyobservation_safetyobservation`, `incidentmanagement_incident`, `incidentmanagement_eightdprocess` | **Reuse**                                                               | Extend incident attributes (environmental severity, regulatory filing flags).                         |
+| Audit & CAPA                                   |                                                                   Audit/Inspection (existing checklists) | **Extend**                                                              | Reuse inspection checklists; add CAPA lifecycle dashboard and ISO clause mapping.                     |
+| Reporting & ESG Exports (BRSR/GRI/ISO clauses) |                                                                                                     None | **New** reporting service + UI                                          | Build export generator linking evidence from multiple modules.                                        |
+| Master Data (assets, waste streams, factors)   |                                                     `worker_worker`, `authentication_project`, Inventory | **Extend / Reuse**                                                      | Centralize master data in existing tables; add emission factor and waste-stream tables.               |
+| Real-time Alerts / Notifications               |                                                                                    Chat system, Channels | **Reuse**                                                               | Use existing Django Channels for alerts (incidents, license renewal, PTW conditions).                 |
+| Compliance Calendar & Licence tracking         |                                                                                 Superadmin (Diagnostics) | **Extend**                                                              | Add CPCB/SPCB, hazardous waste, EPR/Producer obligations entries.                                     |
+| Stakeholder / Grievance                        |                                                                                   MOM (`mom_mom`) or new | **Extend** MOM or create `grievance`                                    | Prefer `mom_mom` for meeting-driven stakeholder follow-ups; create new `grievance` table.             |
+
+---
+
+# 3. Recommended schema extensions & new tables (PostgreSQL)
+
+> Note: only show *deltas* — tables/fields to add, not full schema dumps.
+
+**Extend `authentication_customuser`**
+
+* `roles`: add `esg_admin`, `esg_auditor`, `esg_data_owner`
+* `esg_assigned_sites` (FK to `authentication_project` or site table)
+
+**Extend `safetyobservation_safetyobservation`**
+
+* `is_environmental` (bool)
+* `env_incident_type` (enum: spill, emission\_exceedance, bird\_strike, etc.)
+* `linked_aspect_id` (FK to `environment_aspect`)
+
+**Extend `incidentmanagement_incident`**
+
+* `regulatory_report_required` (bool)
+* `regulatory_body` (text)
+* `is_biodiversity_event` (bool)
+* `8d_reference` (FK to `incidentmanagement_eightdprocess`)
+
+**Extend `ptw_permit`**
+
+* `weather_check_snapshot` (jsonb)
+* `linked_jsa` (FK to `jst_job` table — create)
+* `loto_reference` (jsonb / FK)
+
+**New tables**
+
+* `environment_aspect` (id, site\_id, asset\_id, aspect\_type, description, severity, likelihood, significance, controls, created\_by, created\_at)
+* `generation_data` (id, site\_id, asset\_id, timestamp, kwh, source\_tag, imported\_via)
+* `ghg_activity` (id, site\_id, period\_start, period\_end, category\_scope, activity\_type, quantity, uom, emission\_factor\_id, ghg\_co2e, evidence\_ids)
+* `emission_factor` (id, source, factor\_value, unit, last\_updated)
+* `waste_manifest` (id, site\_id, waste\_type, quantity, uom, stored\_since, transporter\_id, tsdf\_id, manifest\_docs)
+* `biodiversity_event` (id, site\_id, species, date, time, location\_geo, severity, actions\_taken, related\_incident\_id)
+* `esg_policy` (id, title, version, effective\_date, status, document\_id, mapped\_iso\_clauses jsonb)
+* `grievance` (id, source, type, description, anonymous\_flag, assigned\_to, status, resolution\_date, evidence\_ids)
+* `esg_report_job` (id, owner, report\_type, parameters jsonb, status, output\_file\_id)
+
+**Indices & audit**
+
+* All new tables: `created_by`, `created_at`, `modified_by`, `modified_at`.
+* Add GIN index on JSONB fields and time-series indexing on `generation_data` (consider Timescale DB extension later).
+
+---
+
+# 4. API / Endpoint mapping (use existing patterns)
+
+> Keep to the API namespace style you already have: `/api/v1/...`
+
+**Reused existing endpoints (extend):**
+
+* `/api/v1/safetyobservation/` — add support for environmental observations payload (new fields)
+* `/api/v1/incidentmanagement/incidents/` — accept `is_biodiversity_event`, `regulatory_report_required`
+* `/api/v1/ptw/permits/` — accept `weather_check_snapshot`, `linked_jsa`
+
+**New endpoints (minimal):**
+
+* `GET/POST /api/v1/environment/aspects/` — manage `environment_aspect`
+* `POST /api/v1/environment/generation/` — ingest SCADA / CSV generation datapoints
+* `GET /api/v1/ghg/activities/` — enter/view emissions activities
+* `POST /api/v1/waste/manifests/` — create manifest & route to transporter
+* `GET /api/v1/esg/reports/` — generate BRSR/GRI/ISO export jobs
+* `POST /api/v1/esg/policies/` — upload versioned policies
+* `POST /api/v1/grievances/` — new grievance intake
+
+---
+
+# 5. UI/Menu mapping — where to place features (avoid duplicates)
+
+Use the **existing left nav** from your UpatePro spec and **attach subsections**:
+
+```
+Dashboard
+├─ Governance & Compliance  (extends Superadmin)
+│  ├─ Policies & Procedures   ← new UI but under Superadmin
+│  ├─ Legal Register & Obligations
+│  ├─ Licences & Consents Calendar  ← extend existing Diagnostics
+│  └─ BRSR / ESG Disclosures    ← new (reuses evidence links)
+├─ Environment
+│  ├─ Aspects & Impacts       ← new UI (linked to Assets)
+│  ├─ Energy & Generation     ← new page under Inventory → Assets
+│  ├─ GHG & Carbon            ← new reporting page (links to generation & Accounts)
+│  └─ Waste & Hazardous       ← extend Inventory > Stock & add manifests
+├─ Health & Safety
+│  ├─ HIRA / JSA              ← extend PTW and Inspection forms
+│  ├─ PPE & Medical           ← extend Worker profile pages
+│  └─ Emergency Preparedness  ← extend MOM / INSPECTION
+├─ Incidents & Observations
+│  ├─ Safety Observations     ← reuse Safety Observation module
+│  ├─ Incidents (8D)          ← reuse Incident module (8D) + add biodiversity tab
+│  └─ Environmental Incidents ← map to Incident module (is_environmental)
+├─ Audit, Inspection & CAPA
+│  ├─ Audit Programs          ← extend Inspection module
+│  ├─ Checklists & Inspections
+│  └─ Non-Conformance & CAPA  ← reuse existing CAPA flows
+├─ Training & Competence      ← reuse Training module
+├─ Permit to Work             ← reuse PTW module (extend)
+├─ Reporting & Analytics      ← new ESG reports menu (links to evidence)
+├─ Master Data                ← reuse Inventory + extend (emission factors, waste streams)
+└─ Admin & Logs               ← reuse existing Admin
+```
+
+---
+
+# 6. Process flows — refactored to use existing workflows
+
+### Example: Environmental Incident → Regulatory Filing
+
+1. **Report** incident via existing Safety Observation or Incident form (`safetyobservation` / `incidentmanagement_incident`) — include `is_environmental` flag and `env_incident_type`.
+2. **Auto-triage**: workflow checks `regulatory_report_required` based on thresholds in `emission_factors`/threshold config.
+3. **Create Manifest / Evidence**: link to `waste_manifest` or `biodiversity_event`.
+4. **Notify** compliance owner (via existing Channels/chat).
+5. **Generate Report**: create `esg_report_job` for regulator-ready export.
+6. **Close**: CAPA tracked in `incidentmanagement_eightdprocess` and audit trail recorded in Admin logs.
+
+> All steps reuse Incident, Safety Observation, PTW and Channels modules for UI and notifications. Only small new tables & endpoints are added.
+
+---
+
+# 7. Report generation / Evidence linking
+
+* **Pattern:** Reports are *compositions* — pull evidence (documents, photos) stored in the existing file directories:
+
+  * `safety_observation_files/`
+  * `incident_attachments/`
+  * `permit_photos/`
+  * `worker_photos/`
+* **Report engine** should produce PDF/XLSX using the `esg_report_job` object; this job queries across existing tables and the new ones (e.g., `ghg_activity`, `waste_manifest`, `environment_aspect`) to assemble BRSR/ISO packs.
+* **Sign-off workflow:** use existing digital signature storage (`signatures/` folder) for approvals.
+
+---
+
+# 8. Data migration & seeding plan (minimal, pragmatic)
+
+* Existing observations/incidents → set `is_environmental` where appropriate (one-time DB migration script).
+* Inventory assets → tag with `asset_type` wind/solar, add `asset_meta` (hub height, inverter type).
+* Seed `emission_factor` table with common factors (diesel, grid electricity). (Small CSV import via admin UI.)
+* Seed `waste_stream` & `tsdf` vendor lists from Inventory vendor master.
+
+---
+
+# 9. UX & small UI components to add (no heavy new pages)
+
+* **ESG Mini-filters** on existing Observation / Incident lists (filter by environmental / biodiversity / waste).
+* **Evidence badge** on records showing compliance evidence completeness (green/yellow/red).
+* **"Regulatory Flag" toggle** on Incident form (triggers extra fields for regulatory body and auto-export).
+* **ESG KPI widgets** for Dashboard: create cards pulling from reused data (generation\_data, ghg\_activity, incident metrics).
+* **Export button** on Incident/Audit pages to create `esg_report_job` with prefilled context.
+
+---
+
+# 10. Permissions & governance — adjustments (small)
+
+* Add `esg_data_owner` role mapped in `authentication_customuser` and allow them to:
+
+  * Mark evidence as “audit verified”
+  * Trigger regulatory exports
+  * Access consolidated ESG dashboards
+
+* Add object-level permission checks for `environment_aspect`, `ghg_activity`, and `waste_manifest`.
+
+---
+
+# 11. Notifications & Automations (reuse existing tech)
+
+* Use existing Channels/WebSockets + notification templates. New rules:
+
+  * Licence renewals (extend Superadmin Diagnostics).
+  * GHg anomaly detection (nightly job computes; on anomaly triggers notification).
+  * Waste manifest overdue (based on `waste_manifest.stored_since`).
+
+---
+
+# 12. Test & validation checklist (what to cover during QA)
+
+* Forms that reuse existing modules must preserve validation & XSS/SQL protections.
+* Ensure file uploads still go to existing directories and conform to max-size/virus-scan rules.
+* End-to-end for one ESG flow: environmental observation → incident → CAPA → report export.
+* Role-based access: ESG roles cannot see other clients’ sites (respect project isolation).
+* Performance check: generation\_data ingestion (bulk CSV) under acceptable time.
+
+---
+
+# 13. Implementation priority (recommended order)
+
+1. **Schema extensions + role additions** (low risk).
+2. **Extend safety observation & incident forms** to accept environmental fields (quick wins).
+3. **Add environment\_aspect & waste\_manifest tables + minimal admin UI** (data capture).
+4. **Create generation\_data ingestion endpoint and nightly aggregator for GHG**.
+5. **Build ESG Reporting service** (esg\_report\_job) to aggregate evidence for BRSR/ISO exports.
+6. **Extend PTW & Inspection** with JSA/LOTO linkages and weather checks.
+7. **Add biodiversity\_event + mapping to incidents**.
+8. **Polish dashboards & KPI widgets** and create export options.
+
+---
+
+# 14. Deliverables you can ask engineering to produce next (concrete)
+
+* DB migration scripts (adds fields + creates new tables).
+* DRF serializers & viewsets for new endpoints: `environment_aspects`, `generation_data`, `ghg_activities`, `waste_manifests`, `esg_report_job`, `grievances`.
+* Frontend components: small forms & table views for `Aspects`, `GHG Activities`, `Waste Manifest`. Reuse Ant Design tables and form components.
+* One integration: connect Inventory asset model to `generation_data` ingestion.
+* One export template: ISO 14001 evidence pack / BRSR stub.
+
+---
+
+# 15. Final notes & risk calls
+
+* **Low risk:** Most of the system already exists — the work is mostly *integrative* and *additive*.
+* **Mid risk:** Time-series generation data may require optimization (consider TimescaleDB or efficient partitioning).
+* **High payoff:** Reusing Incident/Observation/PTW reduces audit friction; auditors will love an evidence chain spanning forms → CAPA → reports.
+
+---
+
+If you want, I’ll now:
+
+* generate the **exact DB migration SQL** for the new/extended tables, **or**
+* write the **DRF serializers & viewset skeletons** for the new endpoints, **or**
+* produce the **frontend React components** (TypeScript + AntD forms/tables) for `Aspects`, `GHG Activity`, and `Waste Manifest` that plug directly into your current layout.
+
+Which deliverable should I create next? (I’ll produce it immediately.)

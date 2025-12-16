@@ -1,0 +1,36 @@
+Field Name,Required,Description,Example,Your Input
+Project Name,Yes,Name of the project,Western Solar Farm,
+Project Category,Yes,Select from dropdown options,Power and Energy,
+Capacity/Size,Yes,Project capacity or size,100 MW / 5000 sqft,
+Location (City State),Yes,City and State where project is located,Mumbai Maharashtra,
+Latitude,Yes,Latitude coordinates (within India),19.076090,
+Longitude,Yes,Longitude coordinates (within India),72.877426,
+Detailed Address,Optional,Complete project address,Plot 123 Industrial Area Mumbai,
+Nearest Police Station,Yes,Name of nearest police station,Andheri Police Station,
+Police Station Contact,Yes,10-digit contact number,9876543210,
+Nearest Hospital,Yes,Name of nearest hospital,Cooper Hospital,
+Hospital Contact,Yes,10-digit contact number,9876543211,
+Commencement Date,Yes,Project start date (YYYY-MM-DD),2024-01-15,
+Deadline Date,Yes,Project completion date (YYYY-MM-DD),2025-12-31,
+
+INSTRUCTIONS:
+1. Fill all required fields marked as 'Yes'
+2. Use the format specified in examples
+3. Ensure coordinates are within India boundaries
+4. Contact numbers must be 10 digits
+5. Dates in YYYY-MM-DD format
+6. Deadline must be after commencement date
+
+PROJECT CATEGORIES:
+- Governments
+- Manufacturing  
+- Construction
+- Chemical
+- Port and Maritime
+- Power and Energy
+- Logistics
+- Schools
+- Mining
+- Oil & Gas
+- Shopping Mall
+- Aviation

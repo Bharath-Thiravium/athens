@@ -1,0 +1,8 @@
+{
+    "git.ignoreLimitWarning": true,
+    "Codegeex.CommitMessage.LanguagePreference": "English",
+    "Codegeex.SidebarUI.LanguagePreference": "English",
+    "Codegeex.Comment.LanguagePreference": "English",
+    "Codegeex.Chat.LanguagePreference": "English",
+    "Codegeex.RepoIndex": true
+}

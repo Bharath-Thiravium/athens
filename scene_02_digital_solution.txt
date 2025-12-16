@@ -1,0 +1,34 @@
+SCENE 2: DIGITAL TRANSFORMATION SOLUTION (7 seconds)
+===================================================
+
+CINEMATIC PROMPT:
+"Seamless transition from Scene 1 chaos - the same frustrated safety manager from the previous scene suddenly looks up as his computer screen transforms with a bright, modern interface. Camera smoothly transitions from the cluttered desk to a sleek tablet showing the EHS Pro dashboard with vibrant colors and clean design. Quick dynamic montage: Digital forms replacing paper documents with smooth animations, mobile app interface showing incident reporting with finger taps, permit workflows visualized as connected nodes flowing across the screen, real-time dashboards with colorful charts and metrics updating live, workers using smartphones for safety observations in the field, and end with a confident safety manager smiling while reviewing comprehensive analytics on a large monitor. Use bright, modern colors (blues, greens, whites), clean lighting, and smooth digital transitions. Text overlay: 'EHS Pro: Complete Digital Safety Management'"
+
+VISUAL ELEMENTS:
+- Bright, modern color palette (vibrant blues, greens, clean whites)
+- Smooth screen transformations and digital transitions
+- Clean, modern UI interfaces on tablets and smartphones
+- Dynamic data visualizations and flowing workflows
+- Professional lighting with soft shadows
+- Workers confidently using mobile devices
+- Large dashboard displays with live metrics
+
+DIGITAL COMPONENTS SHOWCASED:
+- Modern web application interface
+- Mobile-responsive design
+- Real-time dashboard analytics
+- Digital form workflows
+- Cloud-based system architecture
+- Integrated module connections
+- Live data synchronization
+
+AUDIO:
+- Uplifting, modern tech music
+- Smooth digital transition sounds
+- Gentle notification chimes
+- Confident, professional atmosphere
+
+DURATION: Exactly 7 seconds
+STYLE: Modern, sleek, solution-focused
+MOOD: Confidence, efficiency, innovation
+TRANSITION: Direct continuation from Scene 1's problems to digital solutions

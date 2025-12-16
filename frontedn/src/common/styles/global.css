@@ -1,0 +1,882 @@
+/* src/common/styles/global.css */
+
+@import "tailwindcss";
+
+/* Dashboard Sidebar Scrollbar Styles */
+.dashboard-layout {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.dashboard-sidebar {
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+
+.dashboard-sidebar .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.dashboard-sidebar .ant-menu-inline {
+  border-right: none !important;
+}
+
+/* Custom Scrollbar for Sidebar Menu */
+.dashboard-sidebar .flex-1::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dashboard-sidebar .flex-1::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-sidebar .flex-1::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.dashboard-sidebar .flex-1::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Dark theme scrollbar */
+.dark .dashboard-sidebar .flex-1::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark .dashboard-sidebar .flex-1::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Firefox scrollbar */
+.dashboard-sidebar .flex-1 {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.dark .dashboard-sidebar .flex-1 {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+/* 
+  STEP 1: Define the CSS variables for the "NeuroBank" theme.
+*/
+
+/* Light Theme Variables (Clean & Soft) */
+:root {
+  /* Brand Accent */
+  --color-primary: #4f46e5;         /* indigo-600 */
+  --color-primary-hover: #4338ca;   /* indigo-700 */
+  --color-primary-text: #ffffff;
+  --gradient-start: #4f46e5;
+  --gradient-end: #7c3aed;         /* violet-600 */
+
+  /* Neutral/Gray Palette */
+  --color-bg-base: #f7f8fa;        /* A very light gray for the page background */
+  --color-ui-base: #ffffff;         /* Pure white for cards and UI elements */
+  --color-ui-hover: #f7f8fa;
+  --color-ui-active: #f0f2f5;
+
+  /* Borders */
+  --color-border: #eef0f4;         /* A very soft, subtle border */
+
+  /* Text */
+  --color-text-base: #1e293b;      /* slate-800 for high contrast text */
+  --color-text-muted: #64748b;     /* slate-500 for secondary text */
+
+  /* Shadows (Used for light mode to create depth) */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Dark Theme Variables (Glassmorphic & Glowing) */
+.dark {
+  /* Brand Accent */
+  --color-primary: #5865f2;         /* A vibrant, electric blue */
+  --color-primary-hover: #7983f3;
+  --color-primary-text: #ffffff;
+  --gradient-start: #5865f2;
+  --gradient-end: #9333ea;         /* purple-600 */
+
+  /* Neutral/Gray Palette */
+  --color-bg-base: #111319;        /* The very dark main page background */
+  --color-ui-base: #1A1D26;        /* The slightly lighter card/UI background */
+  --color-ui-hover: #242833;
+  --color-ui-active: #2C313D;
+
+  /* Borders */
+  --color-border: #2C313D;         /* Subtle border for dark mode */
+
+  /* Text */
+  --color-text-base: #e3e4e8;      /* A slightly off-white for text, easy on the eyes */
+  --color-text-muted: #8a92a0;
+  
+  /* Shadows are turned off in dark mode to favor borders and glow */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+}
+
+/* 
+  STEP 2: Apply polished global styles and micro-interactions.
+*/
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-base);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom Scrollbars for a premium feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ui-active);
+}
+
+/* Custom Text Selection Highlight */
+::selection {
+  background-color: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+/* 
+  STEP 3: Add the special utility class for the glowing card effect.
+*/
+
+/* A utility for the glowing grid card seen in the video */
+.card-glow {
+  position: relative;
+  overflow: hidden;
+  /* Ensure the card's background is set for the effect to overlay on */
+  background-color: var(--color-ui-base);
+}
+
+.dark .card-glow::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 50% 50%, 100% 100%; /* Size for glow and grid separately */
+  animation: rotate 15s linear infinite;
+  
+  /* Layered backgrounds: 1. The glow, 2. The vertical grid, 3. The horizontal grid */
+  background-image: 
+    radial-gradient(circle, var(--color-primary) 0%, transparent 40%),
+    repeating-linear-gradient(0deg, #8a92a022, #8a92a022 1px, transparent 1px, transparent 20px),
+    repeating-linear-gradient(90deg, #8a92a022, #8a92a022 1px, transparent 1px, transparent 20px);
+}
+
+/* The rotation animation for the glow */
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 
+  STEP 4: Refined Ant Design Component Fixes for this new theme.
+*/
+
+/* Table header styling */
+.ant-table-thead > tr > th {
+  color: var(--color-text-base) !important;
+  background: var(--color-bg-subtle, var(--color-bg-base)) !important; /* Fallback for older antd versions */
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+/* Table row hover styling */
+.dark .ant-table-tbody > tr.ant-table-row:hover > td,
+.dark .ant-table-tbody > tr > td.ant-table-cell-row-hover {
+  background: var(--color-ui-hover) !important;
+}
+
+.ant-table-tbody > tr.ant-table-row:hover > td,
+.ant-t-table-tbody > tr > td.ant-table-cell-row-hover {
+  background: var(--color-ui-hover) !important;
+}
+
+/* Ant Tag styling */
+.ant-tag {
+  background-color: var(--color-ui-active) !important;
+  color: var(--color-text-muted) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+/* These rules are correct and will now work with the contextual modal. */
+.ant-message {
+  z-index: 9999 !important;
+}
+
+.ant-notification {
+  z-index: 9999 !important;
+}
+
+.ant-modal-root {
+  z-index: 1000 !important;
+}
+
+/*
+  STEP 5: Dashboard Layout Styles
+*/
+
+/* Dashboard layout fixes */
+.dashboard-layout {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.dashboard-content {
+  height: calc(100vh - 80px);
+  margin-top: 80px; /* Push content down from fixed header */
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Prevent content from jumping when scrollbar appears/disappears */
+  scrollbar-gutter: stable;
+}
+
+.dashboard-header {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 40;
+  height: 80px;
+  transition: left 0.3s ease;
+  /* Modern glass effect */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.dashboard-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 50;
+  transition: width 0.3s ease;
+}
+
+/* Enhanced scrollbar for dashboard content */
+.dashboard-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dashboard-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-content::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.dashboard-content::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-ui-active);
+}
+
+/* Dark theme scrollbar adjustments for dashboard */
+.dark .dashboard-content::-webkit-scrollbar-thumb {
+  background-color: var(--color-ui-hover);
+}
+
+.dark .dashboard-content::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-ui-active);
+}
+
+/* Firefox scrollbar styles for dashboard */
+.dashboard-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+  scroll-behavior: smooth;
+}
+
+.dark .dashboard-content {
+  scrollbar-color: var(--color-ui-hover) transparent;
+}
+
+/* Prevent horizontal overflow in dashboard content */
+.dashboard-content > div {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Smooth transitions for layout changes */
+.dashboard-layout .ant-layout-sider {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-layout .ant-layout {
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fix for notification dropdown positioning */
+.ant-dropdown {
+  z-index: 1050 !important;
+}
+
+/* Ensure modals appear above everything */
+.ant-modal-wrap {
+  z-index: 1060 !important;
+}
+
+/* Dashboard sidebar menu scrollbar */
+.dashboard-sidebar .ant-layout-sider-children > div:first-child {
+  /* This targets the scrollable menu container */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.dashboard-sidebar .ant-layout-sider-children > div:first-child::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dashboard-sidebar .ant-layout-sider-children > div:first-child::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-sidebar .ant-layout-sider-children > div:first-child::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 3px;
+}
+
+.dashboard-sidebar .ant-layout-sider-children > div:first-child::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-ui-active);
+}
+
+/* Dark theme sidebar scrollbar */
+.dark .dashboard-sidebar .ant-layout-sider-children > div:first-child::-webkit-scrollbar-thumb {
+  background-color: var(--color-ui-hover);
+}
+
+.dark .dashboard-sidebar .ant-layout-sider-children > div:first-child::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-ui-active);
+}
+
+/* Dashboard header glass effect enhancement */
+.dashboard-header {
+  background-color: var(--color-ui-base) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  /* Add subtle shadow for better separation */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.dark .dashboard-header {
+  background-color: rgba(26, 29, 38, 0.8) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  /* Darker shadow for dark theme */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive dashboard adjustments */
+@media (max-width: 1024px) {
+  .dashboard-content {
+    padding-left: 0;
+    margin-top: 80px; /* Ensure proper spacing on mobile */
+  }
+
+  .dashboard-header {
+    left: 88px !important;
+  }
+
+  /* Smaller scrollbar on mobile */
+  .dashboard-content::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .dashboard-sidebar .ant-layout-sider-children > div:first-child::-webkit-scrollbar {
+    width: 4px;
+  }
+}
+
+/* Dashboard notification dropdown custom scrollbar */
+.ant-dropdown .ant-card .max-h-96 {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.ant-dropdown .ant-card .max-h-96::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ant-dropdown .ant-card .max-h-96::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ant-dropdown .ant-card .max-h-96::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 3px;
+}
+
+.ant-dropdown .ant-card .max-h-96::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-ui-active);
+}
+
+/* Dashboard content area enhancements */
+.dashboard-content-wrapper {
+  /* Consistent content wrapper with proper spacing */
+  padding: 1.5rem; /* 24px */
+  min-height: calc(100vh - 80px); /* Full height minus header */
+  max-width: 100%;
+  margin: 0 auto;
+  /* Ensure content doesn't stick to the top */
+  padding-top: 1.5rem;
+}
+
+/* Responsive content wrapper */
+@media (max-width: 768px) {
+  .dashboard-content-wrapper {
+    padding: 1rem; /* 16px on mobile */
+  }
+}
+
+@media (min-width: 1200px) {
+  .dashboard-content-wrapper {
+    padding: 2rem; /* 32px on larger screens */
+    max-width: 1400px; /* Optional: limit max width on very large screens */
+  }
+}
+
+/* Legacy support for existing pages */
+.dashboard-content > div:not(.dashboard-content-wrapper) {
+  /* Ensure content has proper spacing and doesn't stick to edges */
+  min-height: calc(100vh - 80px - 3rem); /* Account for header and padding */
+}
+
+/* Dashboard sidebar collapsed state improvements */
+.dashboard-sidebar.ant-layout-sider-collapsed .ant-menu-item,
+.dashboard-sidebar.ant-layout-sider-collapsed .ant-menu-submenu-title {
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+}
+
+/* Dashboard theme transition improvements */
+.dashboard-layout,
+.dashboard-header,
+.dashboard-sidebar,
+.dashboard-content {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dashboard focus states for accessibility */
+.dashboard-sidebar .ant-menu-item:focus,
+.dashboard-sidebar .ant-menu-submenu-title:focus {
+  background-color: var(--color-ui-hover) !important;
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+/* Dashboard loading states */
+.dashboard-content .ant-spin-container {
+  min-height: 200px;
+}
+
+/* Dashboard card hover effects */
+.dashboard-content .ant-card {
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.dashboard-content .ant-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.dark .dashboard-content .ant-card:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+/*
+  STEP 6: Page Layout Component Styles
+*/
+
+/* Page Layout Component */
+.page-layout {
+  width: 100%;
+  max-width: 100%;
+}
+
+.page-header {
+  /* Ensure header doesn't overflow */
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.page-header .ant-typography h2 {
+  /* Prevent title from breaking layout */
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.page-content {
+  /* Content area with proper spacing */
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Responsive adjustments for page layout */
+@media (max-width: 640px) {
+  .page-header .ant-typography h2 {
+    font-size: 1.5rem !important;
+    line-height: 1.3 !important;
+  }
+
+  .page-header .ant-breadcrumb {
+    font-size: 0.875rem;
+  }
+}
+
+/* Page layout breadcrumb styling */
+.page-layout .ant-breadcrumb {
+  color: var(--color-text-muted);
+}
+
+.page-layout .ant-breadcrumb a {
+  color: var(--color-text-muted);
+  transition: color 0.2s ease;
+}
+
+.page-layout .ant-breadcrumb a:hover {
+  color: var(--color-primary);
+}
+
+/* Page layout divider styling */
+.page-layout .ant-divider {
+  border-color: var(--color-border);
+  margin: 1.5rem 0 0 0;
+}
+
+/*
+  STEP 7: Modal Enhancement Styles
+*/
+
+/* Enhanced modal styles for better visibility and positioning */
+.ant-modal-mask {
+  background-color: rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 1000 !important;
+}
+
+.ant-modal-wrap {
+  z-index: 1001 !important;
+}
+
+.ant-modal {
+  max-width: calc(100vw - 32px);
+  margin: 0 auto;
+  z-index: 1002 !important;
+}
+
+.ant-modal-content {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-ui-base) !important;
+  z-index: 1003 !important;
+}
+
+.dark .ant-modal-content {
+  background-color: var(--color-ui-base) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Ensure confirm modals have proper z-index and styling */
+.ant-modal-confirm {
+  z-index: 1005 !important;
+}
+
+.ant-modal-confirm .ant-modal-content {
+  z-index: 1004 !important;
+  background-color: var(--color-ui-base) !important;
+}
+
+.ant-modal-confirm .ant-modal-body {
+  background-color: var(--color-ui-base) !important;
+  color: var(--color-text-base) !important;
+}
+
+.ant-modal-confirm .ant-modal-confirm-title {
+  color: var(--color-text-base) !important;
+  font-weight: 600;
+}
+
+.ant-modal-confirm .ant-modal-confirm-content {
+  color: var(--color-text-muted) !important;
+  margin-top: 8px;
+}
+
+.ant-modal-confirm .ant-modal-confirm-btns {
+  margin-top: 24px;
+}
+
+.ant-modal-confirm .ant-modal-confirm-btns .ant-btn {
+  margin-left: 8px;
+}
+
+/* Ensure the confirm modal mask is visible */
+.ant-modal-confirm .ant-modal-mask {
+  background-color: rgba(0, 0, 0, 0.45) !important;
+  z-index: 1000 !important;
+}
+
+/* Modal form styling */
+.ant-modal .ant-form-item-label > label {
+  color: var(--color-text-base) !important;
+  font-weight: 500;
+}
+
+.ant-modal .ant-input,
+.ant-modal .ant-input-number,
+.ant-modal .ant-select-selector,
+.ant-modal .ant-picker {
+  background-color: var(--color-ui-base) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-base) !important;
+}
+
+.ant-modal .ant-input:focus,
+.ant-modal .ant-input-number:focus,
+.ant-modal .ant-select-focused .ant-select-selector,
+.ant-modal .ant-picker:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1) !important;
+}
+
+/* Modal responsive adjustments */
+@media (max-width: 768px) {
+  .ant-modal {
+    max-width: calc(100vw - 16px);
+    margin: 0 auto;
+  }
+
+  .ant-modal-content {
+    margin: 0;
+  }
+}
+
+/*
+  STEP 8: MOM Component Theme Styles
+*/
+
+/* Theme-aware card styling for MOM components */
+.theme-card {
+  background-color: var(--color-ui-base) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+}
+
+.theme-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+.dark .theme-card:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* MOM specific component styling */
+.mom-list-container {
+  background-color: var(--color-bg-base);
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+.mom-card-container {
+  width: 100%;
+}
+
+.mom-live-container {
+  width: 100%;
+}
+
+.mom-view-container {
+  width: 100%;
+}
+
+/* MOM table styling */
+.mom-table .ant-table {
+  background-color: var(--color-ui-base) !important;
+}
+
+.mom-table .ant-table-thead > tr > th {
+  background-color: var(--color-ui-active) !important;
+  color: var(--color-text-base) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+.mom-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--color-border) !important;
+  color: var(--color-text-base) !important;
+}
+
+.mom-table .ant-table-tbody > tr:hover > td {
+  background-color: var(--color-ui-hover) !important;
+}
+
+/* MOM form styling */
+.mom-form .ant-form-item-label > label {
+  color: var(--color-text-base) !important;
+  font-weight: 500;
+}
+
+.mom-form .ant-input,
+.mom-form .ant-input-number,
+.mom-form .ant-select-selector,
+.mom-form .ant-picker,
+.mom-form .ant-input[disabled] {
+  background-color: var(--color-ui-base) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-base) !important;
+}
+
+.mom-form .ant-input:focus,
+.mom-form .ant-input-number:focus,
+.mom-form .ant-select-focused .ant-select-selector,
+.mom-form .ant-picker:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1) !important;
+}
+
+/* MOM list styling */
+.mom-list .ant-list-item {
+  border-bottom: 1px solid var(--color-border) !important;
+  color: var(--color-text-base) !important;
+}
+
+.mom-list .ant-list-item:hover {
+  background-color: var(--color-ui-hover) !important;
+}
+
+/* MOM modal styling */
+.mom-modal .ant-modal-content {
+  background-color: var(--color-ui-base) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+.mom-modal .ant-modal-header {
+  background-color: var(--color-ui-base) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+.mom-modal .ant-modal-title {
+  color: var(--color-text-base) !important;
+}
+
+/* MOM loading states */
+.mom-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  color: var(--color-text-muted);
+}
+
+/* MOM responsive adjustments */
+@media (max-width: 768px) {
+  .mom-card-container,
+  .mom-live-container,
+  .mom-view-container {
+    width: 100%;
+  }
+
+  .mom-list-container {
+    padding: 1rem;
+  }
+}
+
+/* MOM status indicators */
+.mom-status-live {
+  color: var(--color-primary) !important;
+  font-weight: 600;
+}
+
+.mom-status-completed {
+  color: var(--color-text-muted) !important;
+}
+
+.mom-status-scheduled {
+  color: var(--color-warning) !important;
+}
+
+/* MOM participant signatures */
+.mom-signature-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  background-color: var(--color-ui-hover);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.mom-signature-fallback {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-size: 12px;
+}
+
+/*
+  STEP 9: Dashboard Logo Container Fixes
+*/
+
+/* Ensure logo container has consistent dimensions for all user types */
+.dashboard-sidebar .flex.h-20.items-center.gap-3.px-6.flex-shrink-0 {
+  min-height: 80px !important;
+  height: 80px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Logo container styling */
+.dashboard-sidebar .flex.h-10.w-10.items-center.justify-center.rounded-lg {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+/* Logo image styling */
+.dashboard-sidebar .flex.h-10.w-10.items-center.justify-center.rounded-lg img {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+}
+
+/* Fallback icon styling */
+.dashboard-sidebar .flex.h-10.w-10.items-center.justify-center.rounded-lg .anticon {
+  font-size: 24px !important;
+  color: white !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
