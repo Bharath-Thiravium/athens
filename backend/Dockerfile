@@ -7,7 +7,7 @@
 # ============================================================================
 # Stage 1: Base Python Environment
 # ============================================================================
-FROM python:3.11-slim as base
+FROM python:3.12-slim as base
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -21,6 +21,13 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
     curl \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libgthread-2.0-0 \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app user for security
