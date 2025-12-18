@@ -227,7 +227,7 @@ const ComplianceDashboard: React.FC = () => {
               valueStyle={{ color: '#ff4d4f' }}
             />
             {kpiData.overduePermits > 10 && (
-              <Alert message="High overdue count" type="warning" showIcon size="small" />
+              <Alert message="High overdue count" type="warning" showIcon />
             )}
           </Card>
         </Col>

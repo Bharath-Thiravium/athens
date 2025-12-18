@@ -100,7 +100,7 @@ services:
   # ============================================================================
   frontend:
     build:
-      context: ./frontedn
+      context: ./frontend
       dockerfile: Dockerfile
       target: production
     container_name: ehs-frontend

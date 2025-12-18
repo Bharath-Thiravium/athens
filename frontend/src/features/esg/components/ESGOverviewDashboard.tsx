@@ -461,7 +461,7 @@ const ESGOverviewDashboard: React.FC = () => {
                     suffix="AQI"
                     valueStyle={{ color: '#0891b2', fontSize: '1.5rem' }}
                   />
-                  <Tag color="green" size="small">{comprehensiveData.real_time_metrics.air_quality_now}</Tag>
+                  <Tag color="green">{comprehensiveData.real_time_metrics.air_quality_now}</Tag>
                 </Card>
               </Col>
               
@@ -487,7 +487,7 @@ const ESGOverviewDashboard: React.FC = () => {
                     suffix="dB"
                     valueStyle={{ color: '#ea580c', fontSize: '1.5rem' }}
                   />
-                  <Tag color="green" size="small">Within Limits</Tag>
+                  <Tag color="green">Within Limits</Tag>
                 </Card>
               </Col>
             </Row>
@@ -755,7 +755,7 @@ const ESGOverviewDashboard: React.FC = () => {
                       <div>
                         <Text className="text-xs">{activity.description}</Text>
                         <div className="mt-1">
-                          <Tag size="small" color={activity.status === 'completed' ? 'green' : 'blue'}>
+                          <Tag color={activity.status === 'completed' ? 'green' : 'blue'}>
                             {activity.status}
                           </Tag>
                           <Text className="text-xs text-gray-500 ml-2">

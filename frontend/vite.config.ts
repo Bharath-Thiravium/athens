@@ -19,7 +19,7 @@ export default defineConfig(({ command, mode }) => {
     server: {
       port: parseInt(env.VITE_PORT) || 5173,
       host: env.VITE_HOST || 'localhost',
-      https: true,
+      https: false,
       proxy: env.VITE_API_PROXY_TARGET ? {
         '/api': {
           target: env.VITE_API_PROXY_TARGET,

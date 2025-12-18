@@ -208,13 +208,13 @@ const SustainabilityTargetsDashboard: React.FC = () => {
         <div>
           {sdgs && sdgs.length > 0 ? (
             sdgs.slice(0, 3).map(sdg => (
-              <Tag key={sdg} color="blue" size="small">SDG {sdg}</Tag>
+              <Tag key={sdg} color="blue">SDG {sdg}</Tag>
             ))
           ) : (
             <span style={{ color: '#999' }}>Not aligned</span>
           )}
           {sdgs && sdgs.length > 3 && (
-            <Tag size="small">+{sdgs.length - 3} more</Tag>
+            <Tag>+{sdgs.length - 3} more</Tag>
           )}
         </div>
       ),

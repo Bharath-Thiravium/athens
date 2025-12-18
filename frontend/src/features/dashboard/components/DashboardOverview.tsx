@@ -783,7 +783,7 @@ const DashboardOverview: React.FC = () => {
                                 title={<Text className="text-color-text-base text-sm">{item.title}</Text>}
                                 description={
                                   <div className="flex items-center gap-1">
-                                    <Tag color="blue" size="small">{item.type}</Tag>
+                                    <Tag color="blue">{item.type}</Tag>
                                     <Text className="text-xs text-color-text-muted">
                                       {new Date(item.timestamp).toLocaleDateString()}
                                     </Text>

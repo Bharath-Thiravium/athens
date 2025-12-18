@@ -7,7 +7,7 @@
 # ============================================================================
 # Stage 1: Base Node Environment
 # ============================================================================
-FROM node:18-alpine as base
+FROM node:20-alpine as base
 
 # Set working directory
 WORKDIR /app

@@ -798,7 +798,7 @@ const EnhancedPermitForm: React.FC = () => {
                                   >
                                     {ppe.label}
                                     {mandatoryPPE.includes(ppe.value) && (
-                                      <Tag color="red" size="small" style={{ marginLeft: 4 }}>Required</Tag>
+                                      <Tag color="red" style={{ marginLeft: 4 }}>Required</Tag>
                                     )}
                                   </Checkbox>
                                 </Col>
