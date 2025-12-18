@@ -29,3 +29,9 @@ frontend/vite.config.js
 frontend/tsconfig.tsbuildinfo
 backend/staticfiles/
 .env
+frontend/tsconfig.node.tsbuildinfo
+frontend/vite.config.d.ts
+frontend/vite.config.js
+frontend/tsconfig.tsbuildinfo
+backend/staticfiles/
+.env
