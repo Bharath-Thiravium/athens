@@ -122,21 +122,33 @@ const InductionTrainingAttendance: React.FC<InductionTrainingAttendanceProps> = 
           api.get(`/induction/${inductionTraining.id}/attendance/`),
         ]);
 
-        // Handle the new response format with workers array
-        if (workersResponse.data?.workers && Array.isArray(workersResponse.data.workers)) {
-          setWorkers(workersResponse.data.workers);
-          setWorkerStatistics(workersResponse.data.statistics);
+        // Handle the new response format with both workers and users
+        if (workersResponse.data?.all_participants && Array.isArray(workersResponse.data.all_participants)) {
+          // Use all_participants which includes both workers and users
+          setWorkers(workersResponse.data.all_participants);
+          setWorkerStatistics({
+            total_workers: workersResponse.data.count || 0,
+            workers_count: workersResponse.data.workers_count || 0,
+            users_count: workersResponse.data.users_count || 0,
+            message: workersResponse.data.message
+          });
 
-          // Debug: Log all workers' photo data
-          workersResponse.data.workers.forEach((worker: any, index: number) => {
-            console.log(`Worker ${index} photo data:`, {
-              photo: worker.photo,
-              photoExists: !!worker.photo,
-              photoType: typeof worker.photo,
-              createdBy: worker.created_by,
-              workerId: worker.worker_id
+          // Debug: Log all participants' data
+          workersResponse.data.all_participants.forEach((participant: any, index: number) => {
+            console.log(`Participant ${index} data:`, {
+              type: participant.participant_type,
+              name: participant.name,
+              surname: participant.surname,
+              photo: participant.photo,
+              photoExists: !!participant.photo,
+              participant_id: participant.participant_id,
+              employee_id: participant.employee_id
             });
           });
+        } else if (workersResponse.data?.workers && Array.isArray(workersResponse.data.workers)) {
+          // Fallback: use only workers if all_participants is not available
+          setWorkers(workersResponse.data.workers);
+          setWorkerStatistics(workersResponse.data.statistics);
         } else if (Array.isArray(workersResponse.data)) {
           // Fallback for old response format
           setWorkers(workersResponse.data);
@@ -301,25 +313,25 @@ const InductionTrainingAttendance: React.FC<InductionTrainingAttendanceProps> = 
           <Space direction="vertical" style={{ width: '100%' }}>
             <Space wrap>
               <Text type="secondary" style={{ fontSize: '12px' }}>
-                📋 Showing all workers with "initiated" status across all users who need induction training
+                📋 {workerStatistics?.message || 'Showing all participants who need induction training'}
               </Text>
               {workerStatistics && (
                 <Text type="secondary" style={{ fontSize: '11px' }}>
-                  (Total: {workerStatistics.total_workers} | Initiated: {workerStatistics.initiated_workers} | Deployed: {workerStatistics.deployed_workers})
+                  (Total: {workerStatistics.total_workers} | Workers: {workerStatistics.workers_count} | Users: {workerStatistics.users_count})
                 </Text>
               )}
             </Space>
-            <Input placeholder="Search workers by name or ID" prefix={<SearchOutlined />} onChange={handleSearch} />
+            <Input placeholder="Search participants by name or ID" prefix={<SearchOutlined />} onChange={handleSearch} />
           </Space>
         </HeaderSection>
 
         <SummarySection>
-          <Space size="large">
-            <Text>Available Workers: <strong>{workers.length}</strong></Text>
-            <Text>Present: <strong style={{color: 'var(--ant-color-success)'}}>{attendanceList.filter(a => a.status === 'present').length}</strong></Text>
-            <Text>Absent: <strong style={{color: 'var(--ant-color-error)'}}>{attendanceList.filter(a => a.status === 'absent').length}</strong></Text>
-            <Text>Unmarked: <strong>{workers.length - attendanceList.length}</strong></Text>
-          </Space>
+            <Space size="large">
+              <Text>Available Participants: <strong>{workers.length}</strong></Text>
+              <Text>Present: <strong style={{color: 'var(--ant-color-success)'}}>{attendanceList.filter(a => a.status === 'present').length}</strong></Text>
+              <Text>Absent: <strong style={{color: 'var(--ant-color-error)'}}>{attendanceList.filter(a => a.status === 'absent').length}</strong></Text>
+              <Text>Unmarked: <strong>{workers.length - attendanceList.length}</strong></Text>
+            </Space>
         </SummarySection>
       
         <List
