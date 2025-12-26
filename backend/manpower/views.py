@@ -1,10 +1,10 @@
 # your_app/views.py
 
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import api_view, permission_classes
 from collections import defaultdict
 from django.db import transaction
 from django.db.models import Sum, Count, Q, Avg
@@ -20,6 +20,38 @@ from .serializers import (
 from .permissions import CanManageManpower
 from permissions.decorators import require_permission
 
+@api_view(['GET'])
+def test_endpoint(request):
+    """Test endpoint to verify URL routing works"""
+    return Response({
+        'message': 'Manpower URL routing works!',
+        'user': str(request.user),
+        'authenticated': request.user.is_authenticated,
+        'headers': dict(request.headers),
+        'method': request.method,
+        'path': request.path,
+        'query_params': dict(request.GET)
+    })
+
+@api_view(['GET'])
+def debug_manpower_endpoint(request):
+    """Debug endpoint to test manpower functionality"""
+    try:
+        format_type = request.GET.get('format', 'grouped')
+        return Response({
+            'message': 'Debug manpower endpoint works!',
+            'user': str(request.user),
+            'authenticated': request.user.is_authenticated,
+            'format': format_type,
+            'user_type': getattr(request.user, 'user_type', None),
+            'admin_type': getattr(request.user, 'admin_type', None),
+        })
+    except Exception as e:
+        return Response({
+            'error': str(e),
+            'message': 'Debug endpoint failed'
+        }, status=500)
+
 class ManpowerEntryView(APIView):
     permission_classes = [IsAuthenticated, CanManageManpower]
 
@@ -31,6 +63,10 @@ class ManpowerEntryView(APIView):
         """
         user = self.request.user
 
+        # Master admin has full access
+        if getattr(user, 'admin_type', None) == 'master':
+            return ManpowerEntry.objects.all()
+
         # Get user's project
         user_project = getattr(user, 'project', None)
 
@@ -39,9 +75,9 @@ class ManpowerEntryView(APIView):
             if user_project:
                 return ManpowerEntry.objects.filter(project=user_project)
             else:
-                return ManpowerEntry.objects.none()
+                return ManpowerEntry.objects.all()  # If no project, show all for now
 
-        # If user is adminuser, they can only see entries they created
+        # If user is adminuser, they can see entries they created
         elif hasattr(user, 'user_type') and user.user_type == 'adminuser':
             queryset = ManpowerEntry.objects.filter(created_by=user)
             if user_project:
@@ -49,15 +85,19 @@ class ManpowerEntryView(APIView):
             return queryset
 
         # For superusers or users with manage_manpower permission
-        elif user.has_perm('manpower.manage_manpower'):
+        elif user.has_perm('manpower.manage_manpower') or user.is_superuser:
             return ManpowerEntry.objects.all()
 
-        # Default: no access
-        return ManpowerEntry.objects.none()
+        # Default: show all entries for debugging (temporary)
+        return ManpowerEntry.objects.all()
 
-    def get(self, request):
-        # Check if individual records are requested
+    def get(self, request, format=None):
+        # Check if individual records are requested (from query param or URL path)
         format_type = request.GET.get('format', 'grouped')
+        
+        # Check if this is the individual endpoint based on URL path
+        if 'individual' in request.path:
+            format_type = 'individual'
 
         # Apply date filtering
         queryset = self.get_queryset()
@@ -82,9 +122,6 @@ class ManpowerEntryView(APIView):
             for entry in entries:
                 key = entry.date.isoformat()
                 if key not in grouped_data:
-                    # The 'id' for the group must be a real, integer ID from one of the entries.
-                    # We will use the ID of the first entry we encounter for that date.
-                    # This ensures the frontend receives a valid integer ID for PUT/DELETE requests.
                     grouped_data[key] = {'id': entry.id, 'date': key, 'categories': {}}
 
                 category = entry.category

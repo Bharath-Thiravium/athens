@@ -45,22 +45,6 @@ const ProjectsList: React.FC = () => {
     setPageSize(size);
   }, []);
 
-  // Auto-advance to next page when current page is filled
-  useEffect(() => {
-    const totalPages = Math.ceil(projects.length / pageSize);
-    const currentPageStartIndex = (currentPage - 1) * pageSize;
-    const currentPageEndIndex = currentPageStartIndex + pageSize;
-    const projectsOnCurrentPage = projects.slice(currentPageStartIndex, currentPageEndIndex);
-
-    // If current page is full and there are more pages, auto-advance
-    if (projectsOnCurrentPage.length === pageSize && currentPage < totalPages) {
-      // Small delay to make the transition smooth
-      setTimeout(() => {
-        setCurrentPage(currentPage + 1);
-        message.info(`Page ${currentPage} is full. Automatically moved to page ${currentPage + 1}.`);
-      }, 500);
-    }
-  }, [projects.length, pageSize, currentPage, message]);
 
   const fetchProjects = useCallback(async () => {
     setLoading(true);

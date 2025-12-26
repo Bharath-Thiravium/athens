@@ -480,13 +480,10 @@ const DashboardOverview: React.FC = () => {
                 type="primary" 
                 size="small" 
                 className="bg-orange-500 border-orange-500"
-                onClick={() => {
-                  // Navigate to alerts page
-                  try {
-                    navigate('/dashboard/alerts');
-                  } catch (error) {
-                    console.error('Navigation error:', error);
-                  }
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigate('/dashboard/alerts');
                 }}
               >
                 View All Alerts
@@ -495,14 +492,10 @@ const DashboardOverview: React.FC = () => {
                 type="text" 
                 size="small" 
                 icon={<MoreOutlined />}
-                onClick={() => {
-                  // Show alert details modal
-                  try {
-                    // Could open a modal or navigate to specific alert
-                    navigate('/dashboard/notifications');
-                  } catch (error) {
-                    console.error('Navigation error:', error);
-                  }
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Alert details clicked');
                 }}
               />
             </div>
@@ -533,8 +526,9 @@ const DashboardOverview: React.FC = () => {
 
         {/* Left Column (3/4 width) */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Top Stat Cards */}
-          <div className="dashboard-cards-container">
+          {/* Top Stat Cards - 2 cards per row */}
+          <Row gutter={[16, 16]} className="mb-6">
+            <Col xs={24} sm={12}>
               <Card className="hover:shadow-lg transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
@@ -558,7 +552,9 @@ const DashboardOverview: React.FC = () => {
                     </div>
                   </div>
               </Card>
-              
+            </Col>
+            
+            <Col xs={24} sm={12}>
               <Card className="hover:shadow-lg transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
@@ -582,7 +578,9 @@ const DashboardOverview: React.FC = () => {
                     </div>
                   </div>
               </Card>
-              
+            </Col>
+            
+            <Col xs={24} sm={12}>
               <Card className="hover:shadow-lg transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
@@ -606,7 +604,9 @@ const DashboardOverview: React.FC = () => {
                     </div>
                   </div>
               </Card>
-              
+            </Col>
+            
+            <Col xs={24} sm={12}>
               <Card className="hover:shadow-lg transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
@@ -629,7 +629,8 @@ const DashboardOverview: React.FC = () => {
                     </div>
                   </div>
               </Card>
-          </div>
+            </Col>
+          </Row>
 
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

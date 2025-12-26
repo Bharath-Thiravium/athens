@@ -16,19 +16,16 @@ class SafetyObservationPermission(permissions.BasePermission):
         if getattr(user, 'user_type', None) == 'adminuser':
             admin_type = getattr(user, 'admin_type', None)
             if admin_type == 'epcuser':
-                # Allow create, safe methods, and update methods
-                if request.method in permissions.SAFE_METHODS or request.method == 'POST' or request.method in ['PUT', 'PATCH', 'DELETE']:
-                    return True
-                else:
-                    return False
+                # Allow all operations including DELETE
+                return True
             elif admin_type == 'clientuser':
-                # Allow create, safe methods, and update methods
-                if request.method in permissions.SAFE_METHODS or request.method == 'POST' or request.method in ['PUT', 'PATCH']:
+                # Allow create, safe methods, update methods, and DELETE
+                if request.method in permissions.SAFE_METHODS or request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
                     return True
                 else:
                     return False
             elif admin_type == 'contractoruser':
-                # View and update if assigned
+                # View and update if assigned, no DELETE
                 if request.method in permissions.SAFE_METHODS or request.method in ['PUT', 'PATCH']:
                     return True
                 else:
@@ -55,17 +52,22 @@ class SafetyObservationPermission(permissions.BasePermission):
         if getattr(user, 'user_type', None) == 'adminuser':
             admin_type = getattr(user, 'admin_type', None)
             if admin_type == 'epcuser':
-                # EPCUser has full permissions for all observations (except closed ones)
-                if obj.observationStatus.lower() != 'closed':
+                # EPCUser has full permissions for all observations (except closed ones for modifications)
+                if request.method == 'DELETE':
+                    return True  # Allow delete regardless of status
+                elif obj.observationStatus.lower() != 'closed':
                     # Allow all operations for non-closed observations
                     return True
                 else:
                     # If observation is closed, allow only safe methods (view)
                     return request.method in permissions.SAFE_METHODS
             elif admin_type == 'clientuser':
-                # ClientUser can view all and update if they created it or are assigned to it
+                # ClientUser can view all and update/delete if they created it
                 if request.method in permissions.SAFE_METHODS:
                     return True
+                elif request.method == 'DELETE':
+                    # Allow delete if they created it
+                    return obj.created_by == user
                 elif request.method in ['PUT', 'PATCH']:
                     # Allow update if they created it or are assigned to it (and not closed)
                     if obj.observationStatus.lower() != 'closed':
@@ -75,7 +77,7 @@ class SafetyObservationPermission(permissions.BasePermission):
                 else:
                     return False
             elif admin_type == 'contractoruser':
-                # View and update if assigned to them
+                # View and update if assigned to them, no DELETE
                 if request.method in permissions.SAFE_METHODS:
                     return True
                 elif request.method in ['PUT', 'PATCH']:

@@ -69,38 +69,18 @@ const ManpowerVisualization: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-
-      // Test if backend is accessible with work-types endpoint
-      try {
-        await api.get('/man/work-types/');
-      } catch (workTypesError: any) {
-        message.error('Backend server seems to be down or not accessible');
-        return; // Exit early if backend is not accessible
-      }
-
-      // First try basic endpoint without format parameter
-      try {
-        await api.get('/man/manpower/');
-      } catch (basicError: any) {
-      }
-
-      // Try different approaches to load manpower records
-      let response;
-
-      // First try with format=individual
-      try {
-        response = await api.get('/man/manpower/?format=individual');
-      } catch (formatError: any) {
-        console.warn('Individual format not available, trying basic endpoint:', formatError.message);
-        // Fallback to basic endpoint
-        try {
-          response = await api.get('/man/manpower/');
-        } catch (basicError: any) {
-          console.error('Basic endpoint also failed:', basicError.message);
-          throw basicError;
-        }
-      }
-
+      console.log('Loading manpower data...');
+      
+      // Directly call the individual endpoint which we know works
+      const response = await api.get('/man/manpower/individual/');
+      
+      console.log('API Response:', {
+        status: response.status,
+        dataType: typeof response.data,
+        isArray: Array.isArray(response.data),
+        length: Array.isArray(response.data) ? response.data.length : 'N/A',
+        firstItem: Array.isArray(response.data) && response.data.length > 0 ? response.data[0] : null
+      });
 
       if (Array.isArray(response.data)) {
         setManpowerRecords(response.data);
@@ -110,6 +90,7 @@ const ManpowerVisualization: React.FC = () => {
           message.info('No manpower records found. Create some records using the "Add New Record" button.');
         }
       } else {
+        console.error('Unexpected response format:', response.data);
         setManpowerRecords([]);
         message.warning('Received unexpected data format from server');
       }
@@ -121,7 +102,14 @@ const ManpowerVisualization: React.FC = () => {
         status: error.response?.status,
         url: error.config?.url
       });
-      message.error('Failed to load manpower data. Please check if you have the right permissions.');
+      
+      if (error.response?.status === 401) {
+        message.error('Authentication required. Please log in again.');
+      } else if (error.response?.status === 403) {
+        message.error('You do not have permission to view manpower data.');
+      } else {
+        message.error(`Failed to load manpower data: ${error.message}`);
+      }
       setManpowerRecords([]);
     } finally {
       setLoading(false);

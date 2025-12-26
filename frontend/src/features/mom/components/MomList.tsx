@@ -52,22 +52,6 @@ const MomList: React.FC = () => {
     setPageSize(size);
   }, []);
 
-  // Auto-advance to next page when current page is filled
-  React.useEffect(() => {
-    const totalPages = Math.ceil(moms.length / pageSize);
-    const currentPageStartIndex = (currentPage - 1) * pageSize;
-    const currentPageEndIndex = currentPageStartIndex + pageSize;
-    const momsOnCurrentPage = moms.slice(currentPageStartIndex, currentPageEndIndex);
-
-    // If current page is full and there are more pages, auto-advance
-    if (momsOnCurrentPage.length === pageSize && currentPage < totalPages) {
-      // Small delay to make the transition smooth
-      setTimeout(() => {
-        setCurrentPage(currentPage + 1);
-        message.info(`Page ${currentPage} is full. Automatically moved to page ${currentPage + 1}.`);
-      }, 500);
-    }
-  }, [moms.length, pageSize, currentPage, message]);
 
   const fetchMoms = async (navigateToNewItem = false) => {
     // Check authentication before making API call

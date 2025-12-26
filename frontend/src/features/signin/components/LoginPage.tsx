@@ -237,9 +237,10 @@ const LoginPage: React.FC = () => {
                 label={<span className="font-semibold">Username</span>}
                 name="username"
                 rules={[
-                  { required: true, message: 'Please enter your username' },
-                  { max: 150, message: 'Username too long' },
-                  { pattern: /^[a-zA-Z0-9._@-]+$/, message: 'Username contains invalid characters' }
+                  { required: true, message: 'Please enter your username', whitespace: true },
+                  { min: 3, message: 'Username must be at least 3 characters' },
+                  { max: 150, message: 'Username cannot exceed 150 characters' },
+                  { pattern: /^[a-zA-Z0-9._@-]+$/, message: 'Username can only contain letters, numbers, dots, underscores, @ and hyphens' }
                 ]}
               >
                 <Input
@@ -249,11 +250,10 @@ const LoginPage: React.FC = () => {
                   autoComplete="username"
                   maxLength={150}
                   onPaste={(e) => {
-                    // Prevent pasting potentially malicious content
                     const paste = e.clipboardData.getData('text');
-                    if (paste.length > 150) {
+                    if (paste.length > 150 || !/^[a-zA-Z0-9._@-]+$/.test(paste)) {
                       e.preventDefault();
-                      message.warning('Username too long');
+                      message.warning('Invalid username format');
                     }
                   }}
                 />
@@ -262,9 +262,9 @@ const LoginPage: React.FC = () => {
                 label={<span className="font-semibold">Password</span>}
                 name="password"
                 rules={[
-                  { required: true, message: 'Please enter your password' },
-                  { min: 6, message: 'Password must be at least 6 characters' },
-                  { max: 128, message: 'Password too long' }
+                  { required: true, message: 'Please enter your password', whitespace: true },
+                  { min: 8, message: 'Password must be at least 8 characters' },
+                  { max: 128, message: 'Password cannot exceed 128 characters' }
                 ]}
               >
                 <Input.Password
@@ -273,13 +273,12 @@ const LoginPage: React.FC = () => {
                   className="!rounded-lg"
                   autoComplete="current-password"
                   maxLength={128}
-                  onCopy={(e) => e.preventDefault()} // Prevent copying password
+                  onCopy={(e) => e.preventDefault()}
                   onPaste={(e) => {
-                    // Allow pasting but limit length
                     const paste = e.clipboardData.getData('text');
                     if (paste.length > 128) {
                       e.preventDefault();
-                      message.warning('Password too long');
+                      message.warning('Password exceeds maximum length');
                     }
                   }}
                 />

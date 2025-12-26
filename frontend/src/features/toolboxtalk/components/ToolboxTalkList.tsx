@@ -37,28 +37,11 @@ const ToolboxTalkList: React.FC = () => {
   const hasPermission = usertype === 'clientuser' || usertype === 'epcuser' ||
                         usertype === 'contractoruser';
 
-  // --- Auto-Navigation Logic ---
+  // --- Pagination Logic ---
   const handlePaginationChange = useCallback((page: number, size: number) => {
     setCurrentPage(page);
     setPageSize(size);
   }, []);
-
-  // Auto-advance to next page when current page is filled
-  useEffect(() => {
-    const totalPages = Math.ceil(toolboxTalks.length / pageSize);
-    const currentPageStartIndex = (currentPage - 1) * pageSize;
-    const currentPageEndIndex = currentPageStartIndex + pageSize;
-    const talksOnCurrentPage = toolboxTalks.slice(currentPageStartIndex, currentPageEndIndex);
-
-    // If current page is full and there are more pages, auto-advance
-    if (talksOnCurrentPage.length === pageSize && currentPage < totalPages) {
-      // Small delay to make the transition smooth
-      setTimeout(() => {
-        setCurrentPage(currentPage + 1);
-        message.info(`Page ${currentPage} is full. Automatically moved to page ${currentPage + 1}.`);
-      }, 500);
-    }
-  }, [toolboxTalks.length, pageSize, currentPage, message]);
 
   const fetchToolboxTalks = useCallback(async () => {
     setLoading(true);
@@ -177,10 +160,6 @@ const ToolboxTalkList: React.FC = () => {
       // Update the endpoint from /toolboxtalk/ to /tbt/create/
       const response = await api.post('/tbt/create/', newTBT);
 
-      // Calculate which page the new toolbox talk will be on
-      const newTalkPage = Math.ceil((toolboxTalks.length + 1) / pageSize);
-      setCurrentPage(newTalkPage);
-
       setToolboxTalks((prev) => [
         ...prev,
         {
@@ -196,7 +175,7 @@ const ToolboxTalkList: React.FC = () => {
           updated_at: response.data.updated_at
         },
       ]);
-      message.success(`Toolbox talk added successfully and moved to page ${newTalkPage}.`);
+      message.success('Toolbox talk added successfully');
       setAddingTBT(false);
     } catch (error) {
       message.error('Failed to add toolbox talk');

@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Layout, Menu, Button, Avatar, Typography, Dropdown, Space,
-    Modal, App, Badge, Card, Divider, Tag, Spin
+    Modal, App, Badge, Card, Divider, Tag, Spin, Tooltip
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -65,6 +65,13 @@ const Dashboard: React.FC = () => {
     const [notificationModal, setNotificationModal] = useState<{visible: boolean, notification?: Notification}>({visible: false});
     const [userMobile, setUserMobile] = useState<string>('');
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [userDetails, setUserDetails] = useState<{
+        name: string;
+        employeeId: string;
+        designation: string;
+        department: string;
+        userType: string;
+    } | null>(null);
 
     const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, sendApprovalNotification } = useNotificationsContext();
     const navigate = useNavigate();
@@ -283,18 +290,44 @@ const Dashboard: React.FC = () => {
         const fetchUserProfilePic = async () => {
           try {
             let profilePicUrl = null;
+            let userDetailsData = null;
             
             if (django_user_type === 'adminuser') {
-              // For admin users, get profile pic from UserDetail
+              // For admin users, get profile pic and details from UserDetail
               const userDetailResponse = await api.get('/authentication/userdetail/');
               if (userDetailResponse.data?.photo) {
                 profilePicUrl = userDetailResponse.data.photo;
+              }
+              
+              // Extract user details for display
+              const userData = userDetailResponse.data;
+              if (userData) {
+                userDetailsData = {
+                  name: userData.name && userData.surname 
+                    ? `${userData.name} ${userData.surname}` 
+                    : userData.name || username || 'User',
+                  employeeId: userData.employee_id || 'N/A',
+                  designation: userData.designation || 'N/A',
+                  department: userData.department || 'N/A',
+                  userType: django_user_type === 'adminuser' ? 'Admin User' : django_user_type || 'N/A'
+                };
               }
             } else if (usertype === 'projectadmin') {
               // For project admins, get profile pic from AdminDetail
               const adminDetailResponse = await api.get('/authentication/admin/me/');
               if (adminDetailResponse.data?.photo_url) {
                 profilePicUrl = adminDetailResponse.data.photo_url;
+              }
+              
+              // Extract admin details for display
+              const adminData = adminDetailResponse.data;
+              if (adminData) {
+                userDetailsData = {
+                  name: adminData.name || username || 'Admin',
+                  employeeId: 'N/A', // Admin details don't have employee ID
+                  designation: adminData.user?.designation || 'Project Admin',
+                  userType: adminData.user?.admin_type || usertype || 'projectadmin'
+                };
               }
             }
             
@@ -305,9 +338,22 @@ const Dashboard: React.FC = () => {
               }
               setUserProfilePicUrl(profilePicUrl);
             }
+            
+            // Set user details for display
+            if (userDetailsData) {
+              setUserDetails(userDetailsData);
+            }
           } catch (error) {
-            console.error('Failed to fetch user profile picture:', error);
+            console.error('Failed to fetch user profile picture and details:', error);
             setUserProfilePicUrl(null);
+            // Set fallback user details
+            setUserDetails({
+              name: username || 'User',
+              employeeId: 'N/A',
+              designation: 'N/A',
+              department: 'N/A',
+              userType: django_user_type || usertype || 'N/A'
+            });
           }
         };
 
@@ -488,27 +534,30 @@ const Dashboard: React.FC = () => {
                 <div className="p-3" style={{ flexShrink: 0, display: collapsed && !(isMobile || isTablet) ? 'none' : 'block' }}>
                     <div className="bg-color-bg-base p-4 rounded-lg">
                         <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-3">
-                                <Avatar 
-                                    src={userProfilePicUrl} 
-                                    icon={<UserOutlined />} 
-                                    style={{ backgroundColor: userProfilePicUrl ? 'transparent' : undefined }}
-                                />
-                                {!collapsed && <Text className="font-semibold text-color-text-base">{username || 'User'}</Text>}
+                            <div className="flex flex-col gap-1">
+                                <Tooltip 
+                                    title={
+                                        <div>
+                                            <div><strong>Employee ID:</strong> {userDetails?.employeeId || 'N/A'}</div>
+                                            <div><strong>Designation:</strong> {userDetails?.designation || 'N/A'}</div>
+                                            <div><strong>Department:</strong> {userDetails?.department || 'N/A'}</div>
+                                        </div>
+                                    }
+                                    placement="right"
+                                >
+                                    <Text className="font-semibold text-color-text-base cursor-pointer">
+                                        {userDetails?.name || username || 'User'}
+                                    </Text>
+                                </Tooltip>
+                                <Text className="text-xs text-color-text-muted">
+                                    {userDetails?.userType || 'N/A'}
+                                </Text>
                             </div>
-                            {!collapsed && (
-                                <div className="flex items-center bg-color-ui-base p-1 rounded-full shadow-inner">
-                                    <Button shape="circle" size="small" icon={<SunOutlined />} onClick={() => setTheme('light')} className={effectiveTheme === 'light' ? '!bg-color-primary !text-white' : '!bg-transparent !border-none !text-color-text-muted'} />
-                                    <Button shape="circle" size="small" icon={<MoonOutlined />} onClick={() => setTheme('dark')} className={effectiveTheme === 'dark' ? '!bg-color-primary !text-white' : '!bg-transparent !border-none !text-color-text-muted'} />
-                                </div>
-                            )}
+                            <div className="flex items-center bg-color-ui-base p-1 rounded-full shadow-inner">
+                                <Button shape="circle" size="small" icon={<SunOutlined />} onClick={() => setTheme('light')} className={effectiveTheme === 'light' ? '!bg-color-primary !text-white' : '!bg-transparent !border-none !text-color-text-muted'} />
+                                <Button shape="circle" size="small" icon={<MoonOutlined />} onClick={() => setTheme('dark')} className={effectiveTheme === 'dark' ? '!bg-color-primary !text-white' : '!bg-transparent !border-none !text-color-text-muted'} />
+                            </div>
                         </div>
-                        {!collapsed && (
-                            <div className="mt-4">
-                                <Paragraph className="!mb-0 text-color-text-muted text-xs uppercase">{new Date().toLocaleDateString('en-US', { weekday: 'long' })}</Paragraph>
-                                <Paragraph strong className="!mb-0 text-color-text-base text-lg">Welcome back,</Paragraph>
-                            </div>
-                        )}
                     </div>
                 </div>
                 <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0, maxHeight: collapsed && !(isMobile || isTablet) ? 'calc(100vh - 80px)' : 'calc(100vh - 220px)' }}>

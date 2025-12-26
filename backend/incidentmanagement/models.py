@@ -418,21 +418,28 @@ class Incident(models.Model):
         if self.assigned_investigator and not hasattr(self, '_skip_8d_creation'):
             # Check if 8D process already exists
             if not hasattr(self, 'eight_d_process'):
-                from .models import EightDProcess
                 try:
+                    from .models import EightDProcess
                     EightDProcess.objects.get(incident=self)
                 except EightDProcess.DoesNotExist:
-                    # Create 8D process automatically
-                    EightDProcess.objects.create(
-                        incident=self,
-                        problem_statement=f"8D Problem Solving for: {self.title}",
-                        champion=self.assigned_investigator,
-                        status='initiated',
-                        current_discipline=1
-                    )
-                    # Update incident status to 8D initiated
-                    if self.status == 'reported':
-                        self.status = '8d_initiated'
+                    try:
+                        # Create 8D process automatically
+                        EightDProcess.objects.create(
+                            incident=self,
+                            problem_statement=f"8D Problem Solving for: {self.title}",
+                            champion=self.assigned_investigator,
+                            status='initiated',
+                            current_discipline=1
+                        )
+                        # Update incident status to 8D initiated
+                        if self.status == 'reported':
+                            self.status = '8d_initiated'
+                    except Exception as e:
+                        # Log the error but don't fail the incident creation
+                        print(f"Warning: Failed to create 8D process for incident {self.incident_id}: {e}")
+                except Exception as e:
+                    # Log any other errors
+                    print(f"Warning: Error checking for existing 8D process: {e}")
 
         # Calculate risk matrix score
         if self.probability_score and self.impact_score:

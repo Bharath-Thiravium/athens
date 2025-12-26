@@ -71,14 +71,23 @@ def delete_embeddings(sender, instance, **kwargs):
             break
 
 
-# Post-save upsert hooks
-if SafetyObservation:
-    @receiver(post_save, sender=SafetyObservation)
-    def upsert_safety(sender, instance, created, **kwargs):
-        from .tasks import upsert_embedding
-        title = getattr(instance,'observationID','')
-        text = f"SafetyObservation {title} Dept {getattr(instance,'department','')} Location {getattr(instance,'workLocation','')} Severity {getattr(instance,'severity','')} Status {getattr(instance,'observationStatus','')} Desc {getattr(instance,'safetyObservationFound','')}"
-        upsert_embedding.delay('safetyobservation', instance.id, title, text)
+# Temporarily disable all Celery-dependent signals due to broker connection issues
+# These will be re-enabled once the message broker is properly configured
+
+# Post-save upsert hooks - DISABLED
+# if SafetyObservation:
+#     @receiver(post_save, sender=SafetyObservation)
+#     def upsert_safety(sender, instance, created, **kwargs):
+#         try:
+#             from .tasks import upsert_embedding
+#             title = getattr(instance,'observationID','')
+#             text = f"SafetyObservation {title} Dept {getattr(instance,'department','')} Location {getattr(instance,'workLocation','')} Severity {getattr(instance,'severity','')} Status {getattr(instance,'observationStatus','')} Desc {getattr(instance,'safetyObservationFound','')}"
+#             upsert_embedding.delay('safetyobservation', instance.id, title, text)
+#         except Exception as e:
+#             # Log error but don't break the save operation
+#             import logging
+#             logger = logging.getLogger(__name__)
+#             logger.error(f"Failed to queue embedding task for SafetyObservation {instance.id}: {e}")
 
 if Incident:
     @receiver(post_save, sender=Incident)
@@ -195,11 +204,23 @@ if HazardLibrary:
         upsert_embedding.delay('hazardlibrary', instance.id, title, text)
 
 # Delete signals for all models
-if SafetyObservation:
-    @receiver(post_delete, sender=SafetyObservation)
-    def delete_safety_observation_embedding(sender, instance, **kwargs):
-        from .tasks import delete_embedding
-        delete_embedding.delay('safetyobservation', instance.id)
+# Delete signals - DISABLED
+# if SafetyObservation:
+#     @receiver(post_delete, sender=SafetyObservation)
+#     def delete_safety_observation_embedding(sender, instance, **kwargs):
+#         try:
+#             from .tasks import delete_embedding
+#             delete_embedding.delay('safetyobservation', instance.id)
+#         except Exception as e:
+#             # Log error but don't break the delete operation
+#             import logging
+#             logger = logging.getLogger(__name__)
+#             logger.error(f"Failed to queue delete embedding task for SafetyObservation {instance.id}: {e}")
+#             # Fallback to direct deletion
+#             try:
+#                 DocEmbedding.objects.filter(module='safetyobservation', record_id=instance.id).delete()
+#             except Exception as fallback_error:
+#                 logger.error(f"Fallback deletion also failed: {fallback_error}")
 
 if Incident:
     @receiver(post_delete, sender=Incident)

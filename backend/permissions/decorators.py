@@ -18,11 +18,16 @@ def require_permission(permission_type):
                 logger.info("User is not adminuser, allowing access")
                 return view_func(self, request, *args, **kwargs)  # Allow other user types
             
+            # Check if adminuser is epcuser - they have full permissions
+            if getattr(request.user, 'admin_type', None) == 'epcuser':
+                logger.info("User is epcuser adminuser, allowing access")
+                return view_func(self, request, *args, **kwargs)
+            
             # Extract object info from request
             if request.method in ['PUT', 'PATCH', 'DELETE']:
-                object_id = kwargs.get('pk') or kwargs.get('id')
-                if not object_id:
-                    logger.error("No object ID found in request")
+                lookup_value = kwargs.get('pk') or kwargs.get('id') or kwargs.get('observationID')
+                if not lookup_value:
+                    logger.error(f"No lookup value found in request kwargs: {kwargs}")
                     return JsonResponse({'error': 'Object ID required'}, status=400)
                 
                 # Get content type from ViewSet model
@@ -30,6 +35,19 @@ def require_permission(permission_type):
                 if not model_class:
                     logger.error("No model class found on ViewSet")
                     return JsonResponse({'error': 'Model not specified'}, status=400)
+                
+                # Get the actual object to find its primary key
+                try:
+                    lookup_field = getattr(self, 'lookup_field', 'pk')
+                    if lookup_field == 'pk':
+                        object_id = lookup_value
+                    else:
+                        # Get the object using the lookup field and extract its primary key
+                        obj = model_class.objects.get(**{lookup_field: lookup_value})
+                        object_id = obj.pk
+                except model_class.DoesNotExist:
+                    logger.error(f"Object not found with {lookup_field}={lookup_value}")
+                    return JsonResponse({'error': 'Object not found'}, status=404)
                 
                 content_type = ContentType.objects.get_for_model(model_class)
                 logger.info(f"Checking permission for: user={request.user.id}, object_id={object_id}, content_type={content_type}, permission_type={permission_type}")

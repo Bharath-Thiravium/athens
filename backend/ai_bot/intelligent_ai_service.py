@@ -166,68 +166,58 @@ class IntelligentAIService:
         intent = {
             'primary_domain': None,
             'confidence': 0.0,
-            'action_type': 'search',  # search, count, analyze, report
-            'time_context': None,  # today, this week, recent, etc.
+            'action_type': 'search',
+            'time_context': None,
             'filters': {},
-            'semantic_matches': []
+            'semantic_matches': [],
+            'understood_domain': 'general'
         }
         
-        # Find semantic matches
-        for domain, knowledge in self.knowledge_base.items():
-            # Check direct domain mention
-            if domain in query:
-                intent['semantic_matches'].append({
-                    'domain': domain,
-                    'match_type': 'direct',
-                    'confidence': 1.0
-                })
-                if intent['confidence'] < 1.0:
-                    intent['primary_domain'] = domain
-                    intent['confidence'] = 1.0
-            
-            # Check synonyms
-            for synonym in knowledge['synonyms']:
-                if synonym in query:
-                    confidence = self._calculate_similarity(synonym, query)
-                    intent['semantic_matches'].append({
-                        'domain': domain,
-                        'match_type': 'synonym',
-                        'term': synonym,
-                        'confidence': confidence
-                    })
-                    if confidence > intent['confidence']:
-                        intent['primary_domain'] = domain
-                        intent['confidence'] = confidence
-            
-            # Check related terms
-            for term in knowledge['related_terms']:
-                if term in query:
-                    confidence = self._calculate_similarity(term, query) * 0.8
-                    intent['semantic_matches'].append({
-                        'domain': domain,
-                        'match_type': 'related',
-                        'term': term,
-                        'confidence': confidence
-                    })
-                    if confidence > intent['confidence']:
-                        intent['primary_domain'] = domain
-                        intent['confidence'] = confidence
+        # Handle dashboard queries
+        if any(word in query for word in ['dashboard', 'overview', 'statistics', 'stats', 'summary']):
+            intent['primary_domain'] = 'dashboard'
+            intent['confidence'] = 0.9
+            intent['action_type'] = 'analyze'
+            intent['understood_domain'] = 'dashboard'
+            return intent
+        
+        # Handle safety queries
+        if any(word in query for word in ['safety', 'observation', 'hazard', 'risk']):
+            intent['primary_domain'] = 'safety'
+            intent['confidence'] = 0.8
+            intent['understood_domain'] = 'safety'
+        
+        # Handle manpower queries
+        if any(word in query for word in ['manpower', 'worker', 'staff', 'employee', 'attendance']):
+            intent['primary_domain'] = 'manpower'
+            intent['confidence'] = 0.8
+            intent['understood_domain'] = 'manpower'
+        
+        # Handle incident queries
+        if any(word in query for word in ['incident', 'accident', 'emergency']):
+            intent['primary_domain'] = 'incident'
+            intent['confidence'] = 0.8
+            intent['understood_domain'] = 'incident'
+        
+        # Handle permit queries
+        if any(word in query for word in ['permit', 'ptw', 'authorization']):
+            intent['primary_domain'] = 'permit'
+            intent['confidence'] = 0.8
+            intent['understood_domain'] = 'permit'
         
         # Determine action type
-        if any(word in query for word in ['how many', 'count', 'total', 'number of']):
+        if any(word in query for word in ['how many', 'count', 'total', 'number']):
             intent['action_type'] = 'count'
-        elif any(word in query for word in ['analyze', 'analysis', 'report', 'statistics', 'stats']):
-            intent['action_type'] = 'analyze'
-        elif any(word in query for word in ['show', 'list', 'display', 'find']):
+        elif any(word in query for word in ['show', 'display', 'list', 'get']):
             intent['action_type'] = 'search'
+        elif any(word in query for word in ['overview', 'dashboard', 'summary']):
+            intent['action_type'] = 'analyze'
         
-        # Determine time context
-        if any(word in query for word in ['today', 'current', 'now']):
+        # Time context
+        if any(word in query for word in ['today', 'current']):
             intent['time_context'] = 'today'
-        elif any(word in query for word in ['this week', 'weekly']):
+        elif any(word in query for word in ['week', 'weekly']):
             intent['time_context'] = 'week'
-        elif any(word in query for word in ['recent', 'latest', 'new']):
-            intent['time_context'] = 'recent'
         
         return intent
     
@@ -242,7 +232,10 @@ class IntelligentAIService:
         
         primary_domain = intent.get('primary_domain')
         
-        if primary_domain == 'manpower':
+        # Handle dashboard overview requests
+        if primary_domain == 'dashboard':
+            return self._get_dashboard_overview()
+        elif primary_domain == 'manpower':
             results.update(self._search_manpower_semantic(query, intent))
         elif primary_domain == 'safety':
             results.update(self._search_safety_semantic(query, intent))
@@ -250,11 +243,20 @@ class IntelligentAIService:
             results.update(self._search_incident_semantic(query, intent))
         elif primary_domain == 'permit':
             results.update(self._search_permit_semantic(query, intent))
-        elif primary_domain == 'training':
-            results.update(self._search_training_semantic(query, intent))
         else:
-            # Fallback to universal search
-            results.update(self._universal_semantic_search(query, intent))
+            # Provide general help
+            results = {
+                'total_results': 0,
+                'results': [],
+                'domain_breakdown': {},
+                'suggestions': [
+                    'Try "dashboard overview"',
+                    'Try "safety observations"', 
+                    'Try "manpower today"',
+                    'Try "recent incidents"',
+                    'Try "pending permits"'
+                ]
+            }
         
         return results
     
@@ -520,6 +522,66 @@ class IntelligentAIService:
         """Placeholder for permit semantic search"""
         return {'results': [], 'total_results': 0, 'domain_breakdown': {'permit': 0}}
     
-    def _search_training_semantic(self, query: str, intent: Dict[str, Any]) -> Dict[str, Any]:
-        """Placeholder for training semantic search"""
-        return {'results': [], 'total_results': 0, 'domain_breakdown': {'training': 0}}
+    def _get_dashboard_overview(self) -> Dict[str, Any]:
+        """Get comprehensive dashboard overview"""
+        try:
+            stats = {}
+            
+            # Safety statistics
+            if SafetyObservation:
+                safety_count = SafetyObservation.objects.count()
+                high_severity = SafetyObservation.objects.filter(severity__gte=3).count()
+                stats['safety'] = {
+                    'total_observations': safety_count,
+                    'high_severity': high_severity,
+                    'open_observations': SafetyObservation.objects.filter(observationStatus='open').count()
+                }
+            
+            # Worker statistics
+            if Worker:
+                worker_count = Worker.objects.count()
+                active_workers = Worker.objects.filter(employment_status='deployed').count()
+                stats['workers'] = {
+                    'total_workers': worker_count,
+                    'active_workers': active_workers,
+                    'initiated_workers': Worker.objects.filter(employment_status='initiated').count()
+                }
+            
+            # Incident statistics
+            if Incident:
+                incident_count = Incident.objects.count()
+                open_incidents = Incident.objects.filter(status='open').count()
+                stats['incidents'] = {
+                    'total_incidents': incident_count,
+                    'open_incidents': open_incidents,
+                    'closed_incidents': incident_count - open_incidents
+                }
+            
+            # Permit statistics
+            if Permit:
+                permit_count = Permit.objects.count()
+                pending_permits = Permit.objects.filter(status='pending_approval').count()
+                stats['permits'] = {
+                    'total_permits': permit_count,
+                    'pending_permits': pending_permits,
+                    'active_permits': Permit.objects.filter(status='approved').count()
+                }
+            
+            return {
+                'type': 'comprehensive_dashboard',
+                'message': '📊 Here\'s your complete dashboard overview',
+                'data': stats,
+                'suggestions': [
+                    'Show high severity safety observations',
+                    'Show open incidents',
+                    'Show pending permits',
+                    'Show worker statistics'
+                ]
+            }
+        
+        except Exception as e:
+            return {
+                'type': 'error',
+                'message': 'Unable to generate dashboard overview at this time',
+                'suggestions': ['Try specific queries like "safety observations"']
+            }

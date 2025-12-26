@@ -282,12 +282,21 @@ const SafetyObservationForm: React.FC<SafetyObservationFormProps> = ({
         message.success('Safety observation created successfully!');
       }
 
-
-      if (!isEditMode) {
-        form.resetFields();
-        setObservationPhotos([]); // Clear uploaded photos
+      // Handle successful response
+      if (response && response.data) {
+        if (!isEditMode) {
+          form.resetFields();
+          setObservationPhotos([]);
+        }
+        if (onSuccess) onSuccess();
+        
+        // Navigate to list page after successful submission
+        setTimeout(() => {
+          if (typeof window !== 'undefined') {
+            window.location.href = '/dashboard/safetyobservation/list';
+          }
+        }, 1000);
       }
-      if (onSuccess) onSuccess();
 
     } catch (error: any) {
       console.error('Safety Observation Update Error:', error);

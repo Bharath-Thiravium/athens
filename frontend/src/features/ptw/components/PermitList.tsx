@@ -104,22 +104,6 @@ const PermitList: React.FC = () => {
     setPageSize(size);
   }, []);
 
-  // Auto-advance to next page when current page is filled
-  React.useEffect(() => {
-    const totalPages = Math.ceil(permits.length / pageSize);
-    const currentPageStartIndex = (currentPage - 1) * pageSize;
-    const currentPageEndIndex = currentPageStartIndex + pageSize;
-    const permitsOnCurrentPage = permits.slice(currentPageStartIndex, currentPageEndIndex);
-
-    // If current page is full and there are more pages, auto-advance
-    if (permitsOnCurrentPage.length === pageSize && currentPage < totalPages) {
-      // Small delay to make the transition smooth
-      setTimeout(() => {
-        setCurrentPage(currentPage + 1);
-        message.info(`Page ${currentPage} is full. Automatically moved to page ${currentPage + 1}.`);
-      }, 500);
-    }
-  }, [permits.length, pageSize, currentPage, message]);
 
   const fetchPermits = async (navigateToNewItem = false) => {
     setLoading(true);

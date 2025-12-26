@@ -80,23 +80,41 @@ class IncidentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         with transaction.atomic():
-            # First, save the incident itself to get an incident object
-            # The user is set in the serializer's context
-            incident = serializer.save(reported_by=self.request.user)
+            try:
+                # First, save the incident itself to get an incident object
+                incident = serializer.save(reported_by=self.request.user)
 
-            # --- START OF NEW CODE ---
-            # Now, handle the file attachments
-            attachments = self.request.FILES.getlist('attachments')
-            for file in attachments:
-                IncidentAttachment.objects.create(
-                    incident=incident,
-                    file=file,
-                    filename=os.path.basename(file.name),
-                    file_size=file.size,
-                    file_type=file.content_type,
-                    uploaded_by=self.request.user
-                )
-            # --- END OF NEW CODE ---
+                # Handle file attachments - check for both 'attachments' and indexed format
+                attachments = []
+                
+                # Try to get files from 'attachments' key first
+                if 'attachments' in self.request.FILES:
+                    attachments.extend(self.request.FILES.getlist('attachments'))
+                
+                # Also check for indexed format like 'attachments[0]', 'attachments[1]', etc.
+                for key in self.request.FILES.keys():
+                    if key.startswith('attachments[') and key.endswith(']'):
+                        attachments.append(self.request.FILES[key])
+                
+                # Create attachment records
+                for file in attachments:
+                    try:
+                        IncidentAttachment.objects.create(
+                            incident=incident,
+                            file=file,
+                            filename=os.path.basename(file.name),
+                            file_size=file.size,
+                            file_type=file.content_type or 'application/octet-stream',
+                            uploaded_by=self.request.user
+                        )
+                    except Exception as attachment_error:
+                        # Log attachment error but don't fail the entire incident creation
+                        print(f"Warning: Failed to save attachment {file.name}: {attachment_error}")
+                        
+            except Exception as e:
+                # Log the error for debugging
+                print(f"Error in perform_create: {e}")
+                raise e
 
     @require_permission('edit')
     def update(self, request, *args, **kwargs):

@@ -484,4 +484,33 @@ class SustainabilityTargetViewSet(viewsets.ModelViewSet):
         return SustainabilityTarget.objects.none()
     
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user, site=self.request.user.project)
+        # Ensure required fields are present
+        if not serializer.validated_data.get('site'):
+            serializer.validated_data['site'] = self.request.user.project
+        serializer.save(created_by=self.request.user)
+    
+    @action(detail=False, methods=['get'])
+    def progress_dashboard(self, request):
+        """Get sustainability targets progress dashboard data"""
+        queryset = self.get_queryset()
+        
+        # Calculate progress metrics
+        total_targets = queryset.count()
+        on_track_targets = queryset.filter(on_track=True).count()
+        sdg_aligned = queryset.exclude(sdg_alignment__isnull=True).exclude(sdg_alignment__exact=[]).count()
+        paris_aligned = queryset.filter(paris_agreement_aligned=True).count()
+        
+        # Category progress
+        category_progress = queryset.values('category').annotate(
+            total_count=Count('id'),
+            on_track_count=Count('id', filter=Q(on_track=True)),
+            avg_progress=Avg('progress_percentage')
+        )
+        
+        return Response({
+            'total_targets': total_targets,
+            'on_track_targets': on_track_targets,
+            'sdg_aligned': sdg_aligned,
+            'paris_aligned': paris_aligned,
+            'category_progress': list(category_progress)
+        })

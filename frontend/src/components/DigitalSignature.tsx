@@ -23,8 +23,8 @@ const DigitalSignature: React.FC<DigitalSignatureProps> = ({
   employeeId
 }) => {
   return (
-    <div className="digital-signature-container" style={logoUrl ? { backgroundImage: `url(${logoUrl})` } : {}}>
-      <div className="signature-content">
+    <div className="digital-signature-container">
+      <div className="signature-content" style={logoUrl ? { backgroundImage: `url(${logoUrl})` } : {}}>
         <div className="signature-left-section">
           <div className="signer-name">{signerName}</div>
           {designation && <div className="signer-designation">{designation}</div>}

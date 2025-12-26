@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import PermissionDenied
-from .intelligent_ai_service import IntelligentAIService
+from .enhanced_ai_service import EnhancedAIService
 from .rag_service import RAGService
 from .vector_rag_service import VectorRAGService
 from .hybrid_rag_service import HybridRAGService
@@ -34,8 +34,8 @@ class AIQueryView(APIView):
         query = sanitize_log_input(request.data.get('query', ''))
         
         try:
-            service = IntelligentAIService()
-            result = service.process_intelligent_query(query, request.user.id)
+            service = EnhancedAIService()
+            result = service.process_query(query, request.user.id)
             
             return Response({
                 'success': True,
@@ -192,13 +192,13 @@ class RAGQueryView(APIView):
             return Response({'success': False, 'error': 'query is required'}, status=400)
 
         try:
-            # First try universal intelligent search
-            from .universal_search_service import UniversalSearchService
-            universal_search = UniversalSearchService()
-            result = universal_search.intelligent_search(question)
+            # First try enhanced AI service
+            from .enhanced_ai_service import EnhancedAIService
+            enhanced_ai = EnhancedAIService()
+            result = enhanced_ai.process_query(question)
 
-            # If universal search found results, return them
-            if result.get('total_count', 0) > 0 or result.get('type') == 'manpower_intelligence':
+            # If enhanced AI found results, return them
+            if result.get('type') == 'enhanced_ai_response':
                 return Response({'success': True, 'data': result})
 
             # Otherwise fallback to RAG

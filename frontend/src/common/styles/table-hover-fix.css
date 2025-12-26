@@ -1,0 +1,69 @@
+/* Universal Table Hover Fix - Prevents flickering in all list components */
+
+/* Base table styling to prevent flickering */
+.ant-table {
+  background-color: var(--color-ui-base) !important;
+  transition: none !important;
+}
+
+.ant-table-wrapper {
+  background-color: var(--color-ui-base) !important;
+}
+
+/* Consistent table header styling */
+.ant-table-thead > tr > th {
+  background-color: var(--color-ui-active) !important;
+  color: var(--color-text-base) !important;
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-border) !important;
+  transition: none !important;
+}
+
+/* Universal table row styling - prevents flickering */
+.ant-table-tbody > tr {
+  transition: background-color 0.1s ease !important;
+  background-color: var(--color-ui-base) !important;
+}
+
+.ant-table-tbody > tr > td {
+  transition: background-color 0.1s ease !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  color: var(--color-text-base) !important;
+  background-color: inherit !important;
+}
+
+/* Universal hover effect - smooth and consistent */
+.ant-table-tbody > tr:hover {
+  background-color: var(--color-ui-hover) !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background-color: var(--color-ui-hover) !important;
+}
+
+/* Override any Ant Design specific hover classes */
+.ant-table-tbody > tr.ant-table-row:hover,
+.ant-table-tbody > tr.ant-table-row:hover > td,
+.ant-table-tbody > tr > td.ant-table-cell-row-hover {
+  background-color: var(--color-ui-hover) !important;
+  transition: background-color 0.1s ease !important;
+}
+
+/* Dark mode specific fixes */
+.dark .ant-table {
+  background-color: var(--color-ui-base) !important;
+}
+
+.dark .ant-table-tbody > tr {
+  background-color: var(--color-ui-base) !important;
+}
+
+.dark .ant-table-tbody > tr > td {
+  color: var(--color-text-base) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+.dark .ant-table-tbody > tr:hover,
+.dark .ant-table-tbody > tr:hover > td {
+  background-color: var(--color-ui-hover) !important;
+}

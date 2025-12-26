@@ -6,6 +6,7 @@
 @import "./responsive.css";
 @import "./responsive-override.css";
 @import "./conflict-eliminator.css";
+@import "./table-hover-fix.css";
 
 /* Dashboard Sidebar Scrollbar Styles */
 .dashboard-layout {
@@ -204,21 +205,14 @@ body {
 /* Table header styling */
 .ant-table-thead > tr > th {
   color: var(--color-text-base) !important;
-  background: var(--color-bg-subtle, var(--color-bg-base)) !important; /* Fallback for older antd versions */
+  background: var(--color-ui-active, var(--color-bg-base)) !important;
   font-weight: 600;
   border-bottom: 1px solid var(--color-border) !important;
+  transition: none !important;
 }
 
-/* Table row hover styling */
-.dark .ant-table-tbody > tr.ant-table-row:hover > td,
-.dark .ant-table-tbody > tr > td.ant-table-cell-row-hover {
-  background: var(--color-ui-hover) !important;
-}
-
-.ant-table-tbody > tr.ant-table-row:hover > td,
-.ant-t-table-tbody > tr > td.ant-table-cell-row-hover {
-  background: var(--color-ui-hover) !important;
-}
+/* Remove conflicting table row hover styling - let components handle their own */
+/* This prevents flickering by removing global overrides */
 
 /* Ant Tag styling */
 .ant-tag {
@@ -883,4 +877,23 @@ body {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+}
+
+/*
+  STEP 10: Alert Component Styling Fixes
+*/
+
+/* Alert description text color fix */
+:where(.css-1hjsfta).ant-alert-with-description .ant-alert-description {
+  color: #eceff2 !important;
+}
+
+/* Alert message text color fix */
+:where(.css-1hjsfta).ant-alert-with-description .ant-alert-message {
+  color: #e8eaee !important;
+}
+
+/* Alert info icon color fix */
+:where(.css-1hjsfta).ant-alert-info .ant-alert-icon {
+  color: #f2bc19 !important;
 }

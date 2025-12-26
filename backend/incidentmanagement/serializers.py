@@ -206,16 +206,40 @@ class IncidentSerializer(serializers.ModelSerializer):
         return status_percentages.get(obj.status, 0)
 
     def create(self, validated_data):
-        # Set the reported_by field to the current user
-        validated_data['reported_by'] = self.context['request'].user
+        try:
+            # Set the reported_by field to the current user
+            validated_data['reported_by'] = self.context['request'].user
 
-        # Set project from user if not provided
-        if not validated_data.get('project'):
-            user_project = getattr(self.context['request'].user, 'project', None)
-            if user_project:
-                validated_data['project'] = user_project
+            # Set project from user if not provided - handle case where user has no project
+            if not validated_data.get('project'):
+                user_project = getattr(self.context['request'].user, 'project', None)
+                if user_project:
+                    validated_data['project'] = user_project
+                # If user has no project, we'll let the model handle it (project can be null)
 
-        return super().create(validated_data)
+            # Handle boolean fields that might come as strings
+            boolean_fields = ['regulatory_reportable', 'safety_procedures_followed', 'family_notified', 'media_attention']
+            for field in boolean_fields:
+                if field in validated_data and isinstance(validated_data[field], str):
+                    validated_data[field] = validated_data[field].lower() in ['true', '1', 'yes']
+
+            # Handle numeric fields that might come as strings
+            numeric_fields = ['probability_score', 'impact_score', 'estimated_cost', 'production_impact_hours', 'personnel_affected_count']
+            for field in numeric_fields:
+                if field in validated_data and validated_data[field] is not None:
+                    try:
+                        if field in ['estimated_cost', 'production_impact_hours']:
+                            validated_data[field] = float(validated_data[field]) if validated_data[field] != '' else None
+                        elif field in ['probability_score', 'impact_score', 'personnel_affected_count']:
+                            validated_data[field] = int(validated_data[field]) if validated_data[field] != '' else None
+                    except (ValueError, TypeError):
+                        validated_data[field] = None
+
+            return super().create(validated_data)
+        except Exception as e:
+            # Log the error for debugging
+            print(f"Error in IncidentSerializer.create: {e}")
+            raise e
 
     def get_financial_impact(self, obj):
         """Calculate total financial impact"""

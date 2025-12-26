@@ -1,7 +1,10 @@
-import React from 'react';
-import { Card, Row, Col, Button } from 'antd';
+import React, { useState } from 'react';
+import { Table, Button, Input, Select, Tag } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { FileTextOutlined } from '@ant-design/icons';
+
+const { Search } = Input;
+const { Option } = Select;
 
 const inspectionForms = [
   {
@@ -104,47 +107,111 @@ const inspectionForms = [
 
 const InspectionFormSelector: React.FC = () => {
   const navigate = useNavigate();
+  const [filteredForms, setFilteredForms] = useState(inspectionForms);
+  const [filters, setFilters] = useState({ search: '', category: '' });
 
   const handleFormSelect = (formId: string) => {
     navigate(`/dashboard/inspection/forms/${formId}`);
   };
 
+  const handleSearch = (value: string) => {
+    setFilters(prev => ({ ...prev, search: value }));
+    applyFilters(value, filters.category);
+  };
+
+  const handleCategoryFilter = (category: string) => {
+    setFilters(prev => ({ ...prev, category }));
+    applyFilters(filters.search, category);
+  };
+
+  const applyFilters = (search: string, category: string) => {
+    let filtered = inspectionForms;
+    
+    if (search) {
+      filtered = filtered.filter(form => 
+        form.title.toLowerCase().includes(search.toLowerCase()) ||
+        form.description.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    
+    if (category) {
+      filtered = filtered.filter(form => form.category === category);
+    }
+    
+    setFilteredForms(filtered);
+  };
+
+  const columns = [
+    {
+      title: 'Form Title',
+      dataIndex: 'title',
+      key: 'title',
+      sorter: (a: any, b: any) => a.title.localeCompare(b.title),
+    },
+    {
+      title: 'Description',
+      dataIndex: 'description',
+      key: 'description',
+    },
+    {
+      title: 'Category',
+      dataIndex: 'category',
+      key: 'category',
+      render: (category: string) => {
+        const color = category === 'Electrical' ? 'blue' : category === 'Civil' ? 'green' : 'orange';
+        return <Tag color={color}>{category}</Tag>;
+      },
+      sorter: (a: any, b: any) => a.category.localeCompare(b.category),
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_, record: any) => (
+        <Button
+          type="primary"
+          icon={<FileTextOutlined />}
+          onClick={() => handleFormSelect(record.id)}
+        >
+          Select Form
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <div className="p-6">
-      <Card>
-        <h2 className="text-2xl font-bold mb-6">Select Inspection Form</h2>
-        <Row gutter={[16, 16]}>
-          {inspectionForms.map((form) => (
-            <Col xs={24} sm={12} md={8} lg={6} key={form.id}>
-              <Card
-                hoverable
-                className="h-full"
-                actions={[
-                  <Button
-                    type="primary"
-                    icon={<FileTextOutlined />}
-                    onClick={() => handleFormSelect(form.id)}
-                  >
-                    Select Form
-                  </Button>
-                ]}
-              >
-                <Card.Meta
-                  title={form.title}
-                  description={
-                    <div>
-                      <p className="text-sm text-gray-600 mb-2">{form.description}</p>
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                        {form.category}
-                      </span>
-                    </div>
-                  }
-                />
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      </Card>
+      <h2 className="text-2xl font-bold mb-6">Select Inspection Form</h2>
+      
+      <div className="mb-4 flex gap-4 flex-wrap">
+        <Search
+          placeholder="Search forms..."
+          style={{ width: 300 }}
+          onSearch={handleSearch}
+          onChange={(e) => handleSearch(e.target.value)}
+        />
+        <Select
+          placeholder="Filter by category"
+          style={{ width: 150 }}
+          allowClear
+          onChange={handleCategoryFilter}
+        >
+          <Option value="Electrical">Electrical</Option>
+          <Option value="Civil">Civil</Option>
+          <Option value="Quality">Quality</Option>
+        </Select>
+      </div>
+
+      <Table
+        columns={columns}
+        dataSource={filteredForms}
+        rowKey="id"
+        size="middle"
+        pagination={{
+          pageSize: 15,
+          showSizeChanger: true,
+          showTotal: (total) => `Total ${total} forms`
+        }}
+      />
     </div>
   );
 };

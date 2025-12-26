@@ -83,27 +83,46 @@ const SafetyObservationList: React.FC = () => {
   };
 
   const handleView = async (record: SafetyObservation) => {
+    if (!record.observationID) {
+      message.error('Invalid observation ID');
+      return;
+    }
+    
     try {
-      // Fetch full observation details including files
       const response = await api.get(`/api/v1/safetyobservation/${record.observationID}/`);
       setSelectedObservation(response.data);
       setViewModalVisible(true);
-    } catch (error) {
-      message.error('Failed to load observation details');
+    } catch (error: any) {
+      console.error('View error:', error);
+      console.error('Observation ID:', record.observationID);
+      console.error('Full record:', record);
+      message.error(`Failed to load observation details: ${error.response?.status || 'Unknown error'}`);
     }
   };
 
   const handleEdit = (record: SafetyObservation) => {
+    if (!record.observationID) {
+      message.error('Invalid observation ID');
+      return;
+    }
     navigate(`/dashboard/safetyobservation/edit/${record.observationID}`);
   };
 
-  const handleDelete = async (observationID: string) => {
+  const handleDelete = async (record: SafetyObservation) => {
+    if (!record.observationID) {
+      message.error('Invalid observation ID');
+      return;
+    }
+    
     try {
-      await api.delete(`/api/v1/safetyobservation/${observationID}/`);
+      await api.delete(`/api/v1/safetyobservation/${record.observationID}/`);
       message.success('Safety observation deleted successfully');
       fetchObservations();
-    } catch (error) {
-      message.error('Failed to delete safety observation');
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      console.error('Observation ID:', record.observationID);
+      console.error('Full record:', record);
+      message.error(`Failed to delete safety observation: ${error.response?.status || 'Unknown error'}`);
     }
   };
 
@@ -319,7 +338,7 @@ const SafetyObservationList: React.FC = () => {
 
           <Popconfirm
             title="Are you sure you want to delete this observation?"
-            onConfirm={() => handleDelete(record.observationID)}
+            onConfirm={() => handleDelete(record)}
             okText="Yes"
             cancelText="No"
           >

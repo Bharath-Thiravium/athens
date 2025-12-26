@@ -475,7 +475,7 @@ const EnhancedPermitForm: React.FC = () => {
           <Card title="Basic Information" className="step-card">
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item name="permit_number" label="Permit Number" rules={[{ required: true }]}>
+                <Form.Item name="permit_number" label="Permit Number" rules={[{ required: true, message: 'Permit number is required' }]}>
                   <Input placeholder="Auto-generated" disabled style={{ backgroundColor: '#f5f5f5', color: '#000' }} />
                 </Form.Item>
               </Col>
@@ -484,7 +484,19 @@ const EnhancedPermitForm: React.FC = () => {
                   name="permit_type" 
                   label="Permit Type" 
                   rules={[
-                    { required: true, message: 'Please select a permit type' }
+                    { required: true, message: 'Please select a permit type' },
+                    {
+                      validator: (_, value) => {
+                        if (!value || (Array.isArray(value) && value.length === 0)) {
+                          return Promise.reject(new Error('Please select a permit type'));
+                        }
+                        const actualValue = Array.isArray(value) ? value[0] : value;
+                        if (!actualValue || isNaN(Number(actualValue))) {
+                          return Promise.reject(new Error('Invalid permit type selected'));
+                        }
+                        return Promise.resolve();
+                      }
+                    }
                   ]}
                 >
                   <Select 
@@ -541,33 +553,102 @@ const EnhancedPermitForm: React.FC = () => {
             </Row>
             <Row gutter={16}>
               <Col span={24}>
-                <Form.Item name="description" label="Work Description" rules={[{ required: true }]}>
-                  <TextArea rows={3} placeholder="Detailed work description" />
+                <Form.Item 
+                  name="description" 
+                  label="Work Description" 
+                  rules={[
+                    { required: true, message: 'Work description is required', whitespace: true },
+                    { min: 10, message: 'Work description must be at least 10 characters' },
+                    { max: 1000, message: 'Work description cannot exceed 1000 characters' }
+                  ]}
+                >
+                  <TextArea 
+                    rows={3} 
+                    placeholder="Detailed work description (minimum 10 characters)" 
+                    showCount
+                    maxLength={1000}
+                  />
                 </Form.Item>
               </Col>
             </Row>
 
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item name="location" label="Location" rules={[{ required: true }]}>
-                  <Input placeholder="Work location" />
+                <Form.Item 
+                  name="location" 
+                  label="Location" 
+                  rules={[
+                    { required: true, message: 'Location is required', whitespace: true },
+                    { min: 3, message: 'Location must be at least 3 characters' },
+                    { max: 255, message: 'Location cannot exceed 255 characters' }
+                  ]}
+                >
+                  <Input placeholder="Work location" maxLength={255} />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="gps_coordinates" label="GPS Coordinates">
-                  <Input placeholder="Lat, Long" />
+                <Form.Item 
+                  name="gps_coordinates" 
+                  label="GPS Coordinates"
+                  rules={[
+                    {
+                      pattern: /^-?([1-8]?[1-9]|[1-9]0)\.\d{1,6},-?([1-8]?[1-9]|[1-9]0)\.\d{1,6}$/,
+                      message: 'Please enter valid GPS coordinates (lat,lng format)'
+                    }
+                  ]}
+                >
+                  <Input placeholder="Lat, Long (e.g., 40.7128,-74.0060)" />
                 </Form.Item>
               </Col>
             </Row>
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item name="planned_start_time" label="Start Time" rules={[{ required: true }]}>
-                  <DatePicker showTime style={{ width: '100%' }} />
+                <Form.Item 
+                  name="planned_start_time" 
+                  label="Start Time" 
+                  rules={[
+                    { required: true, message: 'Start time is required' },
+                    {
+                      validator: (_, value) => {
+                        if (!value) return Promise.resolve();
+                        if (value.isBefore(dayjs())) {
+                          return Promise.reject(new Error('Start time cannot be in the past'));
+                        }
+                        return Promise.resolve();
+                      }
+                    }
+                  ]}
+                >
+                  <DatePicker 
+                    showTime 
+                    style={{ width: '100%' }}
+                    disabledDate={(current) => current && current < dayjs().startOf('day')}
+                  />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="planned_end_time" label="End Time" rules={[{ required: true }]}>
-                  <DatePicker showTime style={{ width: '100%' }} />
+                <Form.Item 
+                  name="planned_end_time" 
+                  label="End Time" 
+                  rules={[
+                    { required: true, message: 'End time is required' },
+                    {
+                      validator: (_, value) => {
+                        if (!value) return Promise.resolve();
+                        const startTime = form.getFieldValue('planned_start_time');
+                        if (startTime && value.isBefore(startTime)) {
+                          return Promise.reject(new Error('End time must be after start time'));
+                        }
+                        return Promise.resolve();
+                      }
+                    }
+                  ]}
+                >
+                  <DatePicker 
+                    showTime 
+                    style={{ width: '100%' }}
+                    disabledDate={(current) => current && current < dayjs().startOf('day')}
+                  />
                 </Form.Item>
               </Col>
             </Row>
@@ -637,7 +718,21 @@ const EnhancedPermitForm: React.FC = () => {
                   
                   <Row gutter={16}>
                     <Col span={12}>
-                      <Form.Item name="probability" label="Probability" rules={[{ required: true }]}>
+                      <Form.Item 
+                        name="probability" 
+                        label="Probability" 
+                        rules={[
+                          { required: true, message: 'Please select probability level' },
+                          {
+                            validator: (_, value) => {
+                              if (value && (value < 1 || value > 5)) {
+                                return Promise.reject(new Error('Probability must be between 1 and 5'));
+                              }
+                              return Promise.resolve();
+                            }
+                          }
+                        ]}
+                      >
                         <Select 
                           placeholder="Select probability"
                           onChange={(value) => {
@@ -654,7 +749,21 @@ const EnhancedPermitForm: React.FC = () => {
                       </Form.Item>
                     </Col>
                     <Col span={12}>
-                      <Form.Item name="severity" label="Severity" rules={[{ required: true }]}>
+                      <Form.Item 
+                        name="severity" 
+                        label="Severity" 
+                        rules={[
+                          { required: true, message: 'Please select severity level' },
+                          {
+                            validator: (_, value) => {
+                              if (value && (value < 1 || value > 5)) {
+                                return Promise.reject(new Error('Severity must be between 1 and 5'));
+                              }
+                              return Promise.resolve();
+                            }
+                          }
+                        ]}
+                      >
                         <Select 
                           placeholder="Select severity"
                           onChange={(value) => {
@@ -689,12 +798,22 @@ const EnhancedPermitForm: React.FC = () => {
 
 
 
-                  <Form.Item name="control_measures" label="Control Measures" rules={[{ required: true }]}>
+                  <Form.Item 
+                    name="control_measures" 
+                    label="Control Measures" 
+                    rules={[
+                      { required: true, message: 'Control measures are required', whitespace: true },
+                      { min: 10, message: 'Control measures must be at least 10 characters' },
+                      { max: 1000, message: 'Control measures cannot exceed 1000 characters' }
+                    ]}
+                  >
                     <TextArea 
                       rows={4} 
                       placeholder={selectedType?.control_measures?.length > 0 ? 
                         `Suggested: ${selectedType.control_measures.join(', ')}` : 
-                        "Describe control measures"} 
+                        "Describe control measures (minimum 10 characters)"}
+                      showCount
+                      maxLength={1000}
                     />
                   </Form.Item>
                   
@@ -749,7 +868,21 @@ const EnhancedPermitForm: React.FC = () => {
                     </div>
                   )}
                   
-                  <Form.Item name="ppe_requirements" label="PPE Requirements" rules={[{ required: true }]}>
+                  <Form.Item 
+                    name="ppe_requirements" 
+                    label="PPE Requirements" 
+                    rules={[
+                      { required: true, message: 'Please select required PPE' },
+                      {
+                        validator: (_, value) => {
+                          if (!value || (Array.isArray(value) && value.length === 0)) {
+                            return Promise.reject(new Error('At least one PPE item must be selected'));
+                          }
+                          return Promise.resolve();
+                        }
+                      }
+                    ]}
+                  >
                     <Checkbox.Group>
                       {(() => {
                         // Default PPE options
@@ -810,7 +943,22 @@ const EnhancedPermitForm: React.FC = () => {
                     </Checkbox.Group>
                   </Form.Item>
 
-                  <Form.Item name="safety_checklist" label="Safety Checklist" rules={[{ required: true }]}>
+                  <Form.Item 
+                    name="safety_checklist" 
+                    label="Safety Checklist" 
+                    rules={[
+                      { required: true, message: 'Please complete safety checklist' },
+                      {
+                        validator: (_, value) => {
+                          if (!value || (Array.isArray(value) && value.length === 0) || 
+                              (typeof value === 'object' && Object.keys(value).length === 0)) {
+                            return Promise.reject(new Error('At least one safety checklist item must be checked'));
+                          }
+                          return Promise.resolve();
+                        }
+                      }
+                    ]}
+                  >
                     <Checkbox.Group>
                       {(() => {
                         const category = selectedType?.category;
@@ -1111,6 +1259,9 @@ const EnhancedPermitForm: React.FC = () => {
     console.log('=== FORM SUBMIT STARTED ===');
     setSubmitting(true);
     try {
+      // Validate all form fields first
+      await form.validateFields();
+      
       // Get current form values and merge with persistent state
       const currentFormValues = form.getFieldsValue();
       const values = { ...allFormValues, ...currentFormValues };
@@ -1118,37 +1269,80 @@ const EnhancedPermitForm: React.FC = () => {
       console.log('Current form values:', currentFormValues);
       console.log('AllFormValues state:', allFormValues);
       console.log('Final combined values:', values);
-      console.log('Raw permit_type value:', values.permit_type, 'Type:', typeof values.permit_type, 'Is Array:', Array.isArray(values.permit_type));
       
-      // Extract permit type ID - handle if it's an array
+      // Clean and validate permit type
       let permitTypeId = values.permit_type;
       if (Array.isArray(permitTypeId)) {
-        permitTypeId = permitTypeId[0]; // Take first element if it's an array
+        permitTypeId = permitTypeId[0];
       }
       
       if (!permitTypeId || isNaN(Number(permitTypeId))) {
         console.error('Invalid permit type:', permitTypeId);
-        message.error('Please select a permit type');
+        message.error('Please select a valid permit type');
         setCurrentStep(0);
         return;
       }
       
-      // Validate required fields
+      // Validate required fields with proper error messages
+      const validationErrors = [];
+      
       if (!values.description?.trim()) {
-        message.error('Please enter work description');
-        setCurrentStep(0);
-        return;
+        validationErrors.push('Work description is required');
+      } else if (values.description.trim().length < 10) {
+        validationErrors.push('Work description must be at least 10 characters');
       }
       
       if (!values.location?.trim()) {
-        message.error('Please enter location');
-        setCurrentStep(0);
+        validationErrors.push('Location is required');
+      }
+      
+      if (!values.planned_start_time) {
+        validationErrors.push('Start time is required');
+      }
+      
+      if (!values.planned_end_time) {
+        validationErrors.push('End time is required');
+      }
+      
+      if (values.planned_start_time && values.planned_end_time && 
+          values.planned_start_time.isAfter(values.planned_end_time)) {
+        validationErrors.push('Start time must be before end time');
+      }
+      
+      if (!values.probability || !values.severity) {
+        validationErrors.push('Risk assessment (probability and severity) is required');
+      }
+      
+      if (!values.control_measures?.trim()) {
+        validationErrors.push('Control measures are required');
+      }
+      
+      if (!values.ppe_requirements || values.ppe_requirements.length === 0) {
+        validationErrors.push('PPE requirements must be selected');
+      }
+      
+      if (!values.safety_checklist || Object.keys(values.safety_checklist).length === 0) {
+        validationErrors.push('Safety checklist items must be checked');
+      }
+      
+      if (validationErrors.length > 0) {
+        message.error(validationErrors[0]);
+        // Navigate to appropriate step based on error
+        if (validationErrors[0].includes('permit type') || validationErrors[0].includes('description') || 
+            validationErrors[0].includes('location') || validationErrors[0].includes('time')) {
+          setCurrentStep(0);
+        } else if (validationErrors[0].includes('risk') || validationErrors[0].includes('probability') || 
+                   validationErrors[0].includes('severity') || validationErrors[0].includes('control')) {
+          setCurrentStep(1);
+        } else if (validationErrors[0].includes('PPE') || validationErrors[0].includes('safety')) {
+          setCurrentStep(2);
+        }
         return;
       }
       
       // Transform form data to match backend API
       const submitData = {
-        permit_type: Number(permitTypeId), // Ensure it's a number
+        permit_type: Number(permitTypeId),
         description: values.description?.trim() || '',
         location: values.location?.trim() || '',
         gps_coordinates: values.gps_coordinates?.trim() || '',
@@ -1169,9 +1363,7 @@ const EnhancedPermitForm: React.FC = () => {
         offline_id: values.offline_id?.trim() || ''
       };
       
-      // Log the data being sent for debugging
       console.log('Submitting permit data:', submitData);
-      console.log('Permit type ID being sent:', submitData.permit_type, typeof submitData.permit_type);
       
       let response;
       if (isEditing) {
@@ -1183,13 +1375,13 @@ const EnhancedPermitForm: React.FC = () => {
       if (response && response.data) {
         message.success(`Permit ${response.data.permit_number || 'PTW'} ${isEditing ? 'updated' : 'created'} successfully`);
         
-        // For new permits, automatically submit for verification
         if (!isEditing && response.data.id) {
           try {
             const { submitForVerification } = await import('../api');
             await submitForVerification(response.data.id);
             message.info('Permit submitted for verification');
           } catch (error) {
+            console.warn('Failed to auto-submit for verification:', error);
           }
           sessionStorage.setItem('permitAdded', 'true');
         }
@@ -1202,8 +1394,6 @@ const EnhancedPermitForm: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Permit submission error:', error);
-      console.error('Error response:', error?.response?.data);
-      console.error('Error status:', error?.response?.status);
       
       // Handle form validation errors
       if (error?.errorFields) {
@@ -1211,7 +1401,7 @@ const EnhancedPermitForm: React.FC = () => {
         if (firstError?.name?.[0] === 'permit_type') {
           setCurrentStep(0);
         }
-        message.error(firstError?.errors?.[0] || 'Please fill in all required fields');
+        message.error(firstError?.errors?.[0] || 'Please fill in all required fields correctly');
         return;
       }
       
@@ -1221,7 +1411,6 @@ const EnhancedPermitForm: React.FC = () => {
         const errorData = error.response.data;
         
         if (typeof errorData === 'object' && !errorData.detail && !errorData.message) {
-          // Handle field-specific validation errors
           const fieldErrors = Object.keys(errorData).map(field => ({
             name: field,
             errors: Array.isArray(errorData[field]) ? errorData[field] : [errorData[field]]

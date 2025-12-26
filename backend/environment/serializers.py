@@ -101,4 +101,4 @@ class SustainabilityTargetSerializer(serializers.ModelSerializer):
     class Meta:
         model = SustainabilityTarget
         fields = '__all__'
-        read_only_fields = ['progress_percentage', 'on_track', 'created_by', 'created_at', 'updated_at']
+        read_only_fields = ['progress_percentage', 'on_track', 'created_by', 'created_at', 'updated_at', 'site']

@@ -104,6 +104,12 @@ class SafetyObservation(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='created_safety_observations', null=True, blank=True)
 
     def save(self, *args, **kwargs):
+        # Generate observationID if not set
+        if not self.observationID:
+            from datetime import datetime
+            timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+            self.observationID = f'SO-{timestamp}'
+        
         # Auto-calculate risk score
         if self.severity and self.likelihood:
             self.riskScore = self.severity * self.likelihood

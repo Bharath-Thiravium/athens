@@ -72,15 +72,15 @@ export const incidentApi = {
     
     // Add text fields
     Object.entries(data).forEach(([key, value]) => {
-      if (key !== 'attachments' && value !== undefined) {
+      if (key !== 'attachments' && value !== undefined && value !== null) {
         formData.append(key, value.toString());
       }
     });
     
-    // Add file attachments
-    if (data.attachments) {
-      data.attachments.forEach((file, index) => {
-        formData.append(`attachments[${index}]`, file);
+    // Add file attachments with proper naming
+    if (data.attachments && data.attachments.length > 0) {
+      data.attachments.forEach((file) => {
+        formData.append('attachments', file);
       });
     }
     

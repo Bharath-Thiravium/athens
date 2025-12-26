@@ -105,6 +105,9 @@ import SustainabilityTargetsDashboard from '@features/esg/components/Sustainabil
 import { QualityDashboard, QualityInspectionList, InspectionForm, SupplierQuality, DefectManagement, QualityTemplates, QualityStandards, QualityAlerts } from '@features/quality';
 import QualityDashboardEnhanced from '@features/quality/components/QualityDashboardEnhanced';
 
+// Alerts imports
+import AlertsPage from '@features/alerts/components/AlertsPage';
+
 // PTW Redirect component for old test links
 const PTWRedirect: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -345,6 +348,9 @@ const App: React.FC = () => {
               <Route path="quality/templates" element={<RoleBasedRoute allowedRoles={['adminuser', 'client', 'epc', 'contractor', 'clientuser', 'epcuser', 'contractoruser']}><QualityTemplates /></RoleBasedRoute>} />
               <Route path="quality/standards" element={<RoleBasedRoute allowedRoles={['adminuser', 'client', 'epc', 'contractor', 'clientuser', 'epcuser', 'contractoruser']}><QualityStandards /></RoleBasedRoute>} />
               <Route path="quality/alerts" element={<RoleBasedRoute allowedRoles={['adminuser', 'client', 'epc', 'contractor', 'clientuser', 'epcuser', 'contractoruser']}><QualityAlerts /></RoleBasedRoute>} />
+              
+              {/* General Alerts Route */}
+              <Route path="alerts" element={<RoleBasedRoute allowedRoles={['adminuser', 'client', 'epc', 'contractor', 'clientuser', 'epcuser', 'contractoruser']}><AlertsPage /></RoleBasedRoute>} />
             </Route>
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="participant-response/:momId/:userId" element={<ParticipantResponse />} />

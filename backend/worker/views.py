@@ -16,7 +16,7 @@ class WorkerViewSet(viewsets.ModelViewSet):
     """
     queryset = Worker.objects.all()
     serializer_class = WorkerSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, CanManageWorkers]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'surname', 'worker_id', 'aadhaar', 'phone_number']
     ordering_fields = ['name', 'created_at', 'date_of_joining', 'department']

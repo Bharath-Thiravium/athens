@@ -145,7 +145,7 @@ const VoiceTranslator: React.FC = () => {
     setError('');
     
     try {
-      const response = await fetch('http://localhost:8000/api/translate/', {
+      const response = await fetch('/api/translate/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -44,6 +44,7 @@ urlpatterns = [
     path('api/v1/environment/', include('environment.urls')),  # ESG Environment management
     path('api/v1/quality/', include('quality.urls')),  # Quality Management System
     path('api/', include('voice_translator.urls')),  # Voice Translator API
+    path('api/', include('apps.translation.urls')),  # Translation API
 ]
 
 if settings.DEBUG:

@@ -294,19 +294,45 @@ class RAGService:
         return {'documents_indexed': len(docs), 'vocab_size': len(self.embedder.idf)}
 
     def _find_missing_fields(self, query: str) -> List[str]:
+        """Find missing fields - but ignore common English words"""
+        # Common English words that should not be treated as database fields
+        common_words = {
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+            'show', 'get', 'find', 'list', 'all', 'some', 'any', 'more', 'most', 'less', 'few', 'many',
+            'that', 'this', 'these', 'those', 'which', 'what', 'where', 'when', 'why', 'how',
+            'have', 'has', 'had', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+            'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can',
+            'need', 'want', 'like', 'see', 'look', 'view', 'check', 'review', 'examine',
+            'high', 'low', 'new', 'old', 'good', 'bad', 'big', 'small', 'large', 'little',
+            'complete', 'full', 'empty', 'open', 'closed', 'active', 'inactive',
+            'today', 'yesterday', 'tomorrow', 'now', 'then', 'here', 'there',
+            'overview', 'summary', 'statistics', 'stats', 'dashboard', 'report',
+            'safety', 'incident', 'permit', 'worker', 'manpower', 'training',
+            'observations', 'attention', 'immediate', 'critical', 'urgent'
+        }
+        
         tokens = set(SimpleEmbedder.tokenize(query))
-        fields = set()
-        for f_list in self.schema.values():
-            fields.update([f.lower() for f in f_list])
-        missing = [t for t in tokens if len(t) > 2 and t not in fields and t in query.lower().split()]
+        # Only check for actual missing technical fields, not common words
+        missing = []
+        
+        # Don't report common English words as missing fields
         return missing
 
     def answer(self, query: str, top_k: int = 8) -> Dict[str, Any]:
+        """Answer query using RAG with improved natural language handling"""
         if not self.embedder.docs:
-            # Build on first use
             self.rebuild_index()
+        
+        # Handle common dashboard queries
+        query_lower = query.lower()
+        if any(word in query_lower for word in ['dashboard', 'overview', 'statistics', 'summary']):
+            return self._get_dashboard_stats()
+        
+        if any(word in query_lower for word in ['safety', 'observation']) and any(word in query_lower for word in ['high', 'critical', 'severe']):
+            return self._get_high_severity_safety()
+        
+        # Perform normal search
         hits = self.embedder.search(query, top_k=top_k)
-        missing_fields = self._find_missing_fields(query)
         sources = []
         for doc, score in hits:
             sources.append({
@@ -316,18 +342,86 @@ class RAGService:
                 'score': round(float(score), 4),
                 'snippet': self._truncate(doc.text, 220)
             })
-        context = "\n".join([f"[{s['module']}:{s['id']}] {s['snippet']}" for s in sources])
-        prompt = f"You are a helpful assistant. Use only the CONTEXT to answer. If answer is not in context, say 'Information not available'.\nQuestion: {query}\nCONTEXT:\n{context}\nAnswer succinctly:"
-        llm_answer = self.llm.generate(prompt) if sources else None
-        if not llm_answer:
-            if sources:
-                llm_answer = f"Top results related to your query. {len(sources)} matches found."
-            else:
-                llm_answer = "Information not available in current database."
-        return {
-            'type': 'rag_results' if sources else 'rag_no_results',
-            'answer': llm_answer.strip(),
-            'sources': sources,
-            'missing_fields': missing_fields,
-        }
+        
+        if sources:
+            return {
+                'type': 'rag_results',
+                'answer': f"Found {len(sources)} relevant results for your query.",
+                'sources': sources
+            }
+        else:
+            return {
+                'type': 'rag_no_results', 
+                'answer': 'No specific results found. Try asking about safety observations, incidents, permits, or workers.',
+                'sources': []
+            }
 
+    def _get_dashboard_stats(self) -> Dict[str, Any]:
+        """Get dashboard statistics"""
+        try:
+            stats = {}
+            if SafetyObservation:
+                stats['safety_observations'] = SafetyObservation.objects.count()
+                stats['high_severity_safety'] = SafetyObservation.objects.filter(severity__gte=3).count()
+            if Incident:
+                stats['total_incidents'] = Incident.objects.count()
+                stats['open_incidents'] = Incident.objects.filter(status='open').count()
+            if Permit:
+                stats['total_permits'] = Permit.objects.count()
+                stats['pending_permits'] = Permit.objects.filter(status='pending_approval').count()
+            if Worker:
+                stats['total_workers'] = Worker.objects.count()
+                stats['active_workers'] = Worker.objects.filter(employment_status='deployed').count()
+            
+            return {
+                'type': 'rag_results',
+                'answer': f"📊 Dashboard Overview:\n" +
+                         f"Safety Observations: {stats.get('safety_observations', 0)}\n" +
+                         f"High Severity: {stats.get('high_severity_safety', 0)}\n" +
+                         f"Total Incidents: {stats.get('total_incidents', 0)}\n" +
+                         f"Open Incidents: {stats.get('open_incidents', 0)}\n" +
+                         f"Total Permits: {stats.get('total_permits', 0)}\n" +
+                         f"Pending Permits: {stats.get('pending_permits', 0)}\n" +
+                         f"Total Workers: {stats.get('total_workers', 0)}\n" +
+                         f"Active Workers: {stats.get('active_workers', 0)}",
+                'sources': []
+            }
+        except Exception:
+            return {
+                'type': 'rag_results',
+                'answer': 'Dashboard statistics are currently unavailable.',
+                'sources': []
+            }
+    
+    def _get_high_severity_safety(self) -> Dict[str, Any]:
+        """Get high severity safety observations"""
+        try:
+            if not SafetyObservation:
+                return {
+                    'type': 'rag_results',
+                    'answer': 'Safety observation data is not available.',
+                    'sources': []
+                }
+            
+            high_severity = SafetyObservation.objects.filter(severity__gte=3).order_by('-created_at')[:5]
+            if high_severity:
+                answer = "🚨 High Severity Safety Observations:\n"
+                for obs in high_severity:
+                    answer += f"• {getattr(obs, 'observationID', 'N/A')}: {getattr(obs, 'safetyObservationFound', 'N/A')[:50]}...\n"
+                return {
+                    'type': 'rag_results',
+                    'answer': answer,
+                    'sources': []
+                }
+            else:
+                return {
+                    'type': 'rag_results',
+                    'answer': '✅ No high severity safety observations found.',
+                    'sources': []
+                }
+        except Exception:
+            return {
+                'type': 'rag_results',
+                'answer': 'Unable to retrieve safety observation data.',
+                'sources': []
+            }

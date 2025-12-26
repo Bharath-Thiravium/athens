@@ -312,7 +312,7 @@ const IncidentList: React.FC<IncidentListProps> = ({
       });
     }
 
-    return <Menu items={items} />;
+    return items;
   };
 
   const columns: ColumnsType<IncidentListItem> = [
@@ -553,7 +553,7 @@ const IncidentList: React.FC<IncidentListProps> = ({
       width: 80,
       fixed: 'right',
       render: (_: any, record) => (
-        <Dropdown overlay={getActionMenu(record)} trigger={['click']}>
+        <Dropdown menu={{ items: getActionMenu(record) }} trigger={['click']}>
           <Button type="text" icon={<MoreOutlined />} />
         </Dropdown>
       ),
@@ -646,7 +646,7 @@ const IncidentList: React.FC<IncidentListProps> = ({
       </div>
 
       {/* Table Container */}
-      <div style={{ flex: 1, backgroundColor: '#fff', borderRadius: '8px', overflow: 'hidden' }}>
+      <div className="incident-table-container" style={{ flex: 1, backgroundColor: '#fff', borderRadius: '8px', overflow: 'hidden' }}>
         <Table
           columns={columns}
           dataSource={filteredIncidents}

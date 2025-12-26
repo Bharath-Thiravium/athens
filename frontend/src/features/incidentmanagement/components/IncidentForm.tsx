@@ -207,34 +207,50 @@ const IncidentForm: React.FC<IncidentFormProps> = ({
         media_attention: values.media_attention,
       };
 
-
+      let result;
       if (onSubmit) {
-        await onSubmit(formData);
+        result = await onSubmit(formData);
       } else if (mode === 'create') {
-        await createIncident(formData);
+        result = await createIncident(formData);
         // Reset form after successful creation
         form.resetFields();
         setFileList([]);
-        
       } else if (mode === 'edit' && initialData?.id) {
-        await updateIncident(initialData.id, formData);
+        result = await updateIncident(initialData.id, formData);
       }
 
+      // Only show success message if we reach this point (no errors thrown)
       message.success(`Incident ${mode === 'create' ? 'created' : 'updated'} successfully!`);
-  } catch (error: any) {
-
-  // Professional error handling for backend validation
-  if (error.response && error.response.data && error.response.status === 400) {
-    const errorData = error.response.data;
-    for (const key in errorData) {
-      const errorMessage = Array.isArray(errorData[key]) ? errorData[key].join(' ') : errorData[key];
-      message.error(`Error in '${key}' field: ${errorMessage}`);
-    }
-  } else {
-    // Fallback for network errors or other issues
-    message.error(`Failed to ${mode} incident: ${error.message || 'A network or server error occurred.'}`);
-  }
-} finally {
+      
+    } catch (error: any) {
+      // Clear any existing success messages
+      message.destroy();
+      
+      // Handle different types of errors
+      if (error.response) {
+        const { status, data } = error.response;
+        
+        if (status === 400 && data) {
+          // Validation errors
+          const errorMessages = [];
+          for (const [field, messages] of Object.entries(data)) {
+            const fieldErrors = Array.isArray(messages) ? messages : [messages];
+            errorMessages.push(`${field}: ${fieldErrors.join(', ')}`);
+          }
+          message.error(`Validation Error: ${errorMessages.join('; ')}`);
+        } else if (status === 500) {
+          message.error('Server Error: Please check your data and try again. If the problem persists, contact support.');
+        } else {
+          message.error(`Error ${status}: ${data.detail || data.message || 'An unexpected error occurred'}`);
+        }
+      } else if (error.request) {
+        // Network error
+        message.error('Network Error: Unable to connect to server. Please check your connection and try again.');
+      } else {
+        // Other errors
+        message.error(`Error: ${error.message || 'An unexpected error occurred'}`);
+      }
+    } finally {
       setSubmitting(false);
     }
   };
@@ -390,7 +406,7 @@ const handleUploadChange = (info: any) => {
                 label="Incident Title"
                 name="title"
                 rules={[
-                  { required: true, message: 'Please enter incident title' },
+                  { required: true, message: 'Please enter incident title', whitespace: true },
                   { min: 5, message: 'Title must be at least 5 characters' },
                   { max: 255, message: 'Title cannot exceed 255 characters' }
                 ]}
@@ -398,6 +414,8 @@ const handleUploadChange = (info: any) => {
                 <Input
                   placeholder="Brief description of the incident"
                   size="large"
+                  maxLength={255}
+                  showCount
                 />
               </Form.Item>
             </Col>

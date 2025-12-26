@@ -13,19 +13,23 @@ class CanManageManpower(permissions.BasePermission):
         if not request.user.is_authenticated:
             return False
         
-        # Debug information
-        
         # Read permissions are allowed to authenticated users
         if request.method in permissions.SAFE_METHODS:
             return True
         
-        # Only adminuser can create/edit manpower entries (not projectadmin)
-        if hasattr(request.user, 'user_type') and request.user.user_type == 'adminuser':
-            # Allow adminuser with specific admin_type to create/edit manpower entries
-            if hasattr(request.user, 'admin_type') and request.user.admin_type in [
-                'clientuser', 'epcuser', 'contractoruser'
-            ]:
-                return True
+        # Master admin has full access
+        if getattr(request.user, 'admin_type', None) == 'master':
+            return True
+        
+        # Check user_type for admin users
+        user_type = getattr(request.user, 'user_type', None)
+        if user_type == 'adminuser':
+            return True
+        
+        # Also check admin_type for backward compatibility
+        user_admin_type = getattr(request.user, 'admin_type', None)
+        if user_admin_type in ['clientuser', 'epcuser', 'contractoruser']:
+            return True
         
         # Also allow users with the manage_manpower permission (for superusers)
         return request.user.has_perm('manpower.manage_manpower')
@@ -35,20 +39,25 @@ class CanManageManpower(permissions.BasePermission):
         if not request.user.is_authenticated:
             return False
         
-        # Debug information
-        
         # Read permissions are allowed to authenticated users
         if request.method in permissions.SAFE_METHODS:
             return True
         
-        # Only adminuser can edit manpower entries (not projectadmin)
-        if hasattr(request.user, 'user_type') and request.user.user_type == 'adminuser':
-            # Allow adminuser with specific admin_type to edit manpower entries they created
-            if hasattr(request.user, 'admin_type') and request.user.admin_type in [
-                'clientuser', 'epcuser', 'contractoruser'
-            ]:
-                # Users can only edit manpower entries they created
-                return obj.created_by == request.user
+        # Master admin has full access
+        if getattr(request.user, 'admin_type', None) == 'master':
+            return True
+        
+        # Check user_type for admin users
+        user_type = getattr(request.user, 'user_type', None)
+        if user_type == 'adminuser':
+            # Users can only edit manpower entries they created
+            return obj.created_by == request.user
+        
+        # Also check admin_type for backward compatibility
+        user_admin_type = getattr(request.user, 'admin_type', None)
+        if user_admin_type in ['clientuser', 'epcuser', 'contractoruser']:
+            # Users can only edit manpower entries they created
+            return obj.created_by == request.user
         
         # Also allow users with the manage_manpower permission (for superusers)
         return request.user.has_perm('manpower.manage_manpower')

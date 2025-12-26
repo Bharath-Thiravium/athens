@@ -147,10 +147,10 @@ const SustainabilityTargetsDashboard: React.FC = () => {
       render: (progress: number, record: SustainabilityTarget) => (
         <div>
           <Progress
-            percent={progress || 0}
-            strokeColor={getProgressColor(progress || 0, record.on_track || false)}
+            percent={Number(progress) || 0}
+            strokeColor={getProgressColor(Number(progress) || 0, record.on_track || false)}
             size="small"
-            format={(percent) => `${percent?.toFixed(1)}%`}
+            format={(percent) => `${Number(percent || 0).toFixed(1)}%`}
           />
           <div style={{ fontSize: '12px', marginTop: 4 }}>
             {record.on_track ? (
@@ -168,10 +168,10 @@ const SustainabilityTargetsDashboard: React.FC = () => {
       render: (_: any, record: SustainabilityTarget) => (
         <div>
           <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-            {record.current_value?.toFixed(2) || 0} / {record.target_value.toFixed(2)} {record.unit_of_measure}
+            {Number(record.current_value || 0).toFixed(2)} / {Number(record.target_value || 0).toFixed(2)} {record.unit_of_measure || ''}
           </div>
           <div style={{ fontSize: '12px', color: '#666' }}>
-            Baseline: {record.baseline_value.toFixed(2)} ({record.baseline_year})
+            Baseline: {Number(record.baseline_value || 0).toFixed(2)} ({record.baseline_year || 'N/A'})
           </div>
         </div>
       ),
@@ -181,14 +181,14 @@ const SustainabilityTargetsDashboard: React.FC = () => {
       key: 'timeline',
       render: (_: any, record: SustainabilityTarget) => {
         const currentYear = dayjs().year();
-        const totalYears = record.target_year - record.baseline_year;
-        const elapsedYears = currentYear - record.baseline_year;
-        const timeProgress = Math.min((elapsedYears / totalYears) * 100, 100);
+        const totalYears = (record.target_year || currentYear) - (record.baseline_year || currentYear);
+        const elapsedYears = currentYear - (record.baseline_year || currentYear);
+        const timeProgress = totalYears > 0 ? Math.min((elapsedYears / totalYears) * 100, 100) : 0;
         
         return (
           <div>
             <div style={{ fontSize: '12px', marginBottom: 4 }}>
-              {record.baseline_year} → {record.target_year}
+              {record.baseline_year || 'N/A'} → {record.target_year || 'N/A'}
             </div>
             <Progress
               percent={timeProgress}
@@ -350,10 +350,10 @@ const SustainabilityTargetsDashboard: React.FC = () => {
                     </div>
                     <Progress
                       type="circle"
-                      percent={category.avg_progress || 0}
+                      percent={Number(category.avg_progress) || 0}
                       strokeColor={getCategoryColor(category.category)}
                       width={60}
-                      format={(percent) => `${percent?.toFixed(0)}%`}
+                      format={(percent) => `${(percent || 0).toFixed(0)}%`}
                     />
                     <div style={{ fontSize: '12px', color: '#666', marginTop: 8 }}>
                       {category.on_track_count}/{category.total_count} on track

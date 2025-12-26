@@ -73,22 +73,6 @@ const UserList: React.FC = () => {
     setPageSize(size);
   }, []);
 
-  // Auto-advance to next page when current page is filled
-  useEffect(() => {
-    const totalPages = Math.ceil(users.length / pageSize);
-    const currentPageStartIndex = (currentPage - 1) * pageSize;
-    const currentPageEndIndex = currentPageStartIndex + pageSize;
-    const usersOnCurrentPage = users.slice(currentPageStartIndex, currentPageEndIndex);
-
-    // If current page is full and there are more pages, auto-advance
-    if (usersOnCurrentPage.length === pageSize && currentPage < totalPages) {
-      // Small delay to make the transition smooth
-      setTimeout(() => {
-        setCurrentPage(currentPage + 1);
-        message.info(`Page ${currentPage} is full. Automatically moved to page ${currentPage + 1}.`);
-      }, 500);
-    }
-  }, [users.length, pageSize, currentPage, message]);
 
   // --- Data Fetching (Unchanged) ---
   const fetchUsers = useCallback(async () => {

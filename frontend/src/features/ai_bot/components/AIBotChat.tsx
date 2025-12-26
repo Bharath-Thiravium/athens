@@ -71,6 +71,11 @@ const AIBotChat: React.FC<AIBotChatProps> = ({ isOpen, onClose }) => {
   const formatResponse = (data: any): string => {
     if (typeof data === 'string') return data;
     
+    // Handle enhanced AI response
+    if (data.type === 'enhanced_ai_response') {
+      return data.answer || 'Enhanced AI response received.';
+    }
+    
     if (data.type) {
       switch (data.type) {
         case 'safety_high_priority':

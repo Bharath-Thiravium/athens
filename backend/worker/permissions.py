@@ -21,7 +21,12 @@ class CanManageWorkers(permissions.BasePermission):
         if getattr(request.user, 'admin_type', None) == 'master':
             return True
 
-        # Only admin users can create/edit workers (not project admins)
+        # Check user_type for admin users
+        user_type = getattr(request.user, 'user_type', None)
+        if user_type == 'adminuser':
+            return True
+
+        # Also check admin_type for backward compatibility
         user_admin_type = getattr(request.user, 'admin_type', None)
         if user_admin_type in ['clientuser', 'epcuser', 'contractoruser']:
             return True
@@ -42,7 +47,13 @@ class CanManageWorkers(permissions.BasePermission):
         if getattr(request.user, 'admin_type', None) == 'master':
             return True
 
-        # Only admin users can edit workers (not project admins)
+        # Check user_type for admin users
+        user_type = getattr(request.user, 'user_type', None)
+        if user_type == 'adminuser':
+            # Users can only edit workers they created
+            return obj.created_by == request.user
+
+        # Also check admin_type for backward compatibility
         user_admin_type = getattr(request.user, 'admin_type', None)
         if user_admin_type in ['clientuser', 'epcuser', 'contractoruser']:
             # Users can only edit workers they created

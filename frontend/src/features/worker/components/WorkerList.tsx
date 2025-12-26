@@ -75,22 +75,6 @@ const WorkerList: React.FC = () => {
     setPageSize(size);
   }, []);
 
-  // Auto-advance to next page when current page is filled
-  useEffect(() => {
-    const totalPages = Math.ceil(workers.length / pageSize);
-    const currentPageStartIndex = (currentPage - 1) * pageSize;
-    const currentPageEndIndex = currentPageStartIndex + pageSize;
-    const workersOnCurrentPage = workers.slice(currentPageStartIndex, currentPageEndIndex);
-
-    // If current page is full and there are more pages, auto-advance
-    if (workersOnCurrentPage.length === pageSize && currentPage < totalPages) {
-      // Small delay to make the transition smooth
-      setTimeout(() => {
-        setCurrentPage(currentPage + 1);
-        message.info(`Page ${currentPage} is full. Automatically moved to page ${currentPage + 1}.`);
-      }, 500);
-    }
-  }, [workers.length, pageSize, currentPage, message]);
 
   // --- Data Fetching and Handlers (Memoized) ---
   const fetchWorkers = useCallback(async () => {
@@ -168,7 +152,7 @@ const WorkerList: React.FC = () => {
     setCurrentPage(newWorkerPage);
 
     // A fetch is better than optimistic update here to ensure all server-generated data is correct.
-    message.success(`Worker added successfully and moved to page ${newWorkerPage}.`);
+    message.success(`Worker added successfully`);
     setAddingWorker(false);
     fetchWorkers();
   }, [fetchWorkers, workers.length, pageSize]);
