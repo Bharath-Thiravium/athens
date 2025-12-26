@@ -29,5 +29,5 @@ class InductionTrainingListSerializer(serializers.ModelSerializer):
         model = InductionTraining
         fields = [
             'id', 'title', 'description', 'date', 'location', 
-            'conducted_by', 'status', 'created_at'
+            'conducted_by', 'status', 'created_at', 'updated_at'
         ]

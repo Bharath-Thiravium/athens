@@ -44,7 +44,8 @@ const InductionTrainingView: React.FC<InductionTrainingViewProps> = ({ induction
 
   // Helper to format dates consistently
   const formatDate = (dateStr: string | undefined) => {
-    return dateStr ? moment(dateStr).format('MMMM D, YYYY, h:mm A') : 'N/A';
+    if (!dateStr) return 'N/A';
+    return moment(dateStr).format('MMMM D, YYYY, h:mm A');
   };
 
   return (
