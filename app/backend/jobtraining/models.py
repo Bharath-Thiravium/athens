@@ -47,7 +47,7 @@ class JobTraining(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.join_code:
-            self.join_code = f\"{secrets.randbelow(10**6):06d}\"
+            self.join_code = f"{secrets.randbelow(10**6):06d}"
         if not self.qr_token:
             self.qr_token = uuid.uuid4().hex
         if not self.qr_expires_at:

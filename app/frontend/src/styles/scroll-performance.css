@@ -1,0 +1,58 @@
+/* 
+ * Scroll Performance Optimizations
+ * Addresses Firefox scroll-linked positioning warnings
+ */
+
+/* Enable hardware acceleration for smooth scrolling */
+.scroll-container {
+  will-change: scroll-position;
+  transform: translateZ(0);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Optimize scroll performance for message containers */
+.message-area,
+.messages-container,
+.user-list {
+  contain: layout style paint;
+  will-change: scroll-position;
+  transform: translateZ(0);
+}
+
+/* Reduce paint operations during scroll */
+.message-bubble,
+.user-list-item {
+  contain: layout style;
+  transform: translateZ(0);
+}
+
+/* Optimize animations to avoid layout thrashing */
+.typing-indicator,
+.message-animation {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* Prevent scroll-linked positioning effects */
+.fixed-header,
+.sticky-element {
+  contain: layout style;
+  will-change: transform;
+}
+
+/* Smooth scrolling behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Optimize table scrolling */
+.ant-table-wrapper {
+  contain: layout style;
+  will-change: scroll-position;
+}
+
+/* Optimize modal scrolling */
+.ant-modal-body {
+  contain: layout style;
+  will-change: scroll-position;
+}

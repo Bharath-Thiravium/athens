@@ -1,0 +1,16 @@
+{
+  "name": "athens-e2e-tests",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test:athens": "npx playwright test tests/athens/e2e.spec.ts",
+    "test:sap": "npx playwright test tests/sap/e2e.spec.ts",
+    "test:all": "npx playwright test tests/**/e2e.spec.ts",
+    "report": "npx playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "dotenv": "^16.3.1",
+    "typescript": "^5.3.3"
+  }
+}

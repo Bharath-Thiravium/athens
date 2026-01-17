@@ -1,0 +1,46 @@
+/* EMERGENCY DIGITAL SIGNATURE FIX - MAXIMUM SPECIFICITY */
+
+/* Target ALL images in signature containers with maximum specificity */
+html body .digital-signature-container img,
+html body .digital-signature-container .signature-content img,
+html body .digital-signature-container .signature-left-section img,
+html body .digital-signature-container .signature-right-section img,
+html body div[class*="signature"] img,
+html body div[class*="digital"] img {
+  position: static !important;
+  left: unset !important;
+  right: unset !important;
+  top: unset !important;
+  bottom: unset !important;
+  transform: none !important;
+  margin: 0 auto !important;
+  display: block !important;
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  float: none !important;
+  clear: both !important;
+}
+
+/* Force container positioning */
+html body .digital-signature-container,
+html body .signature-content,
+html body .signature-left-section,
+html body .signature-right-section {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* Text alignment fixes with maximum specificity */
+html body .digital-signature-container .signature-left-section .signer-name,
+html body .digital-signature-container .signature-left-section .signer-designation,
+html body .digital-signature-container .signature-left-section .signer-company {
+  text-align: left !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+}
+
+html body .digital-signature-container .signature-right-section .verification-text {
+  text-align: right !important;
+}

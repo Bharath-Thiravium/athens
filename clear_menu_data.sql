@@ -1,0 +1,1 @@
+scripts/data/clear_menu_data.sql

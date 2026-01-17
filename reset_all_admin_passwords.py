@@ -1,0 +1,1 @@
+scripts/admin/reset_all_admin_passwords.py

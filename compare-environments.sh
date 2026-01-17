@@ -1,0 +1,1 @@
+scripts/ops/compare-environments.sh

@@ -1,0 +1,1 @@
+scripts/data/create_menu_tables.sql

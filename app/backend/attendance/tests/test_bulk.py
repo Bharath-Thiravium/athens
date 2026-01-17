@@ -236,6 +236,7 @@ class AttendanceEventBulkTests(APITestCase):
         self.assertEqual(response.status_code, 200)
 
         event = AttendanceEvent.objects.get(client_event_id="evt-6")
-        parsed = parse_datetime(payload[0]["occurred_at"]).astimezone(timezone.utc)
+        from datetime import timezone as dt_timezone
+        parsed = parse_datetime(payload[0]["occurred_at"]).astimezone(dt_timezone.utc)
         self.assertEqual(event.occurred_at, parsed)
         self.assertTrue(timezone.is_aware(event.occurred_at))

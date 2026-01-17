@@ -451,7 +451,7 @@ class MomLiveAttendanceUpdateView(APIView):
                     if participant:
                         from attendance.services import create_attendance_event
                         create_attendance_event(tenant_id, participant, {
-                            'client_event_id': f\"mom-{mom.id}-user-{user_id}\",
+                            'client_event_id': f"mom-{mom.id}-user-{user_id}",
                             'module': 'MOM',
                             'module_ref_id': str(mom.id),
                             'event_type': 'CHECK_IN',

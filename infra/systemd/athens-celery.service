@@ -1,0 +1,18 @@
+[Unit]
+Description=Athens Celery Worker
+After=network.target redis.service
+Wants=redis.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/athens/app/backend
+EnvironmentFile=/var/www/athens/app/backend/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/var/www/athens/app/backend/venv/bin/celery -A backend worker -l info --concurrency=1
+Restart=always
+RestartSec=5
+UMask=0022
+
+[Install]
+WantedBy=multi-user.target

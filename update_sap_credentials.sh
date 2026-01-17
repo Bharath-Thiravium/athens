@@ -1,0 +1,1 @@
+scripts/ops/update_sap_credentials.sh

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Table, Button, Space, Modal, App, Tag, Tooltip } from 'antd';
-import { EditOutlined, DeleteOutlined, EyeOutlined, PlusOutlined, TeamOutlined, BookOutlined, QrcodeOutlined } from '@ant-design/icons';
+import { EditOutlined, EyeOutlined, PlusOutlined, TeamOutlined, BookOutlined, QrcodeOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '@common/utils/axiosetup';
 import useAuthStore from '@common/store/authStore';
 import { usePermissionControl } from '../../../hooks/usePermissionControl';
@@ -12,7 +12,6 @@ import JobTrainingView from './JobTrainingView';
 import JobTrainingEdit from './JobTrainingEdit';
 import JobTrainingCreation from './JobTrainingCreation';
 import JobTrainingAttendance from './JobTrainingAttendance';
-import JobTrainingRecordPrintPreview from './JobTrainingRecordPrintPreview';
 import type { ColumnsType } from 'antd/es/table';
 import TrainingPrintPreview from '../../training/components/TrainingPrintPreview';
 import TrainingCheckInModal from '../../training/components/TrainingCheckInModal';
@@ -38,14 +37,14 @@ const JobTrainingList: React.FC = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   
   // Helper function to check if user can edit/delete
-  const canModifyRecord = (record: JobTrainingData) => {
+  const canModifyRecord = useCallback((record: JobTrainingData) => {
     // Project admin can always modify
     if (django_user_type === 'projectadmin') {
       return true;
     }
-    // Creator can modify their own records
-    return record.created_by === userId;
-  };
+    // Creator can modify their own records (ensure both values exist and match)
+    return record.created_by != null && userId != null && record.created_by === userId;
+  }, [django_user_type, userId]);
   
   // Permission control
   const { executeWithPermission, showPermissionModal, permissionRequest, closePermissionModal, onPermissionRequestSuccess } = usePermissionControl({
@@ -349,58 +348,34 @@ const JobTrainingList: React.FC = () => {
       onFilter: (value, record) => record.status === value,
     },
     {
-      title: 'Actions',
-      key: 'actions',
+      title: 'Actions', key: 'actions', align: 'center' as const, width: 180,
       render: (_: any, record: JobTrainingData) => (
         <Space size="small">
-          <Tooltip title="View Details">
-            <Button 
-              type="text" 
-              icon={<EyeOutlined />} 
-              onClick={() => handleView(record)} 
-            />
-          </Tooltip>
+          <Tooltip title="View Details"><Button shape="circle" icon={<EyeOutlined />} onClick={() => handleView(record)} /></Tooltip>
           
-          <JobTrainingRecordPrintPreview trainingData={record} />
-
-          <Tooltip title="Check-in (QR/PIN)">
-            <Button
-              type="text"
-              icon={<QrcodeOutlined />}
-              onClick={() => setCheckInJT(record)}
-              disabled={record.status === 'cancelled'}
-            />
-          </Tooltip>
+          {record.status?.toLowerCase() !== 'completed' && (
+            <Tooltip title="Show Check-in Codes">
+              <Button
+                shape="circle"
+                icon={<QrcodeOutlined />}
+                onClick={() => setCheckInJT(record)}
+                disabled={record.status === 'cancelled'}
+              />
+            </Tooltip>
+          )}
 
           {record.status !== 'completed' && (
             <Tooltip title="Take Attendance">
-              <Button 
-                type="text" 
-                icon={<TeamOutlined />} 
-                onClick={() => handleConductJT(record)} 
-              />
+              <Button shape="circle" type="primary" icon={<TeamOutlined />} onClick={() => handleConductJT(record)} disabled={record.status === 'cancelled'} />
             </Tooltip>
           )}
           
-          {record.status !== 'completed' && canModifyRecord(record) && (
-            <Tooltip title="Edit">
-              <Button 
-                type="text" 
-                icon={<EditOutlined />} 
-                onClick={() => handleEdit(record)} 
-              />
-            </Tooltip>
+          {record.status === 'planned' && canModifyRecord(record) && (
+            <Tooltip title="Edit"><Button shape="circle" icon={<EditOutlined />} onClick={() => handleEdit(record)} /></Tooltip>
           )}
           
-          {canModifyRecord(record) && (
-            <Tooltip title="Delete">
-              <Button 
-                type="text" 
-                danger 
-                icon={<DeleteOutlined />} 
-                onClick={() => handleDelete(record)} 
-              />
-            </Tooltip>
+          {record.status === 'planned' && canModifyRecord(record) && (
+            <Tooltip title="Delete"><Button shape="circle" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)} /></Tooltip>
           )}
         </Space>
       ),
@@ -518,7 +493,7 @@ const JobTrainingList: React.FC = () => {
           onClose={handleCancel}
         />
       )}
-      
+
       {showPermissionModal && permissionRequest && (
         <PermissionRequestModal
           visible={showPermissionModal}

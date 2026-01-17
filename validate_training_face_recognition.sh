@@ -1,0 +1,1 @@
+scripts/ops/validators/validate_training_face_recognition.sh

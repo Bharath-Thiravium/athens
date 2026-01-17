@@ -1,0 +1,55 @@
+/* XPath-based alignment fixes */
+
+/* Rightside content - align left */
+body > div:nth-child(3) > div > div:nth-child(2) > div > div:first-child > div > div > div > img {
+  text-align: left !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+/* Leftside content - align right */
+body > div:nth-child(2) > div > div:nth-child(2) > div > div:first-child > div > div:nth-child(2) > div > div > img {
+  text-align: right !important;
+  margin-left: auto !important;
+  margin-right: 0 !important;
+}
+
+/* Digital Signature generated alignment fixes */
+.signature-right-section img {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  display: block !important;
+}
+
+.signature-left-section img {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  display: block !important;
+}
+
+.digital-signature-container .signature-right-section img {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  display: block !important;
+}
+
+.digital-signature-container .signature-left-section img {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  display: block !important;
+}
+
+/* Fix for signature preview positioning */
+.digital-signature-container img {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  display: block !important;
+  max-width: 100% !important;
+  height: auto !important;
+}

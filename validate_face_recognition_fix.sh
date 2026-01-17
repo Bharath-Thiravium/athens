@@ -1,0 +1,1 @@
+scripts/ops/validators/validate_face_recognition_fix.sh

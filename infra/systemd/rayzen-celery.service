@@ -1,0 +1,19 @@
+[Unit]
+Description=Rayzen Celery Worker
+After=network.target redis.service
+Wants=redis.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/Rayzen/athenas-backend
+EnvironmentFile=/var/www/Rayzen/athenas-backend/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=DJANGO_SETTINGS_MODULE=config.settings
+ExecStart=/var/www/Rayzen/athenas-backend/venv/bin/celery -A config worker -l info --concurrency=1
+Restart=always
+RestartSec=5
+UMask=0022
+
+[Install]
+WantedBy=multi-user.target

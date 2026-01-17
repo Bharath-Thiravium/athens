@@ -17,6 +17,7 @@ interface ToolboxTalkAttendanceProps {
 
 const ToolboxTalkAttendance: React.FC<ToolboxTalkAttendanceProps> = ({ toolboxTalk, visible, onClose }) => {
   const {message} = App.useApp();  
+  const isLocked = (toolboxTalk.status || '').toLowerCase() === 'completed';
   const [workers, setWorkers] = useState<WorkerData[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -95,6 +96,10 @@ const ToolboxTalkAttendance: React.FC<ToolboxTalkAttendanceProps> = ({ toolboxTa
   }, [visible, toolboxTalk.id]);
 
   const handleSelfCheckIn = async () => {
+    if (isLocked) {
+      message.warning('Attendance is locked because this toolbox talk is completed.');
+      return;
+    }
     const storageKey = `tbt_self_attendance_${toolboxTalk.id}`;
     const event = {
       client_event_id: generateClientEventId(),
@@ -128,6 +133,10 @@ const ToolboxTalkAttendance: React.FC<ToolboxTalkAttendanceProps> = ({ toolboxTa
   );
 
   const handleCameraOpen = (worker: WorkerData) => {
+    if (isLocked) {
+      message.warning('Attendance is locked because this toolbox talk is completed.');
+      return;
+    }
     setCurrentWorker(worker);
     setCameraOpen(true);
     setPhotoSrc(null);
@@ -206,6 +215,10 @@ const ToolboxTalkAttendance: React.FC<ToolboxTalkAttendanceProps> = ({ toolboxTa
   };
 
   const handleSubmitAttendance = async () => {
+    if (isLocked) {
+      message.error('Attendance is locked because this toolbox talk is completed.');
+      return;
+    }
     if (attendanceList.length === 0) {
       message.warning('No attendance records to submit');
       return;
@@ -442,13 +455,20 @@ const ToolboxTalkAttendance: React.FC<ToolboxTalkAttendanceProps> = ({ toolboxTa
           type="primary" 
           onClick={handleSubmitAttendance}
           loading={submitting}
-          disabled={attendanceList.length === 0}
+          disabled={isLocked || attendanceList.length === 0}
         >
           Submit Attendance
         </Button>
       ]}
       width={800}
     >
+      {isLocked && (
+        <Result
+          status="info"
+          title="Attendance Locked"
+          subTitle="This toolbox talk is completed. New participants cannot be added."
+        />
+      )}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Space>
           <Tag color={selfCheckedIn ? 'success' : 'default'}>
@@ -456,7 +476,7 @@ const ToolboxTalkAttendance: React.FC<ToolboxTalkAttendanceProps> = ({ toolboxTa
           </Tag>
           <Text type="secondary">My attendance (check-in only)</Text>
         </Space>
-        <Button type="primary" onClick={handleSelfCheckIn} disabled={selfCheckedIn}>
+        <Button type="primary" onClick={handleSelfCheckIn} disabled={selfCheckedIn || isLocked}>
           Mark Attendance
         </Button>
       </div>
@@ -500,6 +520,7 @@ const ToolboxTalkAttendance: React.FC<ToolboxTalkAttendanceProps> = ({ toolboxTa
                     type="primary" 
                     icon={<CameraOutlined />} 
                     onClick={() => handleCameraOpen(worker)}
+                    disabled={isLocked}
                   >
                     Take Photo
                   </Button>
@@ -555,6 +576,7 @@ const ToolboxTalkAttendance: React.FC<ToolboxTalkAttendanceProps> = ({ toolboxTa
             type="primary" 
             icon={<CameraOutlined />} 
             onClick={handleEvidenceCameraOpen}
+            disabled={isLocked}
           >
             {evidencePhotoSrc ? 'Retake Evidence Photo' : 'Take Evidence Photo'}
           </Button>

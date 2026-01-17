@@ -1,0 +1,19 @@
+[Unit]
+Description=SAP Celery Beat
+After=network.target redis.service
+Wants=redis.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/SAP-Python/backend
+EnvironmentFile=/var/www/SAP-Python/backend/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=ENVIRONMENT=production
+ExecStart=/var/www/SAP-Python/backend/venv/bin/celery -A sap_backend beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+Restart=always
+RestartSec=5
+UMask=0022
+
+[Install]
+WantedBy=multi-user.target

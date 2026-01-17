@@ -1,35 +1,119 @@
-# Enhanced PTW System - Clean Implementation
+# Enhanced PTW System - Grade-Based Workflow Implementation
 
 ## Overview
-This document outlines the cleaned up, world-class Permit to Work (PTW) system implementation with all unwanted files removed and permissions updated.
+This document outlines the updated Permit to Work (PTW) system with grade-based workflow logic and specialized verification/approval processes.
+
+## Workflow Logic
+
+### **User Roles & Grade-Based Permissions**
+
+#### **EPC Users**
+- **Grade C**: 
+  - ✅ Verify contractor permits (specialized)
+  - ✅ Create own permits
+  - ❌ Cannot approve (no approval authority)
+
+- **Grade B**: 
+  - ✅ Verify permits, especially EPC-created permits (specialized)
+  - ✅ Create permits
+  - ❌ Cannot approve (no approval authority)
+
+- **Grade A**: 
+  - ✅ **Full approval authority** (can approve all permits)
+  - ✅ Create permits
+  - ✅ Can also verify if needed
+
+#### **Client Users**
+- **Grade C**: 
+  - ✅ Create permits
+  - ✅ Limited verification (basic verification only)
+  - ❌ Cannot approve
+
+- **Grade B**: 
+  - ✅ Verify permits, especially Client-created permits (specialized)
+  - ✅ Create permits
+  - ❌ Cannot approve
+
+- **Grade A**: 
+  - ✅ **Full approval authority** (can approve all permits)
+  - ✅ Create permits
+  - ✅ Can also verify if needed
+
+#### **Contractor Users**
+- **All Grades**: 
+  - ✅ Create permits only
+  - ❌ Cannot verify or approve
+
+### **Workflow Process Flow**
+
+```
+1. PERMIT CREATION (Anyone)
+   ↓
+2. VERIFIER SELECTION (Requestor selects based on rules)
+   ↓
+3. VERIFICATION (EPC/Client B/C grade - specialized)
+   ↓
+4. APPROVER SELECTION (Verifier selects from A grade users)
+   ↓
+5. APPROVAL (EPC/Client A grade - full authority)
+   ↓
+6. PERMIT ACTIVE
+```
+
+### **Selection Rules**
+
+#### **Verifier Selection Rules**
+- **Contractor permits** → Preferably EPC Grade C (specialized for contractor permits)
+- **EPC permits** → Preferably EPC Grade B (specialized for EPC permits)
+- **Client permits** → Preferably Client Grade B (specialized for Client permits)
+- **Client requestors** → Can only select Client verifiers
+- **EPC/Contractor requestors** → Can select both EPC and Client verifiers
+
+#### **Approver Selection Rules**
+- **Only Grade A users** have full approval authority
+- **Client verifiers** → Can only select Client Grade A approvers
+- **EPC verifiers** → Can select both EPC and Client Grade A approvers
+
+### **Company-Based Filtering**
+- Users can filter verifiers/approvers by company name
+- Enables better organization in multi-company projects
+- Maintains proper oversight within company hierarchies
 
 ## Backend Structure
 
 ### Core Files
 ```
 backend/ptw/
-├── models.py                 # Enhanced PTW models with all world-class features
+├── models.py                 # Enhanced PTW models with grade-based workflow
 ├── serializers.py           # Comprehensive serializers with relationships
-├── views.py                 # Advanced viewsets with analytics and reporting
+├── views.py                 # Advanced viewsets with grade-aware APIs
+├── workflow_manager.py      # Grade-based workflow management system
 ├── urls.py                  # Complete URL configuration
 ├── admin.py                 # Rich Django admin interface
-├── permissions.py           # Updated permission system
-├── notification_utils.py    # Notification handling (existing)
+├── permissions.py           # Grade-based permission system
+├── notification_utils.py    # Notification handling
 └── management/commands/
     └── create_ptw_data.py   # Data population command
 ```
 
-### Key Models Implemented
-- **Permit**: 25+ fields including risk assessment, QR codes, GPS, digital signatures
-- **PermitType**: Enhanced with safety checklists, PPE requirements, escalation rules
-- **WorkflowTemplate/Instance/Step**: Complete workflow management system
-- **HazardLibrary**: Pre-defined hazards with control measures
-- **GasReading**: Real-time gas monitoring integration
-- **PermitPhoto**: Photo documentation with GPS location
-- **DigitalSignature**: Multi-role signature capture
-- **PermitAudit**: Complete audit trail with IP tracking
-- **SystemIntegration**: External system connections
-- **ComplianceReport**: Automated compliance reporting
+### Key Models Enhanced
+- **Permit**: 25+ fields with grade-aware workflow integration
+- **PermitType**: Enhanced with grade-specific requirements
+- **WorkflowTemplate/Instance/Step**: Grade-based workflow management
+- **HazardLibrary**: Pre-defined hazards with grade-specific controls
+- **GasReading**: Real-time monitoring with grade-based oversight
+- **PermitPhoto**: Documentation with grade-based verification
+- **DigitalSignature**: Multi-role signature with grade validation
+- **PermitAudit**: Complete audit trail with grade-based actions
+
+### Grade-Based Workflow Manager
+```python
+class PTWWorkflowManager:
+    def get_available_verifiers(project, requestor_type, requestor_grade, company_filter)
+    def get_available_approvers(project, verifier_type, verifier_grade, company_filter)
+    def _can_select_verifier(requestor, verifier)  # Grade validation
+    def _can_select_approver(verifier, approver)   # Grade validation
+```
 
 ## Frontend Structure
 
@@ -79,16 +163,28 @@ frontend/src/features/ptw/
 
 ## Key Features Implemented
 
+### 🎯 **Grade-Based Workflow Features**
+1. **Specialized Verification**: Grade-specific verification based on permit origin
+2. **Approval Authority**: Only Grade A users have full approval authority
+3. **Company Filtering**: Filter verifiers/approvers by company name
+4. **Role Specialization**: 
+   - EPC C: Contractor permit specialists
+   - EPC B: EPC permit specialists  
+   - Client B: Client permit specialists
+   - Grade A: Full approval authority
+5. **Selection Rules**: Enforced selection rules based on user type and grade
+6. **Workflow Validation**: Grade-based validation at each workflow step
+
 ### 🎯 **World-Class Features**
 1. **Multi-step Wizard Form**: 6-step process with validation
 2. **Risk Assessment**: Probability × Severity matrix with auto-calculation
-3. **Workflow Engine**: Configurable approval chains with escalation
-4. **Digital Signatures**: Multi-role signature capture with device tracking
+3. **Workflow Engine**: Grade-aware configurable approval chains
+4. **Digital Signatures**: Multi-role signature capture with grade tracking
 5. **QR Code Integration**: Mobile scanning for permit verification
 6. **Photo Documentation**: Before/during/after work photos with GPS
-7. **Gas Testing**: Real-time monitoring with safety status
+7. **Gas Testing**: Real-time monitoring with grade-based safety oversight
 8. **Offline Support**: Complete offline functionality with sync
-9. **Analytics Dashboard**: KPIs, compliance scores, trend analysis
+9. **Analytics Dashboard**: Grade-based KPIs and compliance tracking
 10. **Integration Hub**: ERP, CMMS, IoT, and notification systems
 
 ### 📊 **Analytics & Reporting**
@@ -177,7 +273,7 @@ compliance_standards, audit_trail
 ## API Endpoints
 
 ### Core Endpoints
-- `GET/POST /api/ptw/permits/` - List/Create permits
+- `GET/POST /api/ptw/permits/` - List/Create permits (anyone can create)
 - `GET/PUT/DELETE /api/ptw/permits/{id}/` - Retrieve/Update/Delete permit
 - `GET /api/ptw/permits/dashboard_stats/` - Dashboard statistics
 - `GET /api/ptw/permits/analytics/` - Analytics data
@@ -186,6 +282,15 @@ compliance_standards, audit_trail
 - `POST /api/ptw/permits/{id}/add_signature/` - Digital signature
 - `GET /api/ptw/permits/export_excel/` - Excel export
 - `GET /api/ptw/permits/{id}/export_pdf/` - PDF export
+
+### Grade-Based Workflow Endpoints
+- `GET /api/ptw/permits/available_verifiers/?company_filter=<name>` - Get available verifiers with grade filtering
+- `GET /api/ptw/permits/available_approvers_for_verifier/?company_filter=<name>` - Get available approvers (A grade only)
+- `POST /api/ptw/permits/{id}/assign_verifier/` - Assign verifier (requestor action)
+- `POST /api/ptw/permits/{id}/assign_approver/` - Assign approver (verifier action)
+- `POST /api/ptw/permits/{id}/verify/` - Verify permit (B/C grade action)
+- `POST /api/ptw/permits/{id}/approve/` - Approve permit (A grade action)
+- `POST /api/ptw/permits/{id}/reject/` - Reject permit (any verification/approval stage)
 
 ### Mobile Endpoints
 - `POST /api/ptw/sync-offline-data/` - Offline data sync
@@ -254,12 +359,21 @@ npm start
 - ASME (American Society of Mechanical Engineers)
 - IEC (International Electrotechnical Commission)
 
-### Audit Features
-- Complete change history
-- Digital signatures with timestamps
+### Grade-Based Audit Features
+- Complete change history with grade-based actions
+- Digital signatures with grade validation and timestamps
 - IP address and device tracking
-- Automated compliance reporting
-- Data retention policies
-- Export capabilities for audits
+- Grade-specific compliance reporting
+- Automated workflow compliance checks
+- Data retention policies with grade-based access
+- Export capabilities for regulatory audits
+- Grade-based authorization trails
 
-This enhanced PTW system provides a complete, production-ready solution that meets international safety standards and can be deployed for commercial use.
+### Workflow Compliance
+- **Grade Validation**: Ensures only authorized grades can perform specific actions
+- **Specialization Tracking**: Records which grade specialist handled each permit type
+- **Authority Verification**: Validates approval authority at Grade A level
+- **Company Segregation**: Maintains proper company-based oversight
+- **Audit Trail**: Complete grade-aware audit logging for compliance
+
+This enhanced PTW system provides a complete, production-ready solution with grade-based workflow management that meets international safety standards and regulatory compliance requirements.

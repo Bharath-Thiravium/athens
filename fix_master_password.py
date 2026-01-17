@@ -1,0 +1,1 @@
+scripts/maintenance/fix_master_password.py

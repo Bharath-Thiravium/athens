@@ -44,8 +44,8 @@ class AttendanceEvent(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=["athens_tenant_id", "user", "occurred_at"], name="attendance_event_user_time_idx"),
-            models.Index(fields=["athens_tenant_id", "module", "module_ref_id", "occurred_at"], name="attendance_event_module_time_idx"),
+            models.Index(fields=["athens_tenant_id", "user", "occurred_at"], name="att_evt_user_time_idx"),
+            models.Index(fields=["athens_tenant_id", "module", "module_ref_id", "occurred_at"], name="att_evt_mod_time_idx"),
         ]
         constraints = [
             models.UniqueConstraint(

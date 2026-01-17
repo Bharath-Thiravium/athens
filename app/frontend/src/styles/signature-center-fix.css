@@ -1,0 +1,27 @@
+/* Digital Signature Center Alignment Fix */
+/* This CSS only centers the image container - internal layout is handled by backend */
+
+.digital-signature-preview img {
+  display: block;
+  margin: 0 auto;
+}
+
+.signature-template-preview img {
+  display: block;
+  margin: 0 auto;
+}
+
+.signature-image img {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Ensure signature containers are properly centered */
+.signature-container {
+  text-align: center;
+}
+
+.signature-container img {
+  display: inline-block;
+  margin: 0 auto;
+}

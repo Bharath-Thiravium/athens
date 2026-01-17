@@ -1,0 +1,447 @@
+# Action Plan Checklist (Living)
+
+Each module change must add an entry in this format.
+
+- MODULE: Ops Hygiene (Phase 0)
+  - Files changed: docs/action_plan_checklist.md, docs/vscode_server_cleanup.md
+  - Endpoints covered: N/A
+  - Tenant enforced: N/A
+  - Project enforced: N/A
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: N/A
+  - WebSockets: N/A
+  - Tests added/updated: N/A
+  - Test run command + PASS/FAIL summary: Not run (docs only)
+  - Notes/Risks: VS Code server cleanup steps for production-safe resource reduction and reduced operational noise.
+
+- MODULE: Docs / Phase 0
+  - Files changed: docs/athens_tenant_collab_contract.md, docs/action_plan_checklist.md, docs/coverage_matrix.md, docs/test_plan.md
+  - Endpoints covered: N/A
+  - Tenant enforced: N/A
+  - Project enforced: N/A
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: N/A
+  - WebSockets: N/A
+  - Tests added/updated: N/A
+  - Test run command + PASS/FAIL summary: Not run (docs only)
+  - Notes/Risks: Initial documentation and inventory scaffolding.
+
+- MODULE: Control Plane (Phase 1)
+  - Files changed: backend/control_plane/models.py, backend/control_plane/db_router.py, backend/control_plane/serializers.py, backend/control_plane/permissions.py, backend/control_plane/views.py, backend/control_plane/urls.py, backend/control_plane/migrations/0001_initial.py, backend/backend/settings.py, backend/backend/urls.py, docs/coverage_matrix.md
+  - Endpoints covered: /api/control-plane/*
+  - Tenant enforced: N/A (global control plane)
+  - Project enforced: N/A
+  - Collaboration READ-only: N/A (policy config only)
+  - Cross-tenant write denied: N/A
+  - WebSockets: N/A
+  - Tests added/updated: backend/control_plane/tests/test_models.py, backend/control_plane/tests/test_api.py
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Superadmin auth currently relies on Django superuser; platform auth still pending.
+
+- MODULE: Auth + Tenant Routing (Phase 2)
+  - Files changed: backend/control_plane/services/tenant_db.py, backend/control_plane/serializers.py, backend/control_plane/views.py, backend/control_plane/urls.py, backend/authentication/services/tenant_auth.py, backend/authentication/tokens.py, backend/authentication/tenant_login_views.py, backend/authentication/urls.py, backend/authentication/tenant_resolver.py, backend/authentication/tenant_middleware.py, backend/backend/settings.py, docs/coverage_matrix.md
+  - Endpoints covered: /api/control-plane/tenant-lookup/, /authentication/login/tenant/
+  - Tenant enforced: PASS (tenant derived from authenticated user in tenant_resolver)
+  - Project enforced: TBD
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: TBD
+  - WebSockets: N/A
+  - Tests added/updated: backend/control_plane/tests/test_tenant_lookup.py, backend/authentication/tests/test_tenant_login.py
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Tenant lookup endpoint has no throttling yet; consider rate limiting to reduce enumeration risk.
+
+- MODULE: Safety Observation (Phase 3)
+  - Files changed: backend/authentication/tenant_scoped.py, backend/safetyobservation/views.py, backend/safetyobservation/tests/test_tenant_scoped.py, backend/control_plane/throttles.py, backend/control_plane/views.py, backend/control_plane/tests/test_tenant_lookup.py, backend/backend/settings.py, docs/coverage_matrix.md
+  - Endpoints covered: /api/v1/safetyobservation/, /api/v1/safetyobservation/<id>, /api/control-plane/tenant-lookup/
+  - Tenant enforced: PASS (TenantScopedViewSet)
+  - Project enforced: PASS (TenantScopedViewSet + SafetyObservationViewSet)
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: PASS (project mismatch denied)
+  - WebSockets: N/A
+  - Tests added/updated: backend/safetyobservation/tests/test_tenant_scoped.py, backend/control_plane/tests/test_tenant_lookup.py
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: CollaborationAwareMixin added as read-only guard; federated read implementation pending.
+
+- MODULE: Base Enforcement (Phase 3)
+  - Files changed: backend/authentication/tenant_scoped.py
+  - Endpoints covered: N/A (base class)
+  - Tenant enforced: PASS (TenantScopedViewSet)
+  - Project enforced: PASS (project_lookup + project_required)
+  - Collaboration READ-only: PASS (CollaborationAwareMixin)
+  - Cross-tenant write denied: PASS (CollaborationAwareMixin)
+  - WebSockets: N/A
+  - Tests added/updated: backend/safetyobservation/tests/test_tenant_scoped.py
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Collaboration read currently uses control plane membership + policy; federated data merge pending.
+
+- MODULE: Worker (Phase 3)
+  - Files changed: backend/worker/views.py
+  - Endpoints covered: /worker/*
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS (base mixin)
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/safetyobservation/tests/test_tenant_scoped.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Function endpoints still need explicit checks.
+
+- MODULE: TBT (Phase 3)
+  - Files changed: backend/tbt/views.py
+  - Endpoints covered: /tbt/*
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS (base mixin)
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/safetyobservation/tests/test_tenant_scoped.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Function endpoints still need explicit checks.
+
+- MODULE: Job Training (Phase 3)
+  - Files changed: backend/jobtraining/views.py
+  - Endpoints covered: /jobtraining/*
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS (base mixin)
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/safetyobservation/tests/test_tenant_scoped.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: User list endpoints now project scoped.
+
+- MODULE: Induction Training (Phase 3)
+  - Files changed: backend/inductiontraining/views.py
+  - Endpoints covered: /induction/api/*
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS (base mixin)
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/safetyobservation/tests/test_tenant_scoped.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Function endpoints still need explicit checks.
+
+- MODULE: Inspection (Phase 3)
+  - Files changed: backend/inspection/views.py, backend/inspection/views_forms.py
+  - Endpoints covered: /api/v1/inspection/*
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS (base mixin)
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/safetyobservation/tests/test_tenant_scoped.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: inspection_users function endpoint still needs explicit checks.
+
+- MODULE: Incident Management (Phase 3)
+  - Files changed: backend/incidentmanagement/views.py
+  - Endpoints covered: /api/v1/incidentmanagement/*
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS (base mixin)
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/safetyobservation/tests/test_tenant_scoped.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Existing custom actions rely on get_queryset scoping.
+
+- MODULE: PTW (Phase 3)
+  - Files changed: backend/ptw/views.py
+  - Endpoints covered: /api/v1/ptw/*
+  - Tenant enforced: PASS
+  - Project enforced: PASS (permit-bound endpoints) / N/A (tenant-wide endpoints)
+  - Collaboration READ-only: PASS (base mixin)
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/safetyobservation/tests/test_tenant_scoped.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: sync_offline_data function endpoint still needs explicit checks.
+
+- MODULE: Environment (Phase 3)
+  - Files changed: backend/environment/views.py
+  - Endpoints covered: /api/v1/environment/*
+  - Tenant enforced: PASS
+  - Project enforced: PASS (site-bound models)
+  - Collaboration READ-only: PASS (base mixin)
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/safetyobservation/tests/test_tenant_scoped.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: ESGReportViewSet still needs explicit enforcement.
+
+- MODULE: Quality (Phase 3)
+  - Files changed: backend/quality/views.py
+  - Endpoints covered: /api/v1/quality/*
+  - Tenant enforced: PASS
+  - Project enforced: PASS (template/inspection/defect/etc.) / N/A (standards)
+  - Collaboration READ-only: PASS (base mixin)
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/safetyobservation/tests/test_tenant_scoped.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Review quality metrics filters for project scoping.
+
+- MODULE: Control Plane (Phase 3)
+  - Files changed: backend/control_plane/models.py, backend/control_plane/migrations/0002_alter_tenantcompany_id.py
+  - Endpoints covered: N/A
+  - Tenant enforced: N/A
+  - Project enforced: N/A
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: N/A
+  - WebSockets: N/A
+  - Tests added/updated: backend/safetyobservation/tests/test_tenant_scoped.py (collab policy usage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: TenantCompany now uses UUID primary key for compatibility with athens_tenant_id.
+
+- MODULE: Tenant Scoped Utils (Phase 3)
+  - Files changed: backend/authentication/tenant_scoped_utils.py
+  - Endpoints covered: N/A (helper)
+  - Tenant enforced: PASS
+  - Project enforced: PASS (helper)
+  - Collaboration READ-only: PASS
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/tbt/tests/test_function_endpoints.py
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Helper used by function-based endpoints.
+
+- MODULE: TBT Functions (Phase 3)
+  - Files changed: backend/tbt/views.py, backend/tbt/tests/test_function_endpoints.py
+  - Endpoints covered: /tbt/users/list, /tbt/users/search, /tbt/attendance, /tbt/trained-personnel, /tbt/create
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/tbt/tests/test_function_endpoints.py
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Function endpoints now project scoped.
+
+- MODULE: Job Training Functions (Phase 3)
+  - Files changed: backend/jobtraining/views.py
+  - Endpoints covered: /jobtraining/create
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/tbt/tests/test_function_endpoints.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Function endpoint now project scoped.
+
+- MODULE: Induction Training Functions (Phase 3)
+  - Files changed: backend/inductiontraining/views.py, backend/inductiontraining/urls.py
+  - Endpoints covered: /induction/legacy, /induction/<id>, /induction/initiated-workers, /induction/<id>/attendance, /induction/<id>/signatures, /induction/manage
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/tbt/tests/test_function_endpoints.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Remaining endpoints /induction/<id>/auto-signature and /complete-attendance still need explicit checks.
+
+- MODULE: Inspection Functions (Phase 3)
+  - Files changed: backend/inspection/views.py
+  - Endpoints covered: /api/v1/inspection/users
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/tbt/tests/test_function_endpoints.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: None.
+
+- MODULE: Manpower Functions (Phase 3)
+  - Files changed: backend/manpower/views.py
+  - Endpoints covered: /man/test, /man/debug, /man/dashboard-stats
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/tbt/tests/test_function_endpoints.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Other class-based endpoints still need review.
+
+- MODULE: Permissions Functions (Phase 3)
+  - Files changed: backend/permissions/views.py, backend/permissions/escalation_api.py
+  - Endpoints covered: /api/v1/permissions/*
+  - Tenant enforced: PASS
+  - Project enforced: PASS (validate_project_access)
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/tbt/tests/test_function_endpoints.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Review object models without project relations.
+
+- MODULE: PTW Functions (Phase 3)
+  - Files changed: backend/ptw/views.py, backend/ptw/team_members_api.py
+  - Endpoints covered: /api/v1/ptw/sync-offline-data, /api/v1/ptw/qr-scan/<code>, /api/v1/ptw/mobile-permit/<id>, /api/v1/ptw/team-members/get_users_by_type_and_grade
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/tbt/tests/test_function_endpoints.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: mobile-permit now requires auth.
+
+- MODULE: Environment Reports (Phase 3)
+  - Files changed: backend/environment/views.py
+  - Endpoints covered: /api/v1/environment/reports/*
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/tbt/tests/test_function_endpoints.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Report data still mocked.
+
+- MODULE: Chatbox (Phase 3)
+  - Files changed: backend/chatbox/views.py
+  - Endpoints covered: /chatbox/*
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/tbt/tests/test_function_endpoints.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: Notification utilities should enforce tenant scope server-side.
+
+- MODULE: Voice Translator (Phase 3)
+  - Files changed: backend/voice_translator/views.py
+  - Endpoints covered: /api/v1/voice/translate, /api/v1/voice/languages
+  - Tenant enforced: PASS
+  - Project enforced: N/A
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/tbt/tests/test_function_endpoints.py (base coverage)
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: External translation API usage remains.
+
+- MODULE: Induction Auto Signature (Phase 3)
+  - Files changed: backend/inductiontraining/auto_signature_views.py, backend/inductiontraining/tests/test_function_endpoints.py
+  - Endpoints covered: /induction/<id>/auto-signature, /induction/<id>/complete-attendance
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/inductiontraining/tests/test_function_endpoints.py
+  - Test run command + PASS/FAIL summary: Not run
+  - Notes/Risks: auto_signature_request references quality_* fields not in model; needs follow-up.
+
+- MODULE: Postgres-Only Test DB Provisioning
+  - Files changed: backend/backend/settings.py
+  - Endpoints covered: N/A
+  - Tenant enforced: N/A
+  - Project enforced: N/A
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: N/A
+  - WebSockets: N/A
+  - Tests added/updated: N/A
+  - Test run command + PASS/FAIL summary: docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test tbt.tests.test_function_endpoints -v 2 (FAIL: 1 test ran; test_user_list_is_project_scoped returned 401 instead of 200; test DB created/destroyed successfully)
+  - Notes/Risks: Root cause was host port conflict (athens-db using 5433) and test DB provisioning against Postgres; compose dev Postgres now used. Test failure is auth-related (401) and needs follow-up in the test or auth setup.
+
+- MODULE: TBT Function Tests (Auth Setup)
+  - Files changed: backend/tbt/tests/test_function_endpoints.py
+  - Endpoints covered: /tbt/users/list/
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/tbt/tests/test_function_endpoints.py
+  - Test run command + PASS/FAIL summary: docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test tbt.tests.test_function_endpoints -v 2 (PASS: 1 test ran)
+  - Notes/Risks: Root cause was APIClient-based request not applying JWT auth; switched to APIRequestFactory with SimpleJWT Authorization header for deterministic auth in test.
+
+- MODULE: TBT Function Tests (JWT Helper + Coverage)
+  - Files changed: backend/tests_common/request.py (migrated from backend/tbt/tests/utils.py), backend/tests_common/auth.py (migrated from backend/tbt/tests/utils.py), backend/tbt/tests/test_function_endpoints.py, backend/tbt/tests/__init__.py
+  - Endpoints covered: /tbt/users/list/
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/tbt/tests/test_function_endpoints.py
+  - Test run command + PASS/FAIL summary: docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test tbt.tests -v 2 (PASS: 3 tests ran); docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test -v 1 (FAIL: 2 import errors in authentication.management.commands.test_company_isolation and mom.tests)
+  - Notes/Risks: Added shared JWT request helper; migrated to backend/tests_common/* later; full suite currently blocked by unrelated import errors in existing tests.
+
+- MODULE: Induction Function Tests (JWT Helper + Coverage)
+  - Files changed: backend/inductiontraining/tests/test_function_endpoints.py
+  - Endpoints covered: /induction/<id>/auto-signature, /induction/<id>/complete-attendance
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: PASS
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/inductiontraining/tests/test_function_endpoints.py
+  - Test run command + PASS/FAIL summary: docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test tbt.tests -v 2 (PASS: 3 tests ran); docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test -v 1 (FAIL: 2 import errors in authentication.management.commands.test_company_isolation and mom.tests)
+  - Notes/Risks: Refactored to shared JWT request helper and added auth/project coverage; full suite blocked by unrelated import errors.
+
+- MODULE: Company Isolation Shim + Tests
+  - Files changed: backend/authentication/company_isolation.py, backend/authentication/tests/test_company_isolation_utils.py, backend/authentication/tests/__init__.py, backend/authentication/tests.py
+  - Endpoints covered: N/A
+  - Tenant enforced: PASS
+  - Project enforced: N/A
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: N/A
+  - WebSockets: N/A
+  - Tests added/updated: backend/authentication/tests/test_company_isolation_utils.py
+  - Test run command + PASS/FAIL summary: docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test authentication.tests -v 2 (PASS: 3 tests ran); docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test -v 1 (PASS: 10 tests ran)
+  - Notes/Risks: Added get_company_isolated_queryset shim and fixed tenant filtering logic; removed conflicting placeholder tests.py to resolve test discovery.
+
+- MODULE: MOM Tests + Notification Routing
+  - Files changed: backend/mom/tests.py, backend/tests_common/context.py (migrated from backend/mom/tests_utils.py), backend/tests_common/request.py (migrated from backend/mom/tests_utils.py), backend/tests_common/channels.py (migrated from backend/mom/tests_utils.py)
+  - Endpoints covered: /api/v1/mom/<id>/live, /api/v1/mom/<id>/live/attendance, /api/v1/mom/<id>/complete, /authentication/notifications/create
+  - Tenant enforced: PASS
+  - Project enforced: PASS
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: PASS
+  - WebSockets: N/A
+  - Tests added/updated: backend/mom/tests.py
+  - Test run command + PASS/FAIL summary: docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test mom.tests -v 2 (PASS: 9 tests ran); docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test -v 1 (PASS: 15 tests ran)
+  - Notes/Risks: Standardized MOM test setup with shared helper; migrated to backend/tests_common/* later; added auth/tenant/project coverage and an unauthenticated route smoke test; in-memory channel layer used for notification test.
+
+- MODULE: Shared Test Helpers (Phase 3)
+  - Files changed: backend/tests_common/__init__.py, backend/tests_common/auth.py, backend/tests_common/context.py, backend/tests_common/request.py, backend/tests_common/channels.py, backend/tests_common/assertions.py, backend/tbt/tests/test_function_endpoints.py, backend/inductiontraining/tests/test_function_endpoints.py, backend/mom/tests.py, backend/tbt/tests/utils.py (removed), backend/mom/tests_utils.py (removed)
+  - Endpoints covered: /tbt/* (function tests), /induction/* (function tests), /api/v1/mom/*, /authentication/notifications/create
+  - Tenant enforced: PASS (unchanged)
+  - Project enforced: PASS (unchanged)
+  - Collaboration READ-only: PASS (unchanged)
+  - Cross-tenant write denied: PASS (unchanged)
+  - WebSockets: N/A
+  - Tests added/updated: backend/tbt/tests/test_function_endpoints.py, backend/inductiontraining/tests/test_function_endpoints.py, backend/mom/tests.py
+  - Test run command + PASS/FAIL summary: docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test tbt.tests -v 2 (PASS: 3 tests ran); docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test mom.tests -v 2 (PASS: 9 tests ran); docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test -v 1 (PASS: 15 tests ran)
+  - Notes/Risks: Migration note: per-app helpers retired in favor of backend/tests_common/*; in-memory channel layer used for MOM notification unit test.
+
+- MODULE: Frontend Dependency Audit (Phase 0)
+  - Files changed: docs/action_plan_checklist.md, app/frontend/package.json, app/frontend/package-lock.json
+  - Endpoints covered: N/A
+  - Tenant enforced: N/A
+  - Project enforced: N/A
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: N/A
+  - WebSockets: N/A
+  - Tests added/updated: N/A
+  - Test run command + PASS/FAIL summary: npm audit (FAIL: 1 high severity vulnerability in xlsx with no fix available); npm audit fix --legacy-peer-deps (PASS: 2 packages updated; xlsx vulnerability remains)
+  - Notes/Risks: npm audit fixed @modelcontextprotocol/sdk and qs; xlsx vulnerability has no fix available and remains in the dependency tree.
+
+- MODULE: Startup DB Preflight (Phase 0)
+  - Files changed: docs/action_plan_checklist.md, app/backend/.env, scripts/ops/start_athens.sh
+  - Endpoints covered: N/A
+  - Tenant enforced: N/A
+  - Project enforced: N/A
+  - Collaboration READ-only: N/A
+  - Cross-tenant write denied: N/A
+  - WebSockets: N/A
+  - Tests added/updated: N/A
+  - Test run command + PASS/FAIL summary: pg_isready -h 127.0.0.1 -p 5432 (PASS)
+  - Notes/Risks: Host-mode systemd Postgres uses IPv4 (127.0.0.1) in env and start script now waits on pg_isready before backend boot.

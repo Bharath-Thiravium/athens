@@ -13,7 +13,7 @@ import {
     ReadOutlined, FileTextOutlined, SafetyOutlined, FormOutlined, PlusOutlined, ClockCircleOutlined,
     BarChartOutlined, SunOutlined, MoonOutlined, DesktopOutlined, AuditOutlined, RocketOutlined,
     ApartmentOutlined, DeleteOutlined, ArrowRightOutlined, CheckCircleOutlined, ExperimentOutlined,
-    EyeOutlined, DatabaseOutlined, ExclamationCircleOutlined
+    EyeOutlined, DatabaseOutlined, ExclamationCircleOutlined, QrcodeOutlined
 } from '@ant-design/icons';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -30,6 +30,7 @@ import DashboardOverview from './DashboardOverview';
 import { getEnhancedMenuItemsForUser } from '../config/projectMenuConfig';
 import { AIBotWidget } from '@features/ai_bot';
 import AttendanceSyncIndicator from '../../../shared/offline/AttendanceSyncIndicator';
+import { useChatWebSocket } from '@features/chatbox/hooks/useChatWebSocket';
 // No need to import ProjectAttendance here anymore, it's handled by the router
 // import ProjectAttendance from '@features/project/components/ProjectAttendance';
 import AuthDebug from '@common/components/AuthDebug';
@@ -48,13 +49,16 @@ const Dashboard: React.FC = () => {
     const { theme, setTheme, effectiveTheme } = useTheme();
     const { approvalStatus, loading: approvalLoading, needsApproval, hasSubmittedDetails, isApproved, refetch: refetchApprovalStatus } = useApprovalStatus();
     const { 
-        collapsed, 
+        collapsed: _collapsed, 
         mobileVisible, 
         toggleSidebar, 
         closeMobileSidebar,
         isMobile,
         isTablet 
     } = useResponsiveSidebar();
+    
+    // Force sidebar to always be expanded
+    const collapsed = false;
     const [pendingUsers, setPendingUsers] = useState<any[]>([]);
     const [userToApprove, setUserToApprove] = useState<any | null>(null);
     const [adminToApprove, setAdminToApprove] = useState<any | null>(null);
@@ -80,6 +84,11 @@ const Dashboard: React.FC = () => {
         isEPCSafety: boolean;
         isMasterAdmin: boolean;
     } | null>(null);
+    const [subscriptionStatus, setSubscriptionStatus] = useState<{
+        isTrialing: boolean;
+        subscriptionStatus: string;
+        tenantId: string | null;
+    } | null>(null);
     const [menuItems, setMenuItems] = useState<MenuItem[]>([
         { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
         { key: '/dashboard/analytics', icon: <BarChartOutlined />, label: 'Analytics' },
@@ -93,6 +102,10 @@ const Dashboard: React.FC = () => {
     const [menuLoading, setMenuLoading] = useState<boolean>(false);
 
     const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, sendApprovalNotification } = useNotificationsContext();
+    const { unreadCounts: chatUnreadCounts } = useChatWebSocket();
+    
+    // Calculate total chat unread count
+    const totalChatUnreadCount = Object.values(chatUnreadCounts || {}).reduce((sum, count) => sum + count, 0);
     const navigate = useNavigate();
     const location = useLocation();
     const { 
@@ -162,6 +175,21 @@ const Dashboard: React.FC = () => {
         checkInductionStatus();
     }, []);
 
+    // Check subscription status on component mount
+    useEffect(() => {
+        const checkSubscriptionStatus = async () => {
+            try {
+                const response = await api.get('/authentication/tenant-subscription-status/');
+                setSubscriptionStatus(response.data);
+            } catch (error) {
+                // Silently handle subscription status check failure
+                setSubscriptionStatus({ isTrialing: false, subscriptionStatus: 'active', tenantId: null });
+            }
+        };
+        
+        checkSubscriptionStatus();
+    }, []);
+
     // Check if user needs induction training (should have blurred sidebar)
     const needsInductionTraining = inductionStatus && 
         !inductionStatus.hasCompleted && 
@@ -196,6 +224,13 @@ const Dashboard: React.FC = () => {
     const getSelectedKey = () => location.pathname;
     const [selectedKey, setSelectedKey] = useState<string>(getSelectedKey());
     useEffect(() => { setSelectedKey(getSelectedKey()); }, [location]);
+
+    const handleUserMenuClick = (e: any) => {
+        if (e.key === '/dashboard/training/check-in') navigate('/dashboard/training/check-in');
+        else if (e.key === '/dashboard/profile') navigate('/dashboard/profile');
+        else if (e.key === '/dashboard/settings') navigate('/dashboard/settings');
+        else if (e.key === 'logout') handleLogout();
+    };
 
     const handleLogout = async () => {
         try {
@@ -246,12 +281,6 @@ const Dashboard: React.FC = () => {
         } finally {
           setIsLoggingOut(false);
         }
-    };
-
-    const handleUserMenuClick = (e: any) => {
-        if (e.key === '/dashboard/profile') navigate('/dashboard/profile');
-        else if (e.key === '/dashboard/settings') navigate('/dashboard/settings');
-        else if (e.key === 'logout') handleLogout();
     };
 
     const handleMenuClick = (e: any) => {
@@ -543,6 +572,7 @@ const Dashboard: React.FC = () => {
             )}
             
             <div
+                className="premium-sidebar"
                 style={{ 
                     position: 'fixed',
                     top: 0,
@@ -551,8 +581,6 @@ const Dashboard: React.FC = () => {
                     width: (isMobile || isTablet) ? 300 : (collapsed ? 80 : 300),
                     minWidth: (isMobile || isTablet) ? 300 : (collapsed ? 80 : 300),
                     zIndex: (isMobile || isTablet) ? 1001 : 50,
-                    backgroundColor: effectiveTheme === 'dark' ? '#001529' : '#fff',
-                    borderRight: '1px solid #f0f0f0',
                     display: 'flex',
                     flexDirection: 'column',
                     height: '100vh',
@@ -560,7 +588,10 @@ const Dashboard: React.FC = () => {
                     transition: 'all 0.3s ease'
                 }}
             >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed && !(isMobile || isTablet) ? 'center' : 'space-between', padding: collapsed && !(isMobile || isTablet) ? '16px 8px' : '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
+                <div className="sidebar-header" style={{ 
+                    justifyContent: collapsed && !(isMobile || isTablet) ? 'center' : 'space-between', 
+                    padding: collapsed && !(isMobile || isTablet) ? '16px 8px' : '16px 24px'
+                }}>
                     {collapsed && !(isMobile || isTablet) ? (
                         <div style={{ width: 40, height: 40, backgroundColor: '#f0f0f0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                             {companyLogoUrl ? (
@@ -624,9 +655,26 @@ const Dashboard: React.FC = () => {
                             <Menu
                                 mode="inline"
                                 selectedKeys={[selectedKey]}
+                                defaultOpenKeys={['category-dashboard', 'category-safety', 'category-training', 'category-workforce', 'category-communication']}
                                 onClick={handleMenuClick}
-                                className="!border-none !bg-transparent"
-                                items={menuItems}
+                                className="premium-menu"
+                                items={menuItems.map(item => {
+                                    // Add notification badge to Chatbox menu item
+                                    if (item.key === '/dashboard/chatbox') {
+                                        return {
+                                            ...item,
+                                            label: (
+                                                <div className="menu-item-badge">
+                                                    {item.label}
+                                                    {totalChatUnreadCount > 0 && (
+                                                        <span className="notification-badge">{totalChatUnreadCount}</span>
+                                                    )}
+                                                </div>
+                                            )
+                                        };
+                                    }
+                                    return item;
+                                })}
                                 style={{ height: 'auto', borderRight: 0 }}
                                 inlineCollapsed={collapsed && !(isMobile || isTablet)}
                             />
@@ -653,7 +701,7 @@ const Dashboard: React.FC = () => {
                         </div>
                     )}
                 </div>
-                {!(isMobile || isTablet) && !collapsed && (
+                {!(isMobile || isTablet) && !collapsed && subscriptionStatus?.isTrialing && (
                     <div style={{ padding: 16, flexShrink: 0 }}>
                         <Button
                             block
@@ -674,7 +722,7 @@ const Dashboard: React.FC = () => {
             <Layout className="!bg-transparent transition-all duration-300 h-screen flex flex-col" style={{ 
                 marginLeft: (isMobile || isTablet) ? 0 : (collapsed ? 80 : 300)
             }}>
-                <Header className="dashboard-header !px-6 flex justify-between items-center !h-20 !bg-color-bg-base !border-b !border-color-border" style={{ 
+                <Header className="dashboard-header !px-6 flex justify-between items-center !bg-color-bg-base !border-b !border-color-border" style={{ 
                     left: (isMobile || isTablet) ? 0 : (collapsed ? 80 : 300)
                 }}>
                 <div> <Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={toggleSidebar} className="!h-10 !w-10 !text-xl !text-color-text-muted" /> </div>
@@ -743,6 +791,11 @@ const Dashboard: React.FC = () => {
                     <Dropdown menu={{ 
                         onClick: handleUserMenuClick, 
                         items: [
+                            {
+                                key: '/dashboard/training/check-in',
+                                label: 'Training Check-in',
+                                icon: <QrcodeOutlined />
+                            },
                             {
                                 key: '/dashboard/profile',
                                 label: 'Profile Settings',

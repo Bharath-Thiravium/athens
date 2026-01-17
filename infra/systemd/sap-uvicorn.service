@@ -1,0 +1,19 @@
+[Unit]
+Description=SAP ASGI (uvicorn)
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/SAP-Python/backend
+EnvironmentFile=/var/www/SAP-Python/backend/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=ENVIRONMENT=production
+ExecStart=/var/www/SAP-Python/backend/venv/bin/uvicorn sap_backend.asgi:application --host 127.0.0.1 --port 8003 --workers 1 --proxy-headers --forwarded-allow-ips=*
+Restart=always
+RestartSec=5
+UMask=0022
+
+[Install]
+WantedBy=multi-user.target

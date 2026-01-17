@@ -15,6 +15,7 @@ class InductionAttendanceSerializer(serializers.ModelSerializer):
 class InductionTrainingSerializer(serializers.ModelSerializer):
     attendances = InductionAttendanceSerializer(many=True, read_only=True)
     is_signatures_complete = serializers.ReadOnlyField()
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
     
     class Meta:
         model = InductionTraining
@@ -26,9 +27,9 @@ class InductionTrainingSerializer(serializers.ModelSerializer):
             'trainer_signature', 'hr_signature', 'hr_name', 'hr_date',
             'safety_signature', 'safety_name', 'safety_date',
             'dept_head_signature', 'dept_head_name', 'dept_head_date',
-            'created_by', 'created_at', 'updated_at', 'attendances', 'is_signatures_complete'
+            'created_by', 'created_by_username', 'created_at', 'updated_at', 'attendances', 'is_signatures_complete'
         ]
-        read_only_fields = ['created_at', 'updated_at', 'created_by', 'document_id', 'is_signatures_complete']
+        read_only_fields = ['created_at', 'updated_at', 'created_by', 'created_by_username', 'document_id', 'is_signatures_complete']
     
     def create(self, validated_data):
         # Set the created_by field to the current user
@@ -82,13 +83,14 @@ class InductionTrainingSerializer(serializers.ModelSerializer):
 
 class InductionTrainingListSerializer(serializers.ModelSerializer):
     is_signatures_complete = serializers.ReadOnlyField()
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
     
     class Meta:
         model = InductionTraining
         fields = [
             'id', 'title', 'description', 'date', 'start_time', 'end_time',
             'duration', 'duration_unit', 'location', 'conducted_by', 'status', 
-            'evidence_photo', 'document_id', 'revision_number', 'created_at', 
+            'evidence_photo', 'document_id', 'revision_number', 'created_by', 'created_by_username', 'created_at', 
             'updated_at', 'is_signatures_complete',
             # Add signature fields for print preview
             'trainer_signature', 'hr_signature', 'hr_name', 'hr_date',

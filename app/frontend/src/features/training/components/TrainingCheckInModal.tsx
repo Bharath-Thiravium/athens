@@ -1,16 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { App, Button, Input, Modal, Space, Tabs, Typography } from 'antd';
-import { Html5QrcodeScanner } from 'html5-qrcode';
-
-import {
-  enqueueAttendanceEvent,
-  generateClientEventId,
-  getAttendanceDeviceId,
-} from '../../../shared/offline/attendanceQueue';
+import React, { useEffect, useMemo, useState } from 'react';
+import { App, Divider, Modal, QRCode, Space, Typography } from 'antd';
+import api from '@common/utils/axiosetup';
 
 const { Text } = Typography;
 
-type TrainingType = 'INDUCTION' | 'JOB';
+type TrainingType = 'INDUCTION' | 'JOB' | 'TBT';
 
 interface TrainingCheckInModalProps {
   open: boolean;
@@ -20,6 +14,13 @@ interface TrainingCheckInModalProps {
   onClose: () => void;
 }
 
+type TrainingDetails = {
+  id: number;
+  join_code?: string;
+  qr_token?: string;
+  qr_expires_at?: string;
+};
+
 const TrainingCheckInModal: React.FC<TrainingCheckInModalProps> = ({
   open,
   trainingId,
@@ -28,135 +29,80 @@ const TrainingCheckInModal: React.FC<TrainingCheckInModalProps> = ({
   onClose,
 }) => {
   const { message } = App.useApp();
-  const [activeTab, setActiveTab] = useState<'qr' | 'pin'>('qr');
-  const [pin, setPin] = useState('');
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
-  const qrReaderId = useMemo(() => `training-qr-reader-${trainingType}-${trainingId}`, [trainingType, trainingId]);
-
-  const stopScanner = () => {
-    if (scannerRef.current) {
-      scannerRef.current.clear();
-      scannerRef.current = null;
-    }
-  };
-
-  const parseQrToken = (data: string) => {
-    if (!data) return null;
-    try {
-      const decoded = JSON.parse(data);
-      return decoded.qr_token || decoded.qrToken || decoded.token || null;
-    } catch {
-      return data;
-    }
-  };
-
-  const submitCheckIn = async (method: 'QR' | 'PIN', token: string) => {
-    if (!token) {
-      message.error('Please provide a valid code.');
-      return;
-    }
-
-    const event = {
-      client_event_id: generateClientEventId(),
-      module: 'TRAINING',
-      module_ref_id: String(trainingId),
-      event_type: 'CHECK_IN',
-      occurred_at: new Date().toISOString(),
-      device_id: getAttendanceDeviceId(),
-      offline: !navigator.onLine,
-      method,
-      payload: {
-        training_type: trainingType,
-        ...(method === 'QR' ? { qr_token: token } : { pin: token }),
-      },
-    };
-
-    await enqueueAttendanceEvent(event);
-    message.info(navigator.onLine
-      ? 'Check-in queued for sync'
-      : 'Recorded offline; will validate when synced');
-    setPin('');
-    onClose();
-  };
-
-  useEffect(() => {
-    if (!open || activeTab !== 'qr') {
-      stopScanner();
-      return;
-    }
-
-    setTimeout(() => {
-      stopScanner();
-      scannerRef.current = new Html5QrcodeScanner(
-        qrReaderId,
-        { fps: 10, qrbox: { width: 220, height: 220 } },
-        false
-      );
-
-      scannerRef.current.render(
-        (decodedText) => {
-          const token = parseQrToken(decodedText);
-          if (token) {
-            submitCheckIn('QR', token);
-          } else {
-            message.error('Invalid QR code');
-          }
-          stopScanner();
-        },
-        () => {}
-      );
-    }, 100);
-
-    return () => stopScanner();
-  }, [open, activeTab, qrReaderId]);
+  const [trainingDetails, setTrainingDetails] = useState<TrainingDetails | null>(null);
 
   useEffect(() => {
     if (!open) {
-      stopScanner();
+      setTrainingDetails(null);
+      return;
     }
-  }, [open]);
+
+    const endpoint = trainingType === 'INDUCTION'
+      ? `/induction/${trainingId}/`
+      : trainingType === 'JOB'
+      ? `/jobtraining/${trainingId}/`
+      : `/tbt/${trainingId}/`;
+
+    console.log('Fetching training details from:', endpoint);
+    api.get(endpoint)
+      .then((response) => {
+        console.log('Training details response:', response.data);
+        setTrainingDetails(response.data);
+      })
+      .catch((error) => {
+        console.error('Error loading training details:', error);
+        message.error('Unable to load training check-in codes.');
+      });
+  }, [open, trainingId, trainingType, message]);
+
+  const qrValue = useMemo(() => {
+    if (!trainingDetails?.qr_token) return '';
+    return JSON.stringify({
+      training_id: trainingId,
+      qr_token: trainingDetails.qr_token,
+      training_type: trainingType,
+    });
+  }, [trainingDetails?.qr_token, trainingId, trainingType]);
 
   return (
     <Modal
       open={open}
-      title={`Training Check-in${trainingTitle ? `: ${trainingTitle}` : ''}`}
+      title={`Training Check-in Codes${trainingTitle ? `: ${trainingTitle}` : ''}`}
       onCancel={onClose}
       footer={null}
       destroyOnClose
+      width={400}
     >
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-        <Text type="secondary">Check-in via QR code or PIN. No check-out required.</Text>
-        <Tabs
-          activeKey={activeTab}
-          onChange={(key) => setActiveTab(key as 'qr' | 'pin')}
-          items={[
-            {
-              key: 'qr',
-              label: 'Scan QR',
-              children: (
-                <div>
-                  <div id={qrReaderId} style={{ width: '100%', minHeight: 260 }} />
-                </div>
-              ),
-            },
-            {
-              key: 'pin',
-              label: 'Enter PIN',
-              children: (
-                <Space direction="vertical" style={{ width: '100%' }}>
-                  <Input
-                    placeholder="Enter training PIN"
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value)}
-                  />
-                  <Button type="primary" onClick={() => submitCheckIn('PIN', pin)}>
-                    Submit PIN
-                  </Button>
-                </Space>
-              ),
-            },
-          ]}
-        />
+        <div>
+          <Text strong>Session Details</Text>
+          <div style={{ marginTop: 8 }}>
+            <Text>Training Type: <Text code>{trainingType === 'TBT' ? 'Toolbox Talk' : trainingType === 'JOB' ? 'Job Training' : 'Induction Training'}</Text></Text>
+          </div>
+          <div style={{ marginTop: 4 }}>
+            <Text>Training ID: <Text code>{trainingId}</Text></Text>
+          </div>
+          {trainingDetails?.join_code && (
+            <div style={{ marginTop: 4 }}>
+              <Text>PIN: <Text code>{trainingDetails.join_code}</Text></Text>
+            </div>
+          )}
+        </div>
+        
+        {trainingDetails?.qr_token && (
+          <>
+            <Divider />
+            <div style={{ textAlign: 'center' }}>
+              <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>Scan QR Code to Check In</Text>
+              <QRCode value={qrValue} size={200} color="#000000" bgColor="#ffffff" />
+              {trainingDetails?.qr_expires_at && (
+                <Text type="secondary" style={{ display: 'block', marginTop: 8, fontSize: '12px' }}>
+                  QR expires: {new Date(trainingDetails.qr_expires_at).toLocaleString()}
+                </Text>
+              )}
+            </div>
+          </>
+        )}
       </Space>
     </Modal>
   );

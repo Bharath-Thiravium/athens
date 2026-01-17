@@ -1,0 +1,158 @@
+================================================================================
+PR6 - KEY CODE CHANGES
+================================================================================
+
+FILE: app/backend/ptw/views.py
+================================================================================
+
+CHANGE 1: calculate_incident_rate() - Line ~369
+--------------------------------------------------------------------------------
+BEFORE (stub):
+    def calculate_incident_rate(self, queryset):
+        """Calculate incident rate percentage"""
+        # This would integrate with incident management system
+        return 0.3  # Mock value
+
+AFTER (real implementation):
+    def calculate_incident_rate(self, queryset):
+        """Calculate incident rate based on real incident data"""
+        from incidentmanagement.models import Incident
+        from django.db.models.functions import TruncMonth
+        
+        total_permits = queryset.count()
+        if total_permits == 0:
+            return 0.0
+        
+        # Get permit numbers from queryset
+        permit_numbers = list(queryset.values_list('permit_number', flat=True))
+        
+        # Count incidents linked to these permits
+        incident_count = Incident.objects.filter(
+            work_permit_number__in=permit_numbers
+        ).count()
+        
+        # Calculate rate as percentage
+        incident_rate = (incident_count / total_permits) * 100
+        
+        return round(incident_rate, 2)
+
+--------------------------------------------------------------------------------
+
+CHANGE 2: get_monthly_trends() - Line ~390
+--------------------------------------------------------------------------------
+BEFORE (stub):
+    def get_monthly_trends(self, queryset):
+        """Get monthly trends data"""
+        # Implementation for monthly trends
+        return []
+
+AFTER (real implementation):
+    def get_monthly_trends(self, queryset):
+        """Get monthly trends data with aggregations"""
+        from django.db.models.functions import TruncMonth
+        from datetime import datetime
+        from dateutil.relativedelta import relativedelta
+        
+        # Default to last 12 months if no date filter
+        end_date = timezone.now()
+        start_date = end_date - relativedelta(months=11)
+        start_date = start_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        # Filter queryset by date range
+        queryset = queryset.filter(
+            created_at__gte=start_date,
+            created_at__lte=end_date
+        )
+        
+        # Aggregate by month
+        monthly_data = queryset.annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            total=Count('id')
+        ).order_by('month')
+        
+        # Get status breakdown by month
+        status_by_month = queryset.annotate(
+            month=TruncMonth('created_at')
+        ).values('month', 'status').annotate(
+            count=Count('id')
+        ).order_by('month', 'status')
+        
+        # Get type breakdown by month
+        type_by_month = queryset.annotate(
+            month=TruncMonth('created_at')
+        ).values('month', 'permit_type__name').annotate(
+            count=Count('id')
+        ).order_by('month', 'permit_type__name')
+        
+        # Build result structure
+        result = {}
+        for item in monthly_data:
+            month_key = item['month'].strftime('%Y-%m')
+            result[month_key] = {
+                'month': month_key,
+                'total': item['total'],
+                'by_status': {},
+                'by_type': {}
+            }
+        
+        # Add status breakdown
+        for item in status_by_month:
+            month_key = item['month'].strftime('%Y-%m')
+            if month_key in result:
+                result[month_key]['by_status'][item['status']] = item['count']
+        
+        # Add type breakdown
+        for item in type_by_month:
+            month_key = item['month'].strftime('%Y-%m')
+            type_name = item['permit_type__name'] or 'Unknown'
+            if month_key in result:
+                result[month_key]['by_type'][type_name] = item['count']
+        
+        # Fill in missing months with zeros
+        current = start_date
+        while current <= end_date:
+            month_key = current.strftime('%Y-%m')
+            if month_key not in result:
+                result[month_key] = {
+                    'month': month_key,
+                    'total': 0,
+                    'by_status': {},
+                    'by_type': {}
+                }
+            current = current + relativedelta(months=1)
+        
+        # Convert to sorted list
+        return sorted(result.values(), key=lambda x: x['month'])
+
+--------------------------------------------------------------------------------
+
+CHANGE 3: Added imports - Line ~13
+--------------------------------------------------------------------------------
+BEFORE:
+    from datetime import datetime, timedelta
+
+AFTER:
+    from datetime import datetime, timedelta
+    from dateutil.relativedelta import relativedelta
+
+================================================================================
+
+FILE: app/backend/ptw/tests/test_analytics.py (NEW FILE)
+================================================================================
+Created comprehensive test suite with 12 tests:
+
+1. test_analytics_endpoint_exists
+2. test_monthly_trends_returns_data
+3. test_monthly_trends_structure
+4. test_monthly_trends_ordering
+5. test_monthly_trends_counts_match
+6. test_incident_rate_with_no_incidents
+7. test_incident_rate_with_incidents
+8. test_incident_rate_with_empty_queryset
+9. test_monthly_trends_fills_missing_months
+10. test_monthly_trends_by_status_breakdown
+11. test_monthly_trends_by_type_breakdown
+12. test_analytics_serializer_fields
+
+================================================================================

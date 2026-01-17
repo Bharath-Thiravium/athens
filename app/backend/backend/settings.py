@@ -239,6 +239,9 @@ if RUNNING_TESTS:
         'django.contrib.messages.middleware.MessageMiddleware',
         'django.middleware.clickjacking.XFrameOptionsMiddleware',
     ]
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
 
 DATABASE_ROUTERS = ['control_plane.db_router.ControlPlaneRouter']
 

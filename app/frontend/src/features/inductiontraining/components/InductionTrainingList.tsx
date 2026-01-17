@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Table, Button, Space, Modal, App, Tag, Tooltip, Typography, Tabs } from 'antd';
-import { EditOutlined, DeleteOutlined, EyeOutlined, PlusOutlined, TeamOutlined, StopOutlined, UserOutlined, QrcodeOutlined } from '@ant-design/icons';
+import { EditOutlined, EyeOutlined, PlusOutlined, TeamOutlined, StopOutlined, UserOutlined, QrcodeOutlined, DeleteOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import api from '@common/utils/axiosetup';
 import useAuthStore from '@common/store/authStore';
@@ -8,7 +8,6 @@ import { usePermissionControl } from '../../../hooks/usePermissionControl';
 import PermissionRequestModal from '../../../components/permissions/PermissionRequestModal';
 import type { InductionTrainingData } from '../types';
 import { InductionTrainingView, InductionTrainingEdit, InductionTrainingCreation, InductionTrainingAttendance, InductionTrainedPersonnelList } from '..';
-import InductionTrainingRecordPrintPreview from './InductionTrainingRecordPrintPreview';
 import PageLayout from '@common/components/PageLayout';
 import TrainingPrintPreview from '../../training/components/TrainingPrintPreview';
 import TrainingCheckInModal from '../../training/components/TrainingCheckInModal';
@@ -58,15 +57,35 @@ const InductionTrainingList: React.FC = () => {
   const [editingIT, setEditingIT] = useState<InductionTrainingData | null>(null);
   const [addingIT, setAddingIT] = useState<boolean>(false);
   const [conductingIT, setConductingIT] = useState<InductionTrainingData | null>(null);
-  const [checkInIT, setCheckInIT] = useState<InductionTrainingData | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [activeTab, setActiveTab] = useState('trainings');
+  const [checkInIT, setCheckInIT] = useState<InductionTrainingData | null>(null);
   
   const { usertype, userId, django_user_type, department } = useAuthStore();
   const hasPermission = ['clientuser', 'epcuser', 'contractoruser'].includes(usertype || '');
   // Only EPC Safety Department users can access induction training
   const isEpcSafetyUser = usertype === 'epcuser' && department && department.toLowerCase().includes('safety');
+  
+  // Helper function to check if user can edit/delete
+  const canModifyRecord = useCallback((record: InductionTrainingData) => {
+    console.log('Induction canModifyRecord check:', {
+      django_user_type,
+      userId,
+      record_created_by: record.created_by,
+      record_status: record.status,
+      isProjectAdmin: django_user_type === 'projectadmin',
+      isCreator: record.created_by === userId,
+      result: django_user_type === 'projectadmin' || (record.created_by != null && userId != null && record.created_by === userId)
+    });
+    
+    // Project admin can always modify
+    if (django_user_type === 'projectadmin') {
+      return true;
+    }
+    // Creator can modify their own records (ensure both values exist and match)
+    return record.created_by != null && userId != null && record.created_by === userId;
+  }, [django_user_type, userId]);
   
   // Debug logging
   console.log('Auth Store Values:', { usertype, department, isEpcSafetyUser });
@@ -298,34 +317,35 @@ const InductionTrainingList: React.FC = () => {
       render: (_: any, record: InductionTrainingData) => (
         <Space size="small">
           <Tooltip title="View Details"><Button shape="circle" icon={<EyeOutlined />} onClick={() => setViewingIT(record)} /></Tooltip>
-          <Tooltip title="Edit"><Button shape="circle" icon={<EditOutlined />} onClick={() => handleEdit(record)} /></Tooltip>
-          <InductionTrainingRecordPrintPreview trainingData={record} />
-          <Tooltip title="Check-in (QR/PIN)">
-            <Button
-              shape="circle"
-              icon={<QrcodeOutlined />}
-              onClick={() => setCheckInIT(record)}
-              disabled={record.status === 'cancelled'}
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Button
-              shape="circle"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(record.id, record.title);
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="Conduct & Take Attendance">
-            <Button shape="circle" type="primary" icon={<TeamOutlined />} onClick={() => setConductingIT(record)} disabled={record.status === 'completed' || record.status === 'cancelled'} />
-          </Tooltip>
+          
+          {record.status?.toLowerCase() !== 'completed' && (
+            <Tooltip title="Show Check-in Codes">
+              <Button
+                shape="circle"
+                icon={<QrcodeOutlined />}
+                onClick={() => setCheckInIT(record)}
+                disabled={record.status === 'cancelled'}
+              />
+            </Tooltip>
+          )}
+          
+          {record.status !== 'completed' && (
+            <Tooltip title="Conduct & Take Attendance">
+              <Button shape="circle" type="primary" icon={<TeamOutlined />} onClick={() => setConductingIT(record)} disabled={record.status === 'cancelled'} />
+            </Tooltip>
+          )}
+          
+          {record.status === 'planned' && canModifyRecord(record) && (
+            <Tooltip title="Edit"><Button shape="circle" icon={<EditOutlined />} onClick={() => handleEdit(record)} /></Tooltip>
+          )}
+          
+          {record.status === 'planned' && canModifyRecord(record) && (
+            <Tooltip title="Delete"><Button shape="circle" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id, record.title)} /></Tooltip>
+          )}
         </Space>
       ),
     },
-  ], [getStatusTag, handleDelete, handleEdit]);
+  ], [getStatusTag, handleDelete, handleEdit, canModifyRecord]);
 
   // --- Render Logic ---
   if (!hasPermission || !isEpcSafetyUser) {
@@ -426,7 +446,6 @@ const InductionTrainingList: React.FC = () => {
           onClose={handleCancelModals}
         />
       )}
-
       <Modal open={addingIT} title={<Title level={4} style={{color: 'var(--color-text-base)'}}>Add New Induction Training</Title>} footer={null} onCancel={handleCancelModals} destroyOnHidden width={700}>
         <InductionTrainingCreation onFinish={handleSaveNewIT} />
       </Modal>
