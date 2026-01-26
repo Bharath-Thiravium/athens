@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import api from '@common/utils/axiosetup';
 import DigitalSignature from '../../../components/DigitalSignature';
+import '@common/styles/global.css';
 
 const { Text, Title } = Typography;
 
@@ -279,7 +280,7 @@ const AdminDigitalSignatureTemplate: React.FC<AdminDigitalSignatureTemplateProps
         centered
       >
         {templateUrl ? (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
+          <div className="signature-preview">
             <div style={{ 
               border: '1px solid #d9d9d9', 
               borderRadius: '8px', 
@@ -304,7 +305,7 @@ const AdminDigitalSignatureTemplate: React.FC<AdminDigitalSignatureTemplateProps
             </div>
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '40px' }}>
+          <div className="signature-preview">
             <Alert
               message="No Template Available"
               description="The signature template could not be loaded. Please try creating or regenerating the template."

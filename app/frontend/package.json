@@ -28,6 +28,7 @@
     "dayjs": "^1.11.13",
     "firebase-tools": "^14.6.0",
     "framer-motion": "^12.17.3",
+    "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
     "leaflet": "^1.9.4",
     "leaflet-geosearch": "^4.2.0",

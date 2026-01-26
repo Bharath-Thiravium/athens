@@ -1,0 +1,20 @@
+PTW Legacy Backup Manifest
+==========================
+Timestamp: 2026-01-21 11:27
+Git Commit: 949e6f06c17be8c1d39745d9bce56a5a7d01c51a
+Backup Location: /var/www/athens/archived/ptw_legacy_backup_20260121_1127
+
+Purpose: Safe backup before PTW architecture consolidation
+- Workflow-only transitions
+- Unified permissions
+- Signature pipeline cleanup
+- Offline sync scoping
+- Standardized error handling
+
+Files Backed Up:
+- app/backend/ptw/ (entire directory)
+- app/backend/backend/settings.py
+- app/frontend/src/features/ptw/ (entire directory)
+
+Rollback: Use rollback_ptw.sh --yes to restore
+Validation: Use validate_new_ptw.sh to test changes

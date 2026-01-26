@@ -2,10 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Card, Spin, Image } from 'antd';
 import { FileImageOutlined } from '@ant-design/icons';
 import api from '@common/utils/axiosetup';
+import { fetchSignaturePreviewUrl } from '@common/utils/signaturePreview';
 
 const DigitalSignatureTemplate: React.FC = () => {
   const [templateUrl, setTemplateUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    return () => {
+      if (templateUrl && templateUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(templateUrl);
+      }
+    };
+  }, [templateUrl]);
 
   useEffect(() => {
     const fetchTemplate = async () => {
@@ -15,10 +24,8 @@ const DigitalSignatureTemplate: React.FC = () => {
         
         // If template exists, get the preview URL
         if (dataResponse.data.has_existing_template) {
-          const previewResponse = await api.get('/authentication/signature/template/preview/');
-          if (previewResponse.data.success) {
-            setTemplateUrl(previewResponse.data.template_url);
-          }
+          const previewUrl = await fetchSignaturePreviewUrl();
+          setTemplateUrl(previewUrl);
         }
       } catch (error) {
         console.error('Error fetching template:', error);
@@ -50,13 +57,16 @@ const DigitalSignatureTemplate: React.FC = () => {
       }
     >
       {templateUrl ? (
-        <div style={{ textAlign: 'center' }}>
+        <div className="ds-preview-wrap">
           <Image
+            wrapperClassName="ds-preview-wrapper"
+            className="ds-preview-img"
             src={templateUrl}
             alt="Digital Signature Template"
             style={{ 
               maxWidth: '100%', 
               maxHeight: '200px',
+              height: 'auto',
               border: '1px solid #d9d9d9',
               borderRadius: '6px'
             }}

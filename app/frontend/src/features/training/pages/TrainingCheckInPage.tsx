@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { App, Button, Card, Input, Space, Tag, Typography } from 'antd';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { useSearchParams } from 'react-router-dom';
 import PageLayout from '@common/components/PageLayout';
 
@@ -27,7 +27,8 @@ const TrainingCheckInPage: React.FC = () => {
   const [qrToken, setQrToken] = useState('');
   const [pin, setPin] = useState('');
   const [scanning, setScanning] = useState(false);
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const trainingIdRef = useRef(trainingId);
 
   const qrReaderId = useMemo(() => 'training-checkin-qr', []);
 
@@ -38,9 +39,22 @@ const TrainingCheckInPage: React.FC = () => {
     }
   }, [searchParams]);
 
-  const clearScanner = () => {
+  useEffect(() => {
+    trainingIdRef.current = trainingId;
+  }, [trainingId]);
+
+  const clearScanner = async () => {
     if (scannerRef.current) {
-      scannerRef.current.clear();
+      try {
+        await scannerRef.current.stop();
+      } catch {
+        // ignore stop errors for already-stopped scanners
+      }
+      try {
+        await scannerRef.current.clear();
+      } catch {
+        // ignore cleanup errors
+      }
       scannerRef.current = null;
     }
   };
@@ -109,63 +123,141 @@ const TrainingCheckInPage: React.FC = () => {
 
   const handleStopScan = () => {
     setScanning(false);
-    clearScanner();
+    void clearScanner();
   };
 
   useEffect(() => {
     if (!scanning) {
-      clearScanner();
+      void clearScanner();
       return;
     }
 
-    setTimeout(() => {
-      clearScanner();
-      scannerRef.current = new Html5QrcodeScanner(
-        qrReaderId,
-        { 
-          fps: 10, 
-          qrbox: { width: 250, height: 250 },
-          rememberLastUsedCamera: true,
-          useBarCodeDetectorIfSupported: true
-        },
-        false
-      );
+    let active = true;
 
-      scannerRef.current.render(
-        (decodedText) => {
-          const parsed = parseQrData(decodedText);
-          if (parsed.trainingId) {
-            setTrainingId(parsed.trainingId);
-          }
-          if (parsed.token) {
-            setQrToken(parsed.token);
-            const resolvedId = parsed.trainingId || trainingId;
-            if (resolvedId) {
-              submitCheckIn('QR', parsed.token, resolvedId, parsed.trainingType);
-            } else {
-              message.info('Enter training ID to submit QR.');
-            }
-          } else {
-            message.error('Invalid QR code');
-          }
-          setScanning(false);
-          clearScanner();
-        },
-        (error) => {
-          if (error.includes('Permission') || error.includes('NotAllowed') || error.includes('NotFound')) {
-            message.error('Camera access denied or not available. Please check permissions.');
-            setScanning(false);
-            clearScanner();
-          }
+    const startScanner = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      if (!active) return;
+
+      if (!window.isSecureContext) {
+        message.error('Camera access requires HTTPS.');
+        setScanning(false);
+        return;
+      }
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        message.error('Camera is not supported in this browser.');
+        setScanning(false);
+        return;
+      }
+
+      let stream: MediaStream | null = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      } catch (error: any) {
+        const errorName = String(error?.name || '');
+        if (errorName.includes('NotAllowed') || errorName.includes('Permission')) {
+          message.error('Camera access denied. Please allow camera permission and retry.');
+        } else if (errorName.includes('NotFound')) {
+          message.error('No camera detected on this device.');
+        } else {
+          message.error('Unable to access camera. Please check device settings.');
         }
-      );
-    }, 200);
+        setScanning(false);
+        return;
+      }
 
-    return () => clearScanner();
-  }, [scanning, qrReaderId, trainingId]);
+      const track = stream.getVideoTracks()[0];
+      const deviceId = track?.getSettings?.().deviceId;
+      stream.getTracks().forEach((t) => t.stop());
+
+      await clearScanner();
+      const attempts: Array<string | MediaTrackConstraints> = [];
+      attempts.push({ facingMode: 'environment' as const });
+      if (deviceId) {
+        attempts.push(deviceId);
+      }
+      attempts.push({ facingMode: 'user' as const });
+
+      scannerRef.current = new Html5Qrcode(qrReaderId);
+      let lastError: unknown;
+      let started = false;
+
+      for (const cameraConfig of attempts) {
+        try {
+          await scannerRef.current.start(
+            cameraConfig,
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+              aspectRatio: 1.0,
+              disableFlip: false,
+            },
+            (decodedText) => {
+              const parsed = parseQrData(decodedText);
+              if (parsed.trainingId) {
+                setTrainingId(parsed.trainingId);
+              }
+              if (parsed.token) {
+                setQrToken(parsed.token);
+                const resolvedId = parsed.trainingId || trainingIdRef.current;
+                if (resolvedId) {
+                  submitCheckIn('QR', parsed.token, resolvedId, parsed.trainingType);
+                } else {
+                  message.info('Enter training ID to submit QR.');
+                }
+              } else {
+                message.error('Invalid QR code');
+              }
+              setScanning(false);
+              void clearScanner();
+            },
+            () => {}
+          );
+          started = true;
+          break;
+        } catch (error: any) {
+          lastError = error;
+        }
+      }
+
+      if (!started) {
+        const messageText = String((lastError as any)?.message || lastError || '');
+        const errorName = String((lastError as any)?.name || '');
+        if (
+          messageText.includes('Permission') ||
+          messageText.includes('NotAllowed') ||
+          errorName.includes('NotAllowed') ||
+          errorName.includes('Security')
+        ) {
+          message.error('Camera access denied or not available. Please check permissions.');
+        } else if (messageText.includes('NotFound') || errorName.includes('NotFound')) {
+          message.error('No camera detected on this device.');
+        } else if (
+          messageText.includes('NotReadable') ||
+          messageText.includes('Abort') ||
+          errorName.includes('NotReadable')
+        ) {
+          message.error('Camera is already in use by another app.');
+        } else {
+          message.error('Unable to start camera scan. Please try again.');
+        }
+        setScanning(false);
+        void clearScanner();
+      }
+    };
+
+    void startScanner();
+
+    return () => {
+      active = false;
+      void clearScanner();
+    };
+  }, [scanning, qrReaderId, message]);
 
   useEffect(() => {
-    return () => clearScanner();
+    return () => {
+      void clearScanner();
+    };
   }, []);
 
   return (

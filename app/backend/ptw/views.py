@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from django.http import HttpResponse, JsonResponse
 from django.core.files.base import ContentFile
+from django.core.cache import cache
 import json
 import base64
 import uuid
@@ -42,7 +43,7 @@ from .models import (
     HazardLibrary, PermitHazard, GasReading, PermitPhoto, DigitalSignature,
     EscalationRule, NotificationTemplate, SystemIntegration, ComplianceReport,
     IsolationPointLibrary, PermitIsolationPoint, PermitTypeTemplateOverride,
-    PermitToolboxTalk, PermitToolboxTalkAttendance
+    PermitToolboxTalk, PermitToolboxTalkAttendance, PermitCloseout
 )
 try:
     from .qr_utils import generate_permit_qr_code, generate_permit_qr_data
@@ -57,13 +58,26 @@ from .serializers import (
     PermitPhotoSerializer, DigitalSignatureSerializer, EscalationRuleSerializer,
     NotificationTemplateSerializer, SystemIntegrationSerializer, ComplianceReportSerializer,
     PermitAnalyticsSerializer, DashboardStatsSerializer, IsolationPointLibrarySerializer,
-    PermitIsolationPointSerializer, PermitToolboxTalkSerializer, PermitToolboxTalkAttendanceSerializer
+    PermitIsolationPointSerializer, PermitToolboxTalkSerializer, PermitToolboxTalkAttendanceSerializer,
+    AssignVerifierSerializer
 )
-from .permissions import CanManagePermits, CanApprovePermits, CanVerifyPermits
+from .unified_permissions import (
+    UnifiedPTWPermissions, CanCreatePermits, CanEditPermits, 
+    CanVerifyPermits, CanApprovePermits, CanManagePermits
+)
+from .ptw_permissions import ptw_permissions
+from .unified_signature_pipeline import unified_signature_pipeline
+from .signature_service import signature_service
+from .unified_workflow_manager import unified_workflow_manager
+from .unified_error_handling import ptw_error_handler, PTWValidationError, PTWPermissionError, PTWWorkflowError, PTWSignatureError
+from .canonical_workflow_manager import canonical_workflow_manager
+from .api_errors import ptw_api_errors
+from .status_utils import normalize_permit_status
 from authentication.models import CustomUser
 from permissions.decorators import require_permission
 from authentication.tenant_scoped_utils import ensure_tenant_context, ensure_project, enforce_collaboration_read_only
 from .template_utils import resolve_permit_type_template
+from rest_framework import serializers
 
 
 class PTWBaseViewSet(TenantScopedViewSet):
@@ -163,16 +177,15 @@ class PermitViewSet(PTWBaseViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         
-        # Project scoping: filter by user's project if not explicitly filtered
-        user_project = getattr(self.request.user, 'project', None)
-        if user_project and not self.request.query_params.get('project'):
-            queryset = queryset.filter(project=user_project)
+        # Mandatory project scoping - no bypasses
+        user_project = ensure_project(self.request)
+        queryset = queryset.filter(project=user_project)
         
         return queryset.select_related(
             'permit_type', 'created_by', 'project'
         ).prefetch_related(
             'assigned_workers__worker', 'identified_hazards__hazard',
-            'gas_readings', 'photos', 'signatures', 'approvals', 'audit_logs'
+            'gas_readings', 'photos', 'signatures__signatory', 'approvals', 'audit_logs'
         )
 
     def perform_create(self, serializer):
@@ -212,10 +225,22 @@ class PermitViewSet(PTWBaseViewSet):
     
     @require_permission('edit')
     def update(self, request, *args, **kwargs):
+        permit = self.get_object()
+        if not ptw_permissions.can_edit_permit(request.user, permit):
+            return Response(
+                {'error': {'code': 'PERMISSION_DENIED', 'message': 'Cannot edit this permit'}},
+                status=status.HTTP_403_FORBIDDEN
+            )
         return super().update(request, *args, **kwargs)
     
     @require_permission('edit')
     def partial_update(self, request, *args, **kwargs):
+        permit = self.get_object()
+        if not ptw_permissions.can_edit_permit(request.user, permit):
+            return Response(
+                {'error': {'code': 'PERMISSION_DENIED', 'message': 'Cannot edit this permit'}},
+                status=status.HTTP_403_FORBIDDEN
+            )
         return super().partial_update(request, *args, **kwargs)
     
     @require_permission('delete')
@@ -223,19 +248,13 @@ class PermitViewSet(PTWBaseViewSet):
         return super().destroy(request, *args, **kwargs)
 
     def create_workflow_instance(self, permit):
-        """Create workflow instance using workflow manager"""
+        """Create workflow instance using unified workflow manager"""
         try:
-            from .workflow_manager import workflow_manager
-            
-            # Use the workflow manager to create proper workflow
-            workflow = workflow_manager.initiate_workflow(permit, permit.created_by)
-            
+            workflow = unified_workflow_manager.initiate_workflow(permit, permit.created_by)
         except Exception as e:
-
-
-            
-            pass
-            
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to create workflow for permit {permit.id}: {str(e)}")
             pass
 
     def send_creation_notifications(self, permit):
@@ -271,9 +290,10 @@ class PermitViewSet(PTWBaseViewSet):
                             link=f'/dashboard/ptw/view/{permit.id}'
                         )
         except Exception as e:
-
-            pass
-
+            # Log error but don't fail permit creation
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send notifications for permit {permit.id}: {str(e)}")
             pass
 
     @action(detail=False, methods=['get'])
@@ -546,32 +566,33 @@ class PermitViewSet(PTWBaseViewSet):
 
     @action(detail=True, methods=['post'])
     def update_status(self, request, pk=None):
-        """Update permit status with validation"""
+        """Update permit status with validation - routes through canonical workflow manager"""
         permit = self.get_object()
-        serializer = PermitStatusUpdateSerializer(permit, data=request.data, partial=True)
+        target_status = request.data.get('status')
+        comments = request.data.get('comments', '')
         
-        if serializer.is_valid():
-            with transaction.atomic():
-                old_status = permit.status
-                permit = serializer.save()
-                permit._current_user = request.user
-                
-                # Create audit log
-                PermitAudit.objects.create(
-                    permit=permit,
-                    action=permit.status,
-                    user=request.user,
-                    comments=serializer.validated_data.get('comments', ''),
-                    old_values={'status': old_status},
-                    new_values={'status': permit.status}
-                )
-                
-                # Handle workflow progression
-                self.handle_workflow_progression(permit, request.user)
-                
+        if not target_status:
+            return ptw_api_errors.validation_error('Status is required', field='status')
+        
+        try:
+            # Use canonical workflow manager for ALL status transitions
+            permit = canonical_workflow_manager.transition(
+                permit=permit,
+                target_status=target_status,
+                actor=request.user,
+                comments=comments,
+                context={'source': 'api'}
+            )
+            
             return Response(PermitSerializer(permit).data)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except PTWPermissionError as e:
+            return ptw_api_errors.permission_error(e.message)
+        except (PTWWorkflowError, PTWValidationError) as e:
+            return ptw_api_errors.validation_error(e.message, details=e.details)
+        except Exception as e:
+            ptw_error_handler.log_error(e, {'permit_id': permit.id, 'target_status': target_status})
+            return ptw_api_errors.workflow_error(str(e))
 
     def handle_workflow_progression(self, permit, user):
         """Handle workflow step progression"""
@@ -651,62 +672,41 @@ class PermitViewSet(PTWBaseViewSet):
 
     @action(detail=True, methods=['post'])
     def add_signature(self, request, pk=None):
-        """Add digital signature to permit"""
+        """Add digital signature to permit using consolidated signature service"""
         permit = self.get_object()
-        
         signature_type = request.data.get('signature_type')
-        signature_data = request.data.get('signature_data')
         
-        if not all([signature_type, signature_data]):
+        if not signature_type:
             return Response(
-                {'error': 'Signature type and data are required'},
+                {'error': {'code': 'MISSING_SIGNATURE_TYPE', 'message': 'Signature type is required'}},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
-        allowed_types = {choice[0] for choice in DigitalSignature.SIGNATURE_TYPE_CHOICES}
-        if signature_type not in allowed_types:
-            return Response(
-                {'error': 'Invalid signature type'},
-                status=status.HTTP_400_BAD_REQUEST
+        
+        try:
+            signature = signature_service.add_signature(
+                permit=permit,
+                signature_type=signature_type,
+                user=request.user,
+                ip_address=self.get_client_ip(request),
+                device_info=self.get_device_info(request)
             )
-
-        signer_id = request.user.id
-        allowed_signers = {
-            'requestor': permit.created_by_id,
-            'verifier': permit.verifier_id,
-            'approver': permit.approver_id or permit.approved_by_id,
-            'issuer': permit.issuer_id,
-            'receiver': permit.receiver_id,
-        }
-        if signature_type in allowed_signers:
-            required_signer = allowed_signers[signature_type]
-            if not required_signer:
-                return Response(
-                    {'error': f'No assigned {signature_type} for this permit'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            if signer_id != required_signer:
-                return Response(
-                    {'error': f'Only the assigned {signature_type} can sign this permit'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        else:
-            if not CanManagePermits().has_permission(request, self):
-                return Response(
-                    {'error': 'You are not authorized to add this signature type'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        
-        signature = DigitalSignature.objects.create(
-            permit=permit,
-            signature_type=signature_type,
-            signatory=request.user,
-            signature_data=signature_data,
-            ip_address=self.get_client_ip(request),
-            device_info=self.get_device_info(request)
-        )
-        
-        return Response(DigitalSignatureSerializer(signature).data)
+            
+            return ptw_error_handler.create_created_response(
+                data=DigitalSignatureSerializer(signature).data,
+                message='Signature added successfully'
+            )
+            
+        except (PTWSignatureError, PTWPermissionError, PTWValidationError) as e:
+            return Response(
+                {'error': {'code': e.code, 'message': e.message, 'details': e.details}},
+                status=status.HTTP_400_BAD_REQUEST if isinstance(e, (PTWSignatureError, PTWValidationError)) else status.HTTP_403_FORBIDDEN
+            )
+        except Exception as e:
+            ptw_error_handler.log_error(e, {'permit_id': permit.id, 'signature_type': signature_type})
+            return Response(
+                {'error': {'code': 'SIGNATURE_ERROR', 'message': str(e)}},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def _build_tbt_response(self, request, permit):
         tbt = PermitToolboxTalk.objects.filter(permit=permit).first()
@@ -744,6 +744,107 @@ class PermitViewSet(PTWBaseViewSet):
             'attendance': entries,
         })
 
+    @action(detail=True, methods=['get'])
+    def available_tbts(self, request, pk=None):
+        """Get available TBTs for permit selection (same day + location)"""
+        permit = self.get_object()
+        
+        from tbt.models import ToolboxTalk
+        from tbt.serializers import ToolboxTalkSerializer
+        
+        # Filter TBTs by same date and location
+        permit_date = permit.planned_start_time.date() if permit.planned_start_time else timezone.now().date()
+        
+        available_tbts = ToolboxTalk.objects.filter(
+            project=permit.project,
+            date=permit_date,
+            location__icontains=permit.location.strip().lower() if permit.location else '',
+            status='completed'
+        ).order_by('-created_at')
+        
+        # If no exact location match, try fuzzy matching
+        if not available_tbts.exists() and permit.location:
+            location_words = permit.location.strip().lower().split()
+            if location_words:
+                from django.db.models import Q
+                location_q = Q()
+                for word in location_words:
+                    location_q |= Q(location__icontains=word)
+                
+                available_tbts = ToolboxTalk.objects.filter(
+                    project=permit.project,
+                    date=permit_date,
+                    status='completed'
+                ).filter(location_q).order_by('-created_at')
+        
+        serializer_data = []
+        for tbt in available_tbts:
+            serializer_data.append({
+                'id': tbt.id,
+                'title': tbt.title,
+                'conducted_at': tbt.created_at.isoformat(),
+                'location': tbt.location,
+                'conducted_by': tbt.conducted_by,
+                'description': tbt.description
+            })
+        
+        return Response(serializer_data)
+    
+    @action(detail=True, methods=['post'])
+    def assign_tbt(self, request, pk=None):
+        """Assign existing TBT to permit"""
+        permit = self.get_object()
+        tbt_id = request.data.get('tbt_id')
+        
+        if not tbt_id:
+            return Response(
+                {'error': 'tbt_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from tbt.models import ToolboxTalk
+            selected_tbt = ToolboxTalk.objects.get(
+                id=tbt_id,
+                project=permit.project,
+                status='completed'
+            )
+            
+            # Create or update permit TBT record
+            permit_tbt, created = PermitToolboxTalk.objects.get_or_create(
+                permit=permit,
+                defaults={
+                    'title': selected_tbt.title,
+                    'conducted_at': selected_tbt.created_at,
+                    'conducted_by': CustomUser.objects.filter(username=selected_tbt.conducted_by).first(),
+                    'notes': f'Linked to TBT #{selected_tbt.id}: {selected_tbt.description}'
+                }
+            )
+            
+            if not created:
+                # Update existing record
+                permit_tbt.title = selected_tbt.title
+                permit_tbt.conducted_at = selected_tbt.created_at
+                permit_tbt.conducted_by = CustomUser.objects.filter(username=selected_tbt.conducted_by).first()
+                permit_tbt.notes = f'Linked to TBT #{selected_tbt.id}: {selected_tbt.description}'
+                permit_tbt.save()
+            
+            return Response({
+                'message': f'TBT "{selected_tbt.title}" assigned to permit successfully',
+                'tbt': PermitToolboxTalkSerializer(permit_tbt, context={'request': request}).data
+            })
+            
+        except ToolboxTalk.DoesNotExist:
+            return Response(
+                {'error': 'Selected TBT not found or not available for this permit'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
     @action(detail=True, methods=['get'])
     def tbt(self, request, pk=None):
         """Get Toolbox Talk details and attendance for this permit."""
@@ -844,18 +945,99 @@ class PermitViewSet(PTWBaseViewSet):
             PermitToolboxTalkAttendanceSerializer(attendance, context={'request': request}).data
         )
 
+    @action(detail=True, methods=['get'])
+    def gas_readings(self, request, pk=None):
+        """Get gas readings for permit"""
+        permit = self.get_object()
+        readings = permit.gas_readings.all().order_by('-tested_at')
+        serializer = GasReadingSerializer(readings, many=True)
+        return Response(serializer.data)
+    
     @action(detail=True, methods=['post'])
     def add_gas_reading(self, request, pk=None):
         """Add gas reading to permit"""
         permit = self.get_object()
         
-        gas_reading = GasReading.objects.create(
-            permit=permit,
-            tested_by=request.user,
-            **request.data
-        )
+        # Check if permit allows modifications
+        if permit.status in ['completed', 'cancelled', 'expired']:
+            return Response(
+                {'error': 'Cannot add gas readings to completed permits'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        return Response(GasReadingSerializer(gas_reading).data)
+        data = request.data.copy()
+        data['permit'] = permit.id
+        
+        serializer = GasReadingSerializer(data=data)
+        if serializer.is_valid():
+            gas_reading = serializer.save(tested_by=request.user)
+            return Response(GasReadingSerializer(gas_reading).data, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['put', 'patch'])
+    def update_gas_reading(self, request, pk=None):
+        """Update gas reading for permit"""
+        permit = self.get_object()
+        reading_id = request.data.get('reading_id')
+        
+        if not reading_id:
+            return Response(
+                {'error': 'reading_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            gas_reading = permit.gas_readings.get(id=reading_id)
+        except GasReading.DoesNotExist:
+            return Response(
+                {'error': 'Gas reading not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if permit allows modifications
+        if permit.status in ['completed', 'cancelled', 'expired']:
+            return Response(
+                {'error': 'Cannot modify gas readings for completed permits'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = GasReadingSerializer(gas_reading, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['delete'])
+    def delete_gas_reading(self, request, pk=None):
+        """Delete gas reading from permit"""
+        permit = self.get_object()
+        reading_id = request.data.get('reading_id') or request.query_params.get('reading_id')
+        
+        if not reading_id:
+            return Response(
+                {'error': 'reading_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            gas_reading = permit.gas_readings.get(id=reading_id)
+        except GasReading.DoesNotExist:
+            return Response(
+                {'error': 'Gas reading not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if permit allows modifications
+        if permit.status in ['completed', 'cancelled', 'expired']:
+            return Response(
+                {'error': 'Cannot delete gas readings for completed permits'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        gas_reading.delete()
+        return Response({'message': 'Gas reading deleted successfully'})
 
     @action(detail=True, methods=['get'])
     def check_work_hours(self, request, pk=None):
@@ -1003,6 +1185,56 @@ class PermitViewSet(PTWBaseViewSet):
             )
 
     @action(detail=False, methods=['get'])
+    def users_search(self, request):
+        """Search users for personnel selection with typeahead"""
+        query = request.query_params.get('q', '')
+        user_type = request.query_params.get('user_type', '')
+        grade = request.query_params.get('grade', '')
+        
+        user_project = getattr(request.user, 'project', None)
+        if not user_project:
+            return Response([])
+        
+        # Base query: users in same project
+        users_query = CustomUser.objects.filter(project=user_project)
+        
+        # Filter by user type if specified
+        if user_type:
+            users_query = users_query.filter(admin_type=user_type)
+        
+        # Filter by grade if specified
+        if grade:
+            users_query = users_query.filter(grade=grade)
+        
+        # Search by name, username, email
+        if query:
+            from django.db.models import Q
+            users_query = users_query.filter(
+                Q(name__icontains=query) |
+                Q(surname__icontains=query) |
+                Q(username__icontains=query) |
+                Q(email__icontains=query)
+            )
+        
+        # Limit results
+        users = users_query[:20]
+        
+        user_data = []
+        for user in users:
+            user_data.append({
+                'id': user.id,
+                'username': user.username,
+                'full_name': f"{user.name or ''} {user.surname or ''}".strip() or user.username,
+                'email': user.email or '',
+                'admin_type': user.admin_type,
+                'grade': user.grade,
+                'department': getattr(user, 'department', ''),
+                'designation': getattr(user, 'designation', '')
+            })
+        
+        return Response(user_data)
+    
+    @action(detail=False, methods=['get'])
     def available_verifiers(self, request):
         """Get available verifiers based on requestor type, grade and company filter"""
         user = request.user
@@ -1089,19 +1321,49 @@ class PermitViewSet(PTWBaseViewSet):
     def assign_verifier(self, request, pk=None):
         """Assign verifier to permit (requestor selects verifier)"""
         permit = self.get_object()
-        verifier_id = request.data.get('verifier_id')
+        serializer = AssignVerifierSerializer(data=request.data)
+        if not serializer.is_valid():
+            return ptw_api_errors.validation_error(
+                'Verifier ID is required',
+                field='verifier_id',
+                details=serializer.errors,
+            )
+        verifier_id = serializer.validated_data['verifier_id']
+
+        current_status = normalize_permit_status(permit.status)
+        if current_status not in ['draft', 'submitted']:
+            return ptw_api_errors.validation_error(
+                'Cannot change verifier after verification is completed',
+                field='status',
+                details={'status': permit.status},
+            )
         
-        if not verifier_id:
-            return Response(
-                {'error': 'Verifier ID is required'},
-                status=status.HTTP_400_BAD_REQUEST
+        # Check if user is the requestor (created_by)
+        if permit.created_by != request.user:
+            return ptw_api_errors.permission_error(
+                'Only the permit requestor can assign verifier',
+                action='assign_verifier',
             )
         
         try:
-            verifier = CustomUser.objects.get(id=verifier_id)
+            verifier = CustomUser.objects.filter(
+                id=verifier_id,
+                project=permit.project
+            ).first()
+            if not verifier:
+                return ptw_api_errors.validation_error(
+                    'Verifier not found for this project',
+                    field='verifier_id',
+                )
             
             from .workflow_manager import workflow_manager
-            
+
+            try:
+                permit.workflow
+            except WorkflowInstance.DoesNotExist:
+                workflow_manager.initiate_workflow(permit, request.user)
+                permit.refresh_from_db()
+
             workflow_manager.assign_verifier(permit, verifier, request.user)
             
             return Response({
@@ -1109,15 +1371,12 @@ class PermitViewSet(PTWBaseViewSet):
             })
             
         except CustomUser.DoesNotExist:
-            return Response(
-                {'error': 'Verifier not found'},
-                status=status.HTTP_404_NOT_FOUND
+            return ptw_api_errors.validation_error(
+                'Verifier not found for this project',
+                field='verifier_id',
             )
         except Exception as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return ptw_api_errors.validation_error(str(e))
     
     @action(detail=True, methods=['post'])
     def assign_approver(self, request, pk=None):
@@ -1131,11 +1390,31 @@ class PermitViewSet(PTWBaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Check if permit allows approver changes
+        if permit.status not in ['verified', 'under_review', 'pending_approval']:
+            return Response(
+                {'error': 'Cannot change approver before verification or after approval is completed'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if user is the verifier
+        if permit.verifier != request.user:
+            return Response(
+                {'error': 'Only the permit verifier can assign approver'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         try:
             approver = CustomUser.objects.get(id=approver_id)
             
             from .workflow_manager import workflow_manager
-            
+
+            if not hasattr(permit, 'workflow'):
+                return Response(
+                    {'error': 'Workflow is not initialized for this permit'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             workflow_manager.assign_approver(permit, approver, request.user)
             
             return Response({
@@ -1189,93 +1468,93 @@ class PermitViewSet(PTWBaseViewSet):
     
     @action(detail=True, methods=['post'])
     def verify(self, request, pk=None):
-        """Verify permit - verifier can approve with optional approver selection"""
+        """Verify permit using canonical workflow manager"""
         permit = self.get_object()
+        
+        # Enforce permission check
+        if not ptw_permissions.can_verify(request.user, permit):
+            return Response(
+                {'error': {'code': 'PERMISSION_DENIED', 'message': 'Cannot verify this permit'}},
+                status=status.HTTP_403_FORBIDDEN
+            )
         
         action = request.data.get('action')
         comments = request.data.get('comments', '')
-        selected_approver_id = request.data.get('selected_approver_id')
         
         if action not in ['approve', 'reject']:
-            return Response(
-                {'error': 'Invalid action. Must be approve or reject'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            ptw_error_handler.handle_validation_error('Invalid action. Must be approve or reject', 'action')
         
         if action == 'reject' and not comments:
-            return Response(
-                {'error': 'Comments are required for rejection'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            ptw_error_handler.handle_validation_error('Comments are required for rejection', 'comments')
         
         try:
-            from .workflow_manager import workflow_manager
+            # Validate required signatures before verification
+            if action == 'approve':
+                signature_service.validate_signature_for_workflow(permit, 'verify', request.user)
             
-            selected_approver = None
-            if selected_approver_id:
-                selected_approver = CustomUser.objects.get(id=selected_approver_id)
-            
-            # Verify permit
-            workflow_manager.verify_permit(
-                permit, 
-                request.user, 
-                action, 
-                comments,
-                selected_approver
+            # Use canonical workflow manager for verification
+            new_status = 'under_review' if action == 'approve' else 'rejected'
+            canonical_workflow_manager.transition(
+                permit=permit,
+                target_status=new_status,
+                actor=request.user,
+                comments=comments,
+                context={'source': 'verify', 'action': action}
             )
             
-            if action == 'approve':
-                if selected_approver:
-                    message = f'Permit verified and sent to {selected_approver.get_full_name()} for approval'
-                else:
-                    message = 'Permit verified. Please select an approver to continue.'
-            else:
-                message = 'Permit verification rejected'
+            message = 'Permit verified successfully' if action == 'approve' else 'Permit verification rejected'
+            return ptw_error_handler.create_success_response(message=message)
             
-            return Response({'message': message})
-            
-        except CustomUser.DoesNotExist:
+        except (PTWValidationError, PTWPermissionError, PTWWorkflowError) as e:
             return Response(
-                {'error': 'Selected approver not found'},
-                status=status.HTTP_404_NOT_FOUND
+                {'error': {'code': e.code, 'message': e.message}},
+                status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
+            ptw_error_handler.log_error(e, {'permit_id': permit.id, 'action': action})
             return Response(
-                {'error': str(e)},
+                {'error': {'code': 'WORKFLOW_ERROR', 'message': str(e)}},
                 status=status.HTTP_400_BAD_REQUEST
             )
     
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
-        """Approve permit"""
+        """Approve permit using canonical workflow manager"""
         permit = self.get_object()
         
-        action = 'approve'
+        # Enforce permission check
+        if not ptw_permissions.can_approve(request.user, permit):
+            return Response(
+                {'error': {'code': 'PERMISSION_DENIED', 'message': 'Cannot approve this permit'}},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         comments = request.data.get('comments', '')
         
         try:
-            from .workflow_manager import workflow_manager
+            # Validate required signatures before approval
+            signature_service.validate_signature_for_workflow(permit, 'approve', request.user)
             
-            # Approve permit
-            result = workflow_manager.approve_permit(
-                permit, 
-                request.user, 
-                action, 
-                comments
+            # Use canonical workflow manager for approval
+            canonical_workflow_manager.transition(
+                permit=permit,
+                target_status='approved',
+                actor=request.user,
+                comments=comments,
+                context={'source': 'approve'}
             )
             
-            if isinstance(result, dict) and result.get('status') == 'already_approved':
-                return Response({
-                    'error': f"Permit already approved by {result['approved_by']} at {result['approved_at']}"
-                }, status=status.HTTP_400_BAD_REQUEST)
+            return ptw_error_handler.create_success_response(message='Permit approved successfully')
             
-            return Response({
-                'message': 'Permit approved successfully'
-            })
-            
-        except Exception as e:
+        except (PTWValidationError, PTWPermissionError, PTWWorkflowError) as e:
             return Response(
-                {'error': str(e)},
+                {'error': {'code': e.code, 'message': e.message}},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            ptw_error_handler.log_error(e, {'permit_id': permit.id})
+            return Response(
+                {'error': {'code': 'WORKFLOW_ERROR', 'message': str(e)}},
                 status=status.HTTP_400_BAD_REQUEST
             )
     
@@ -1895,6 +2174,15 @@ class PermitWorkerViewSet(PermitRelatedViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['permit', 'worker', 'role']
+    
+    def create(self, request, *args, **kwargs):
+        # Restrict adding workers - only superadmin can add
+        if not request.user.is_superuser:
+            return Response(
+                {'error': 'Adding workers to permits is restricted. Workers are assigned through external processes.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().create(request, *args, **kwargs)
 
 class PermitApprovalViewSet(PermitRelatedViewSet):
     queryset = PermitApproval.objects.all()
@@ -1951,6 +2239,38 @@ class GasReadingViewSet(PermitRelatedViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['permit', 'gas_type', 'status', 'tested_by']
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Project scoping: filter by user's project
+        user_project = getattr(self.request.user, 'project', None)
+        if user_project:
+            queryset = queryset.filter(permit__project=user_project)
+        return queryset
+    
+    def perform_create(self, serializer):
+        # Ensure tested_by is current user
+        serializer.save(tested_by=self.request.user)
+    
+    def update(self, request, *args, **kwargs):
+        gas_reading = self.get_object()
+        # Only allow updates if permit is not completed/cancelled/expired
+        if gas_reading.permit.status in ['completed', 'cancelled', 'expired']:
+            return Response(
+                {'error': 'Cannot modify gas readings for completed permits'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().update(request, *args, **kwargs)
+    
+    def destroy(self, request, *args, **kwargs):
+        gas_reading = self.get_object()
+        # Only allow deletion if permit is not completed/cancelled/expired
+        if gas_reading.permit.status in ['completed', 'cancelled', 'expired']:
+            return Response(
+                {'error': 'Cannot delete gas readings for completed permits'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().destroy(request, *args, **kwargs)
 
 class PermitPhotoViewSet(PermitRelatedViewSet):
     queryset = PermitPhoto.objects.all()
@@ -2096,262 +2416,223 @@ def sync_offline_data(request):
                 continue
             
             try:
-                if entity == 'permit':
-                    if op == 'create':
-                        serializer = PermitCreateUpdateSerializer(data=data)
-                        if serializer.is_valid():
-                            permit = serializer.save(
-                                created_by=request.user,
-                                project=user_project,
-                                offline_id=offline_id
-                            )
-                            record_applied_change(device_id, offline_id, entity, permit.id)
-                            applied.append({
-                                'entity': entity,
-                                'offline_id': offline_id,
-                                'server_id': permit.id,
-                                'new_version': permit.version
-                            })
-                        else:
-                            rejected.append({
-                                'entity': entity,
-                                'offline_id': offline_id,
-                                'reason': 'validation_error',
-                                'detail': serializer.errors
-                            })
-                    
-                    elif op in ['update', 'update_status']:
-                        if not server_id:
-                            rejected.append({
-                                'entity': entity,
-                                'offline_id': offline_id,
-                                'reason': 'missing_server_id'
-                            })
-                            continue
-                        
-                        permit = Permit.objects.get(id=server_id, project=user_project)
-                        
-                        # Detect conflicts
-                        conflict = detect_permit_conflicts(permit, data, client_version)
-                        if conflict:
-                            conflicts.append({
-                                'entity': entity,
-                                'offline_id': offline_id,
-                                'server_id': server_id,
-                                'reason': conflict['reason'],
-                                'client_version': client_version,
-                                'server_version': permit.version,
-                                'fields': conflict.get('fields', {}),
-                                'server_state': get_server_state(entity, server_id, project=user_project)
-                            })
-                            continue
-                        
-                        # Handle status update
-                        if op == 'update_status' and 'status' in data:
-                            valid, error = validate_status_transition(permit, data['status'], request.user)
-                            if not valid:
-                                conflicts.append({
+                with transaction.atomic():
+                    if entity == 'permit':
+                        if op == 'create':
+                            serializer = PermitCreateUpdateSerializer(data=data)
+                            if serializer.is_valid():
+                                permit = serializer.save(
+                                    created_by=request.user,
+                                    project=user_project,
+                                    offline_id=offline_id
+                                )
+                                record_applied_change(device_id, offline_id, entity, permit.id)
+                                applied.append({
                                     'entity': entity,
                                     'offline_id': offline_id,
-                                    'server_id': server_id,
-                                    'reason': 'invalid_transition',
-                                    'detail': error,
-                                    'server_state': get_server_state(entity, server_id, project=user_project)
+                                    'server_id': permit.id,
+                                    'new_version': permit.version
                                 })
-                                continue
-                        
-                        # Apply update
-                        serializer = PermitCreateUpdateSerializer(permit, data=data, partial=True)
-                        if serializer.is_valid():
-                            permit.version = F('version') + 1
-                            permit._current_user = request.user
-                            permit = serializer.save()
-                            permit.refresh_from_db()
-                            record_applied_change(device_id, offline_id, entity, permit.id)
-                            applied.append({
-                                'entity': entity,
-                                'offline_id': offline_id,
-                                'server_id': permit.id,
-                                'new_version': permit.version
-                            })
-                        else:
-                            rejected.append({
-                                'entity': entity,
-                                'offline_id': offline_id,
-                                'reason': 'validation_error',
-                                'detail': serializer.errors
-                            })
-                
-                elif entity == 'permit_photo':
-                    # Append-only, idempotent by offline_id
-                    permit_id = data.get('permit_id') or change.get('permit_id')
-                    if not permit_id:
-                        rejected.append({
-                            'entity': entity,
-                            'offline_id': offline_id,
-                            'reason': 'missing_permit_id'
-                        })
-                        continue
-                    
-                    permit = Permit.objects.get(id=permit_id, project=user_project)
-                    
-                    # Check if photo already exists
-                    if PermitPhoto.objects.filter(offline_id=offline_id).exists():
-                        photo = PermitPhoto.objects.get(offline_id=offline_id)
-                        record_applied_change(device_id, offline_id, entity, photo.id)
-                        applied.append({
-                            'entity': entity,
-                            'offline_id': offline_id,
-                            'server_id': photo.id
-                        })
-                    else:
-                        # Create photo (simplified - actual implementation needs file handling)
-                        photo = PermitPhoto.objects.create(
-                            permit=permit,
-                            photo_type=data.get('photo_type', 'during'),
-                            description=data.get('description', ''),
-                            taken_by=request.user,
-                            gps_location=data.get('gps_location', ''),
-                            offline_id=offline_id
-                        )
-                        record_applied_change(device_id, offline_id, entity, photo.id)
-                        applied.append({
-                            'entity': entity,
-                            'offline_id': offline_id,
-                            'server_id': photo.id
-                        })
-                
-                elif entity == 'gas_reading':
-                    # Append-only
-                    permit_id = data.get('permit_id')
-                    if not permit_id:
-                        rejected.append({
-                            'entity': entity,
-                            'offline_id': offline_id,
-                            'reason': 'missing_permit_id'
-                        })
-                        continue
-                    
-                    permit = Permit.objects.get(id=permit_id, project=user_project)
-                    reading = GasReading.objects.create(
-                        permit=permit,
-                        tested_by=request.user,
-                        **{k: v for k, v in data.items() if k != 'permit_id'}
-                    )
-                    record_applied_change(device_id, offline_id, entity, reading.id)
-                    applied.append({
-                        'entity': entity,
-                        'offline_id': offline_id,
-                        'server_id': reading.id
-                    })
-                
-                elif entity == 'isolation_point':
-                    if op == 'update':
-                        if not server_id:
-                            rejected.append({
-                                'entity': entity,
-                                'offline_id': offline_id,
-                                'reason': 'missing_server_id'
-                            })
-                            continue
-                        
-                        point = PermitIsolationPoint.objects.filter(
-                            id=server_id,
-                            permit__project=user_project
-                        ).select_related('permit').first()
-                        if not point:
-                            if PermitIsolationPoint.objects.filter(id=server_id).exists():
+                            else:
                                 rejected.append({
                                     'entity': entity,
                                     'offline_id': offline_id,
-                                    'server_id': server_id,
-                                    'reason': 'project_scope_violation'
+                                    'reason': 'validation_error',
+                                    'detail': serializer.errors
+                                })
+                        
+                        elif op in ['update', 'update_status']:
+                            if not server_id:
+                                rejected.append({
+                                    'entity': entity,
+                                    'offline_id': offline_id,
+                                    'reason': 'missing_server_id'
                                 })
                                 continue
-                            rejected.append({
-                                'entity': entity,
-                                'offline_id': offline_id,
-                                'server_id': server_id,
-                                'reason': 'isolation_point_not_found'
-                            })
-                            continue
-                        
-                        # Detect conflicts
-                        conflict = detect_isolation_conflicts(point, data, client_version)
-                        if conflict:
-                            conflicts.append({
-                                'entity': entity,
-                                'offline_id': offline_id,
-                                'server_id': server_id,
-                                'reason': conflict['reason'],
-                                'client_version': client_version,
-                                'server_version': point.version,
-                                'fields': conflict.get('fields', {}),
-                                'detail': conflict.get('detail'),
-                                'server_state': get_server_state(entity, server_id, project=user_project)
-                            })
-                            continue
-                        
-                        # Apply update with version increment
-                        for field, value in data.items():
-                            if hasattr(point, field):
-                                setattr(point, field, value)
-                        point.version = F('version') + 1
-                        point.save()
-                        point.refresh_from_db()
-                        record_applied_change(device_id, offline_id, entity, point.id)
-                        applied.append({
-                            'entity': entity,
-                            'offline_id': offline_id,
-                            'server_id': point.id,
-                            'new_version': point.version
-                        })
-                
-                elif entity == 'closeout':
-                    if op == 'update':
-                        permit_id = data.get('permit_id') or server_id
-                        if not permit_id:
-                            rejected.append({
-                                'entity': entity,
-                                'offline_id': offline_id,
-                                'reason': 'missing_permit_id'
-                            })
-                            continue
-                        
-                        permit = Permit.objects.get(id=permit_id, project=user_project)
-                        closeout, created = PermitCloseout.objects.get_or_create(permit=permit)
-                        
-                        if not created:
+                            
+                            # Lock permit row for update
+                            permit = Permit.objects.select_for_update().get(
+                                id=server_id, project=user_project
+                            )
+                            
                             # Detect conflicts
-                            conflict = detect_closeout_conflicts(closeout, data, client_version)
+                            conflict = detect_permit_conflicts(permit, data, client_version)
                             if conflict:
                                 conflicts.append({
                                     'entity': entity,
                                     'offline_id': offline_id,
-                                    'server_id': closeout.id,
+                                    'server_id': server_id,
                                     'reason': conflict['reason'],
                                     'client_version': client_version,
-                                    'server_version': closeout.version,
+                                    'server_version': permit.version,
                                     'fields': conflict.get('fields', {}),
-                                    'server_state': get_server_state(entity, closeout.id, project=user_project)
+                                    'server_state': get_server_state(entity, server_id, project=user_project)
                                 })
                                 continue
-                        
-                        # Apply update
-                        if 'checklist' in data:
-                            merge_closeout_checklist(closeout, data)
-                        if 'remarks' in data:
-                            closeout.remarks = data['remarks']
-                        closeout.version = F('version') + 1
-                        closeout.save()
-                        closeout.refresh_from_db()
-                        record_applied_change(device_id, offline_id, entity, closeout.id)
-                        applied.append({
-                            'entity': entity,
-                            'offline_id': offline_id,
-                            'server_id': closeout.id,
-                            'new_version': closeout.version
-                        })
+                            
+                            # Handle status update through canonical workflow manager
+                            if op == 'update_status' and 'status' in data:
+                                try:
+                                    canonical_workflow_manager.transition(
+                                        permit=permit,
+                                        target_status=data['status'],
+                                        actor=request.user,
+                                        comments=data.get('comments', ''),
+                                        context={'source': 'offline_sync'}
+                                    )
+                                    permit.refresh_from_db()
+                                    record_applied_change(device_id, offline_id, entity, permit.id)
+                                    applied.append({
+                                        'entity': entity,
+                                        'offline_id': offline_id,
+                                        'server_id': permit.id,
+                                        'new_version': permit.version
+                                    })
+                                except (PTWWorkflowError, PTWValidationError, PTWPermissionError) as e:
+                                    conflicts.append({
+                                        'entity': entity,
+                                        'offline_id': offline_id,
+                                        'server_id': server_id,
+                                        'reason': 'workflow_error',
+                                        'detail': e.message,
+                                        'server_state': get_server_state(entity, server_id, project=user_project)
+                                    })
+                                    continue
+                            else:
+                                # Apply regular update
+                                serializer = PermitCreateUpdateSerializer(permit, data=data, partial=True)
+                                if serializer.is_valid():
+                                    permit.version = F('version') + 1
+                                    permit._current_user = request.user
+                                    permit = serializer.save()
+                                    permit.refresh_from_db()
+                                    record_applied_change(device_id, offline_id, entity, permit.id)
+                                    applied.append({
+                                        'entity': entity,
+                                        'offline_id': offline_id,
+                                        'server_id': permit.id,
+                                        'new_version': permit.version
+                                    })
+                                else:
+                                    rejected.append({
+                                        'entity': entity,
+                                        'offline_id': offline_id,
+                                        'reason': 'validation_error',
+                                        'detail': serializer.errors
+                                    })
+                    
+                    elif entity == 'isolation_point':
+                        if op == 'update':
+                            if not server_id:
+                                rejected.append({
+                                    'entity': entity,
+                                    'offline_id': offline_id,
+                                    'reason': 'missing_server_id'
+                                })
+                                continue
+                            
+                            # Lock isolation point for update
+                            point = PermitIsolationPoint.objects.select_for_update().filter(
+                                id=server_id,
+                                permit__project=user_project
+                            ).select_related('permit').first()
+                            
+                            if not point:
+                                if PermitIsolationPoint.objects.filter(id=server_id).exists():
+                                    rejected.append({
+                                        'entity': entity,
+                                        'offline_id': offline_id,
+                                        'server_id': server_id,
+                                        'reason': 'project_scope_violation'
+                                    })
+                                    continue
+                                rejected.append({
+                                    'entity': entity,
+                                    'offline_id': offline_id,
+                                    'server_id': server_id,
+                                    'reason': 'isolation_point_not_found'
+                                })
+                                continue
+                            
+                            # Detect conflicts
+                            conflict = detect_isolation_conflicts(point, data, client_version)
+                            if conflict:
+                                conflicts.append({
+                                    'entity': entity,
+                                    'offline_id': offline_id,
+                                    'server_id': server_id,
+                                    'reason': conflict['reason'],
+                                    'client_version': client_version,
+                                    'server_version': point.version,
+                                    'fields': conflict.get('fields', {}),
+                                    'detail': conflict.get('detail'),
+                                    'server_state': get_server_state(entity, server_id, project=user_project)
+                                })
+                                continue
+                            
+                            # Apply update with version increment
+                            for field, value in data.items():
+                                if hasattr(point, field):
+                                    setattr(point, field, value)
+                            point.version = F('version') + 1
+                            point.save()
+                            point.refresh_from_db()
+                            record_applied_change(device_id, offline_id, entity, point.id)
+                            applied.append({
+                                'entity': entity,
+                                'offline_id': offline_id,
+                                'server_id': point.id,
+                                'new_version': point.version
+                            })
+                    
+                    elif entity == 'closeout':
+                        if op == 'update':
+                            permit_id = data.get('permit_id') or server_id
+                            if not permit_id:
+                                rejected.append({
+                                    'entity': entity,
+                                    'offline_id': offline_id,
+                                    'reason': 'missing_permit_id'
+                                })
+                                continue
+                            
+                            permit = Permit.objects.get(id=permit_id, project=user_project)
+                            closeout, created = PermitCloseout.objects.get_or_create(permit=permit)
+                            
+                            if not created:
+                                # Lock closeout for update
+                                closeout = PermitCloseout.objects.select_for_update().get(id=closeout.id)
+                                
+                                # Detect conflicts
+                                conflict = detect_closeout_conflicts(closeout, data, client_version)
+                                if conflict:
+                                    conflicts.append({
+                                        'entity': entity,
+                                        'offline_id': offline_id,
+                                        'server_id': closeout.id,
+                                        'reason': conflict['reason'],
+                                        'client_version': client_version,
+                                        'server_version': closeout.version,
+                                        'fields': conflict.get('fields', {}),
+                                        'server_state': get_server_state(entity, closeout.id, project=user_project)
+                                    })
+                                    continue
+                            
+                            # Apply update
+                            if 'checklist' in data:
+                                merge_closeout_checklist(closeout, data)
+                            if 'remarks' in data:
+                                closeout.remarks = data['remarks']
+                            closeout.version = F('version') + 1
+                            closeout.save()
+                            closeout.refresh_from_db()
+                            record_applied_change(device_id, offline_id, entity, closeout.id)
+                            applied.append({
+                                'entity': entity,
+                                'offline_id': offline_id,
+                                'server_id': closeout.id,
+                                'new_version': closeout.version
+                            })
             
             except Permit.DoesNotExist:
                 rejected.append({

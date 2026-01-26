@@ -40,22 +40,24 @@ export default function TBTRecordPrintPreview({ tbtData }: TBTRecordPrintPreview
         </div>
 
         <div className="signature-section">
-          <table className="signature-table">
-            <thead>
-              <tr>
-                <th>Conducted By</th>
-                <th>Signature</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>{tbtData.conducted_by || '________________'}</td>
-                <td>________________</td>
-                <td>{tbtData.date || '________________'}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div className="signature-grid">
+            <div className="signature-box">
+              <div className="signature-label">Conducted By</div>
+              <div className="adobe-signature-block">
+                <div className="signature-partitions">
+                  <div className="signature-left">
+                    <div className="signer-name">{tbtData.conducted_by || '________________'}</div>
+                    <div className="designation">Trainer/Supervisor</div>
+                  </div>
+                  <div className="signature-divider"></div>
+                  <div className="signature-right">
+                    <div className="signed-by">Digitally signed by {tbtData.conducted_by || 'N/A'}</div>
+                    <div className="signed-at">{tbtData.date || 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <h3>Attendance Record</h3>
@@ -98,7 +100,18 @@ export default function TBTRecordPrintPreview({ tbtData }: TBTRecordPrintPreview
               border: 1px solid #000; padding: 8px; text-align: left; 
             }
             .signature-section { margin: 30px 0; }
-            h3 { margin: 20px 0 10px 0; font-weight: bold; }
+            .signature-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+            .signature-box { border: 1px solid #000; padding: 8px; min-height: 90px; }
+            .signature-label { font-weight: bold; margin-bottom: 6px; text-align: center; }
+            .adobe-signature-block { position: relative; min-height: 70px; border: 1px solid #ddd; background: #fff; }
+            .signature-partitions { display: flex; align-items: stretch; min-height: 70px; padding: 8px; }
+            .signature-left { flex: 1; padding-right: 8px; }
+            .signature-divider { width: 1px; background: #000; margin: 0 8px; }
+            .signature-right { flex: 1; padding-left: 8px; font-size: 11px; }
+            .signer-name { font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+            .designation { font-size: 11px; color: #666; }
+            .signed-by { font-weight: 500; margin-bottom: 4px; }
+            .signed-at { font-size: 10px; font-weight: 500; }
           </style>
         </head>
         <body>

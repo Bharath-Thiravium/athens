@@ -164,7 +164,71 @@
   gap: 8px;
 }
 
-.ptw-signature-box {
+.ptw-signature-card-only {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70px;
+  flex: 1;
+}
+
+.ptw-signature-card-image {
+  max-width: 100%;
+  max-height: 70px;
+  object-fit: contain;
+}
+
+.ptw-signature-placeholder {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+}
+
+.ptw-signature-image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.ptw-signature-image-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70px;
+}
+
+.ptw-signature-card-only {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70px;
+  border: 1px solid #ddd;
+  background: #fff;
+}
+
+.ptw-signature-card-image {
+  max-width: 100%;
+  max-height: 90px;
+  object-fit: contain;
+}
+
+.ptw-signature-template-image,
+.signature-template-image {
+  max-width: 100%;
+  max-height: 70px;
+  object-fit: contain;
+  border: 1px solid #ddd;
+}
+
+.ptw-signature-card {
   border: 1px solid #333;
   padding: 6px;
   min-height: 90px;
@@ -175,6 +239,105 @@
 
 .ptw-signature-label {
   font-weight: 600;
+  text-align: center;
+  font-size: 8pt;
+  margin-bottom: 4px;
+}
+
+.ptw-adobe-signature-block {
+  position: relative;
+  min-height: 70px;
+  border: 1px solid #ddd;
+  background: #fff;
+  flex: 1;
+}
+
+.ptw-signature-raw {
+  display: flex;
+  flex-direction: column;
+}
+
+.ptw-signature-raw-image {
+  max-width: 100%;
+  max-height: 70px;
+  object-fit: contain;
+}
+
+.ptw-signature-watermark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  pointer-events: none;
+}
+
+.ptw-signature-partitions {
+  display: flex;
+  align-items: stretch;
+  min-height: 70px;
+  padding: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+.ptw-signature-left {
+  flex: 1;
+  padding-right: 6px;
+}
+
+.ptw-signature-divider {
+  width: 1px;
+  background: #333;
+  margin: 0 6px;
+}
+
+.ptw-signature-right {
+  flex: 1;
+  padding-left: 6px;
+  font-size: 7pt;
+}
+
+.ptw-signer-name {
+  font-weight: bold;
+  font-size: 9pt;
+  margin-bottom: 2px;
+}
+
+.ptw-employee-id,
+.ptw-designation {
+  font-size: 7pt;
+  color: #666;
+  margin-bottom: 1px;
+}
+
+.ptw-signed-by {
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.ptw-department {
+  font-size: 6pt;
+  color: #888;
+  margin-bottom: 1px;
+}
+
+.ptw-signed-at {
+  font-size: 6pt;
+  font-weight: 500;
+}
+
+/* Legacy signature box styles - kept for backward compatibility */
+.ptw-signature-box {
+  border: 1px solid #333;
+  padding: 6px;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .ptw-signature-name,
@@ -237,8 +400,19 @@
     display: none !important;
   }
 
-  .ptw-signature-image img {
-    max-height: 60px !important;
+  .ptw-signature-template-image,
+  .signature-template-image {
+    max-height: 70px !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
+    border: 1px solid #ddd !important;
+  }
+
+  .ptw-signature-image-container {
+    min-height: 70px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .ptw-section {

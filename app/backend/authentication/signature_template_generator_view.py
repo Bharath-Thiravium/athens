@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .models import UserDetail, AdminDetail
-from .signature_template_generator_new import create_user_signature_template, create_admin_signature_template
+from .signature_template_generator_new import create_signature_template
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def generate_signature_template(request):
             
             # Generate template
             try:
-                create_user_signature_template(user_detail)
+                create_signature_template(user_detail)
                 template_url = user_detail.signature_template.url if user_detail.signature_template else None
                 logger.info(f"User signature template generated successfully: {template_url}")
             except Exception as e:
@@ -60,7 +60,7 @@ def generate_signature_template(request):
             
             # Generate template
             try:
-                create_admin_signature_template(admin_detail)
+                create_signature_template(admin_detail)
                 template_url = admin_detail.signature_template.url if admin_detail.signature_template else None
                 logger.info(f"Admin signature template generated successfully: {template_url}")
             except Exception as e:

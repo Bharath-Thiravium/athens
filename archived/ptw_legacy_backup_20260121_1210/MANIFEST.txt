@@ -1,0 +1,460 @@
+PTW Legacy Backup Manifest
+Timestamp: Wed Jan 21 12:10:52 UTC 2026
+Git Commit: 949e6f06c17be8c1d39745d9bce56a5a7d01c51a
+
+Backed up files:
+./MANIFEST.txt
+./app/backend/backend/settings.py
+./app/backend/ptw/__pycache__/admin.cpython-312.pyc
+./app/backend/ptw/__pycache__/canonical_workflow_manager.cpython-312.pyc
+./app/backend/ptw/__pycache__/conflict_utils.cpython-312.pyc
+./app/backend/ptw/__pycache__/excel_utils.cpython-312.pyc
+./app/backend/ptw/__pycache__/export_utils.cpython-312.pyc
+./app/backend/ptw/__pycache__/filters.cpython-312.pyc
+./app/backend/ptw/__pycache__/kpi_utils.cpython-312.pyc
+./app/backend/ptw/__pycache__/models.cpython-312.pyc
+./app/backend/ptw/__pycache__/notification_utils.cpython-312.pyc
+./app/backend/ptw/__pycache__/observability.cpython-312.pyc
+./app/backend/ptw/__pycache__/permissions.cpython-312.pyc
+./app/backend/ptw/__pycache__/ptw_permissions.cpython-312.pyc
+./app/backend/ptw/__pycache__/qr_utils.cpython-312.pyc
+./app/backend/ptw/__pycache__/readiness.cpython-312.pyc
+./app/backend/ptw/__pycache__/report_utils.cpython-312.pyc
+./app/backend/ptw/__pycache__/serializers.cpython-312.pyc
+./app/backend/ptw/__pycache__/signature_service.cpython-312.pyc
+./app/backend/ptw/__pycache__/signature_validators.cpython-312.pyc
+./app/backend/ptw/__pycache__/status_utils.cpython-312.pyc
+./app/backend/ptw/__pycache__/tasks.cpython-312.pyc
+./app/backend/ptw/__pycache__/team_members_api.cpython-312.pyc
+./app/backend/ptw/__pycache__/template_utils.cpython-312.pyc
+./app/backend/ptw/__pycache__/throttles.cpython-312.pyc
+./app/backend/ptw/__pycache__/unified_error_handling.cpython-312.pyc
+./app/backend/ptw/__pycache__/unified_permissions.cpython-312.pyc
+./app/backend/ptw/__pycache__/unified_signature_pipeline.cpython-312.pyc
+./app/backend/ptw/__pycache__/unified_workflow_manager.cpython-312.pyc
+./app/backend/ptw/__pycache__/urls.cpython-312.pyc
+./app/backend/ptw/__pycache__/utils.cpython-312.pyc
+./app/backend/ptw/__pycache__/validators.cpython-312.pyc
+./app/backend/ptw/__pycache__/views.cpython-312.pyc
+./app/backend/ptw/__pycache__/webhook_dispatcher.cpython-312.pyc
+./app/backend/ptw/__pycache__/webhook_models.cpython-312.pyc
+./app/backend/ptw/__pycache__/webhook_serializers.cpython-312.pyc
+./app/backend/ptw/__pycache__/webhook_views.cpython-312.pyc
+./app/backend/ptw/__pycache__/workflow_manager.cpython-312.pyc
+./app/backend/ptw/__pycache__/workflow_urls.cpython-312.pyc
+./app/backend/ptw/__pycache__/workflow_views.cpython-312.pyc
+./app/backend/ptw/admin.py
+./app/backend/ptw/api_errors.py
+./app/backend/ptw/canonical_workflow_manager.py
+./app/backend/ptw/conflict_utils.py
+./app/backend/ptw/excel_utils.py
+./app/backend/ptw/export_utils.py
+./app/backend/ptw/filters.py
+./app/backend/ptw/kpi_utils.py
+./app/backend/ptw/management/__init__.py
+./app/backend/ptw/management/__pycache__/__init__.cpython-312.pyc
+./app/backend/ptw/management/commands/__init__.py
+./app/backend/ptw/management/commands/__pycache__/__init__.cpython-312.pyc
+./app/backend/ptw/management/commands/__pycache__/create_permit_types.cpython-312.pyc
+./app/backend/ptw/management/commands/__pycache__/seed_permit_type_templates.cpython-312.pyc
+./app/backend/ptw/management/commands/__pycache__/test_ptw_workflow.cpython-312.pyc
+./app/backend/ptw/management/commands/create_comprehensive_permits.py
+./app/backend/ptw/management/commands/create_permit_types.py
+./app/backend/ptw/management/commands/debug_workflow.py
+./app/backend/ptw/management/commands/ptw_check_escalations.py
+./app/backend/ptw/management/commands/seed_permit_type_templates.py
+./app/backend/ptw/management/commands/test_ptw_workflow.py
+./app/backend/ptw/migrations/0001_initial.py
+./app/backend/ptw/migrations/0002_add_athens_tenant_id.py
+./app/backend/ptw/migrations/0003_remove_permit_ptw_permit_tenant_idx_and_more.py
+./app/backend/ptw/migrations/0004_add_workflow_statuses.py
+./app/backend/ptw/migrations/0005_closeout_checklist.py
+./app/backend/ptw/migrations/0006_isolation_points.py
+./app/backend/ptw/migrations/0009_add_version_and_idempotency.py
+./app/backend/ptw/migrations/0010_canonicalize_permit_statuses.py
+./app/backend/ptw/migrations/0011_webhooks.py
+./app/backend/ptw/migrations/0012_add_permit_type_templates.py
+./app/backend/ptw/migrations/0013_permittoolboxtalk_permittoolboxtalkattendance_and_more.py
+./app/backend/ptw/migrations/0014_webhook_dedupe_per_webhook.py
+./app/backend/ptw/migrations/0015_rename_ptw_isolati_project_idx_ptw_isolati_project_348eb9_idx_and_more.py
+./app/backend/ptw/migrations/__init__.py
+./app/backend/ptw/migrations/__pycache__/0001_initial.cpython-312.pyc
+./app/backend/ptw/migrations/__pycache__/0002_add_athens_tenant_id.cpython-312.pyc
+./app/backend/ptw/migrations/__pycache__/0003_remove_permit_ptw_permit_tenant_idx_and_more.cpython-312.pyc
+./app/backend/ptw/migrations/__pycache__/0004_add_workflow_statuses.cpython-312.pyc
+./app/backend/ptw/migrations/__pycache__/0005_closeout_checklist.cpython-312.pyc
+./app/backend/ptw/migrations/__pycache__/0006_isolation_points.cpython-312.pyc
+./app/backend/ptw/migrations/__pycache__/0009_add_version_and_idempotency.cpython-312.pyc
+./app/backend/ptw/migrations/__pycache__/0009_webhooks.cpython-312.pyc
+./app/backend/ptw/migrations/__pycache__/0010_canonicalize_permit_statuses.cpython-312.pyc
+./app/backend/ptw/migrations/__pycache__/0011_webhooks.cpython-312.pyc
+./app/backend/ptw/migrations/__pycache__/0012_add_permit_type_templates.cpython-312.pyc
+./app/backend/ptw/migrations/__pycache__/0013_permittoolboxtalk_permittoolboxtalkattendance_and_more.cpython-312.pyc
+./app/backend/ptw/migrations/__pycache__/0014_webhook_dedupe_per_webhook.cpython-312.pyc
+./app/backend/ptw/migrations/__pycache__/0015_rename_ptw_isolati_project_idx_ptw_isolati_project_348eb9_idx_and_more.cpython-312.pyc
+./app/backend/ptw/migrations/__pycache__/__init__.cpython-312.pyc
+./app/backend/ptw/models.py
+./app/backend/ptw/notification_utils.py
+./app/backend/ptw/observability.py
+./app/backend/ptw/permissions.py
+./app/backend/ptw/ptw_permissions.py
+./app/backend/ptw/qr_utils.py
+./app/backend/ptw/readiness.py
+./app/backend/ptw/readiness.py.backup
+./app/backend/ptw/readiness_fixed.py
+./app/backend/ptw/report_utils.py
+./app/backend/ptw/serializers.py
+./app/backend/ptw/signature_service.py
+./app/backend/ptw/signature_validators.py
+./app/backend/ptw/status_utils.py
+./app/backend/ptw/tasks.py
+./app/backend/ptw/team_members_api.py
+./app/backend/ptw/template_utils.py
+./app/backend/ptw/tests/__pycache__/test_analytics.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_analytics.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_closeout.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_closeout.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_exports.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_exports.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_filters_and_pagination.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_filters_and_pagination.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_health_endpoint.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_health_endpoint.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_isolation_points.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_isolation_points.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_kpis.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_kpis.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_notifications.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_notifications.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_offline_sync_conflicts.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_offline_sync_conflicts.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_permissions_regression.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_permissions_regression.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_permit_creation_and_qr.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_permit_creation_and_qr.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_permit_type_templates.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_permit_type_templates.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_pr5_serializers.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_pr5_serializers.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_readiness_endpoint.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_readiness_endpoint.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_readiness_regression.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_readiness_regressions.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_reports.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_reports.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_shared_helpers_example.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_signature_gating.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_signature_mapping.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_tbt.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_throttling.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_throttling.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_webhooks.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_webhooks.cpython-312.pyc
+./app/backend/ptw/tests/__pycache__/test_workflow_statuses.cpython-312-pytest-8.3.5.pyc
+./app/backend/ptw/tests/__pycache__/test_workflow_statuses.cpython-312.pyc
+./app/backend/ptw/tests/test_analytics.py
+./app/backend/ptw/tests/test_checklist_validation.py
+./app/backend/ptw/tests/test_closeout.py
+./app/backend/ptw/tests/test_consolidated_architecture.py
+./app/backend/ptw/tests/test_exports.py
+./app/backend/ptw/tests/test_filters_and_pagination.py
+./app/backend/ptw/tests/test_health_endpoint.py
+./app/backend/ptw/tests/test_isolation_points.py
+./app/backend/ptw/tests/test_kpis.py
+./app/backend/ptw/tests/test_notifications.py
+./app/backend/ptw/tests/test_offline_sync_conflicts.py
+./app/backend/ptw/tests/test_permissions_regression.py
+./app/backend/ptw/tests/test_permit_creation_and_qr.py
+./app/backend/ptw/tests/test_permit_type_templates.py
+./app/backend/ptw/tests/test_pr5_serializers.py
+./app/backend/ptw/tests/test_ptw_improvements.py
+./app/backend/ptw/tests/test_readiness_endpoint.py
+./app/backend/ptw/tests/test_readiness_regression.py
+./app/backend/ptw/tests/test_readiness_regressions.py
+./app/backend/ptw/tests/test_reports.py
+./app/backend/ptw/tests/test_shared_helpers_example.py
+./app/backend/ptw/tests/test_signature_gating.py
+./app/backend/ptw/tests/test_signature_mapping.py
+./app/backend/ptw/tests/test_signature_permissions.py
+./app/backend/ptw/tests/test_tbt.py
+./app/backend/ptw/tests/test_throttling.py
+./app/backend/ptw/tests/test_webhooks.py
+./app/backend/ptw/tests/test_workflow_selection.py
+./app/backend/ptw/tests/test_workflow_statuses.py
+./app/backend/ptw/throttles.py
+./app/backend/ptw/unified_error_handling.py
+./app/backend/ptw/unified_permissions.py
+./app/backend/ptw/unified_signature_pipeline.py
+./app/backend/ptw/unified_workflow_manager.py
+./app/backend/ptw/urls.py
+./app/backend/ptw/utils.py
+./app/backend/ptw/validators.py
+./app/backend/ptw/views.py
+./app/backend/ptw/webhook_dispatcher.py
+./app/backend/ptw/webhook_serializers.py
+./app/backend/ptw/webhook_views.py
+./app/backend/ptw/workflow_manager.py
+./app/backend/ptw/workflow_urls.py
+./app/backend/ptw/workflow_views.py
+./app/frontend/src/features/ptw/api.ts
+./app/frontend/src/features/ptw/components/ComplianceDashboard.tsx
+./app/frontend/src/features/ptw/components/EnhancedPermitForm.tsx
+./app/frontend/src/features/ptw/components/EnhancedPermitForm.tsx.backup
+./app/frontend/src/features/ptw/components/ExportButtons.tsx
+./app/frontend/src/features/ptw/components/IntegrationHub.tsx
+./app/frontend/src/features/ptw/components/MobilePermitApp.tsx
+./app/frontend/src/features/ptw/components/MobilePermitView.tsx
+./app/frontend/src/features/ptw/components/PTWKPIDashboard.tsx
+./app/frontend/src/features/ptw/components/PTWLayout.tsx
+./app/frontend/src/features/ptw/components/PTWPrintPreview.tsx
+./app/frontend/src/features/ptw/components/PTWRecordPrintPreview.tsx
+./app/frontend/src/features/ptw/components/PTWRecordPrintPreview.tsx.backup
+./app/frontend/src/features/ptw/components/PTWReports.tsx
+./app/frontend/src/features/ptw/components/PTWStandardPrint.css
+./app/frontend/src/features/ptw/components/PTWStandardPrint.tsx
+./app/frontend/src/features/ptw/components/PermitDetail.tsx
+./app/frontend/src/features/ptw/components/PermitList.tsx
+./app/frontend/src/features/ptw/components/PersonnelSelect.tsx
+./app/frontend/src/features/ptw/components/ReadinessPanel.tsx
+./app/frontend/src/features/ptw/components/SyncConflictsPage.tsx
+./app/frontend/src/features/ptw/components/SyncStatusIndicator.tsx
+./app/frontend/src/features/ptw/components/TimeExtensionModal.tsx
+./app/frontend/src/features/ptw/components/WorkflowManager.tsx
+./app/frontend/src/features/ptw/components/WorkflowTaskDashboard.tsx
+./app/frontend/src/features/ptw/components/index.ts
+./app/frontend/src/features/ptw/hooks/useOfflineSync.ts
+./app/frontend/src/features/ptw/hooks/useOfflineSync2.ts
+./app/frontend/src/features/ptw/routes.tsx
+./app/frontend/src/features/ptw/types/index.ts
+./app/frontend/src/features/ptw/types/offlineSync.ts
+./app/frontend/src/features/ptw/utils/downloadHelper.ts
+./app/frontend/src/features/ptw/utils/ptwConstants.ts
+./app/frontend/src/features/ptw/utils/workflowGuards.ts
+
+File checksums:
+5ad2dcc0383af183fa93c5f871051444a66cab4803b3952c4806884b0dec229d  ./app/backend/backend/settings.py
+8dabaa09693f7f897fb4d01e0094d9bcd84c5fa51989cfb208f0599ec46e243f  ./app/backend/ptw/views.py
+818c374a568e4b0a464d9c7f947ca41f34e84daddacb15a0b2a7a0ee6e97474d  ./app/backend/ptw/migrations/0014_webhook_dedupe_per_webhook.py
+c8f2bb87470f2fe178333b4dfc508b0f010a36f2837d7e12ce0bb7ce38785749  ./app/backend/ptw/migrations/0010_canonicalize_permit_statuses.py
+de37c946f64340d34b989f8933dafa6e16b96f776b70c4d0dd50990053802c54  ./app/backend/ptw/migrations/0009_add_version_and_idempotency.py
+3505e4e79051c967ffe3d32fdd680a603d1c09f796a217eca8608be574dce801  ./app/backend/ptw/migrations/0012_add_permit_type_templates.py
+01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b  ./app/backend/ptw/migrations/__init__.py
+3ccb45dc4e50e17b3407555f62019914464ea15122f15908ed141b29aeade0b8  ./app/backend/ptw/migrations/__pycache__/__init__.cpython-312.pyc
+f69539f39d4f41303f293dda2b378480d35372536d339750991fd7c436df12cf  ./app/backend/ptw/migrations/__pycache__/0004_add_workflow_statuses.cpython-312.pyc
+3de42cbdca54ec9406cc74af60f404b7589e5a11ca1084d501864d6d588de43e  ./app/backend/ptw/migrations/__pycache__/0006_isolation_points.cpython-312.pyc
+92d53a8d25d2be8548efbadc377d815e8bdce53842ad0a353cccb55534edcdcf  ./app/backend/ptw/migrations/__pycache__/0001_initial.cpython-312.pyc
+4a7b83f4f47e54c9b6dd117dc2db2f45f0fcb7d1948cdf5ceaac22d127e6a590  ./app/backend/ptw/migrations/__pycache__/0009_webhooks.cpython-312.pyc
+bd1b68b6e2efeec4796fcc1c51ce5b76ff57af3edd872d53490348343d62e7dd  ./app/backend/ptw/migrations/__pycache__/0010_canonicalize_permit_statuses.cpython-312.pyc
+2ace0f7e3e11378677dd77e7a496f77521e07878b316950d23f83d61f8850db9  ./app/backend/ptw/migrations/__pycache__/0002_add_athens_tenant_id.cpython-312.pyc
+8e6aa6b2968d27055bad735f6cd50d5f2037347179d8401ab5000a893522b55f  ./app/backend/ptw/migrations/__pycache__/0015_rename_ptw_isolati_project_idx_ptw_isolati_project_348eb9_idx_and_more.cpython-312.pyc
+c923bca57a707868e2f735c946a9fa32b46fd5aad6179fa78b83c39a33e7b7f7  ./app/backend/ptw/migrations/__pycache__/0013_permittoolboxtalk_permittoolboxtalkattendance_and_more.cpython-312.pyc
+fbc4b85454eb24b9a3e4089b0ca246734f04bad573d06dab94b38b2985c0121f  ./app/backend/ptw/migrations/__pycache__/0012_add_permit_type_templates.cpython-312.pyc
+51a9c60ecd88a964c350b6a6e35299b6dc49a7e201c2e4ae2816c51f66879697  ./app/backend/ptw/migrations/__pycache__/0009_add_version_and_idempotency.cpython-312.pyc
+418dcb8d217576da5cf9b321d231439a1196446274086f4190ec311efcad2962  ./app/backend/ptw/migrations/__pycache__/0003_remove_permit_ptw_permit_tenant_idx_and_more.cpython-312.pyc
+a7003fdb17718baec50e97dba5e59ad815f3d869f2bcefbe496457630ce94579  ./app/backend/ptw/migrations/__pycache__/0005_closeout_checklist.cpython-312.pyc
+5279131b7fbaf114b6182763e4bf6ba19604c62d14cd91e12a6a94ff880084ff  ./app/backend/ptw/migrations/__pycache__/0011_webhooks.cpython-312.pyc
+43df633f94336a22ede5b563c354974406056165233611cccdafe6addece89af  ./app/backend/ptw/migrations/__pycache__/0014_webhook_dedupe_per_webhook.cpython-312.pyc
+074fd694597ee7b6335b27583abb280c19c69a5bd39123128289e7d98a8f6489  ./app/backend/ptw/migrations/0002_add_athens_tenant_id.py
+5cde681091a4558cf820ef0606e2589a802328a46a060b1b124bcd69137414a0  ./app/backend/ptw/migrations/0004_add_workflow_statuses.py
+91018a53f3d343b3a02cab9f70483cdf283c0a589525955790e42b2abc7f62bc  ./app/backend/ptw/migrations/0006_isolation_points.py
+bd8891dd30a601a2006915b2bfc9b23cb2867de32036515de8ba1fd27fc1fecc  ./app/backend/ptw/migrations/0015_rename_ptw_isolati_project_idx_ptw_isolati_project_348eb9_idx_and_more.py
+c840e56046a0480bb732e78d61d223a404b0b6ad3d33ecef80d4570d1f1b2a99  ./app/backend/ptw/migrations/0003_remove_permit_ptw_permit_tenant_idx_and_more.py
+334be439ae93501ab8705fd23e623891c0127fa88e347d107f16d90ad1b70e86  ./app/backend/ptw/migrations/0011_webhooks.py
+820c9d0d07fbbc42aec60636ee46ed259ed2261ea81ce3d2f7dab8382be8f35e  ./app/backend/ptw/migrations/0013_permittoolboxtalk_permittoolboxtalkattendance_and_more.py
+eb628b6129b4643c550a775fba1a200af901e5900640998d2479190ff1356b90  ./app/backend/ptw/migrations/0005_closeout_checklist.py
+a64c7acb8697e321793a2bddb5dfc7e2b13a0e2b556fa483b6d382788b9d37f9  ./app/backend/ptw/migrations/0001_initial.py
+62905254a3aebc21d24701642b3deca00050fb24358ef37639b6e5dbb55246e4  ./app/backend/ptw/unified_error_handling.py
+205ee02fd4ef5fb42dcdbcd294fc9cc674c00dd36e37b61edecb05a130e8270d  ./app/backend/ptw/team_members_api.py
+87669aa5f9d10b9996ec4a98eb5c4a380bf9a23a413201b8c66b046a33e223d6  ./app/backend/ptw/signature_service.py
+ec15e2fd52de9e1dd813acf488642556e646e46c0bc99d17458fd63970b5ea8f  ./app/backend/ptw/template_utils.py
+d73ab8a6cada76b914fe1239a1f8aed78745a2916993f63dcc40adc27c45dae8  ./app/backend/ptw/api_errors.py
+2d48358f080b693b7c41ecd07b108d0a39ea3aa983709ecce5f52d6f4234c6bb  ./app/backend/ptw/qr_utils.py
+cbdca58b29359956abe413e9fac987755e45149a0425492ded3fa7baf488a94e  ./app/backend/ptw/workflow_views.py
+d0dca60ed2b27dedf3fc487f945732855a538ff7f5da27a79991d3b941573a13  ./app/backend/ptw/readiness.py.backup
+a8eff0375f2db1c0a35e518c028f9874a52510322fd7d7e73443f4e0911e9a52  ./app/backend/ptw/validators.py
+466be3287800b4c2aa3e58643115c931f28ddbf2bbb5f8ef9a1f22d54ce4a704  ./app/backend/ptw/notification_utils.py
+11bbd622368e713c4c79f08a7b51d1982658104387a877d1799035811f5c75f7  ./app/backend/ptw/workflow_manager.py
+42f4e78ccd0c0c3ef0bdc8971f6120fbe8042dd1bc552649ee963f76dbb37b39  ./app/backend/ptw/unified_permissions.py
+ce8faab1bd2e21cfc9f9fdb8f3c61421a657d6b91da3e807b921a2c9ccd26e31  ./app/backend/ptw/readiness_fixed.py
+ff49dbee40f00f2eb3cdb2ff8c689d19d1c7b1e4c0dc5dbe748ede4b3780302d  ./app/backend/ptw/report_utils.py
+69bd8f073c68d2ff25bb3133b2b536483ba079538b9dc378f7c0931ed0f33561  ./app/backend/ptw/observability.py
+d495f86f549efe6d2bab0e873a8f8301bd135311946e5a227ceaa672c1e258a3  ./app/backend/ptw/throttles.py
+77ddceda0335a15ee305de2a2d66e181077b30426be7ec9b69035a5a2f2432df  ./app/backend/ptw/conflict_utils.py
+b79858fa45d0cd86a6f319510043fe662778dc2b60441578bf66ae1ae74d6104  ./app/backend/ptw/webhook_serializers.py
+876ec5053fdebb3be555501383723b6066130c8b92d20ffcc4b4c17e930e2fb0  ./app/backend/ptw/filters.py
+49a06fa085338ae3a8cba6dea7890a9b7173c5f82fa7f42d26def97b545994ad  ./app/backend/ptw/admin.py
+241e2d0e60e6c8f082c305dc2290a5cd86d78d218af6f82a58817f70c68f8750  ./app/backend/ptw/signature_validators.py
+e797796ae05d2cf9271844138ac5c984160e1f156ba3b7be0a9d85771ee7cefa  ./app/backend/ptw/utils.py
+5ce659f2caa8d27f12daa89a63a2b9774b236a550bc7aecd92d9272909ed4d3a  ./app/backend/ptw/workflow_urls.py
+cf755e0f931f4f4965a59e7ffb5854f80dff4fd3947f9794ca21afef373a187a  ./app/backend/ptw/__pycache__/validators.cpython-312.pyc
+f8d9e20d7a4a50d37c7f2861a8f8b0d568a9a27cc0ef0debb8af1bef997dc22c  ./app/backend/ptw/__pycache__/signature_service.cpython-312.pyc
+97b576db49724761c4e9e6f99deaf2f4e7c4827610e34ddb8a212b8cc5bbe845  ./app/backend/ptw/__pycache__/webhook_models.cpython-312.pyc
+042319953b9db80412b7a2f919249fddc75fb1ca2285a4eada86976024f71b9a  ./app/backend/ptw/__pycache__/webhook_dispatcher.cpython-312.pyc
+11b54cbeca580af99df28bfcd4d205f724e16b01d18cfb7a1fcf38ac75489a30  ./app/backend/ptw/__pycache__/unified_error_handling.cpython-312.pyc
+55f7b037b50d277aa3046f2f6a5b306eda3410d5e92cf49c9c85eb9bd097a5ac  ./app/backend/ptw/__pycache__/utils.cpython-312.pyc
+f68da650900bdb7b224193344b87b17e24ce602d47bd2fff37b18efa400b530f  ./app/backend/ptw/__pycache__/workflow_urls.cpython-312.pyc
+4e64af8b403436b6ef15fd1814bb4fb5a0ce23d1654400d47e2dca2b783f836a  ./app/backend/ptw/__pycache__/unified_permissions.cpython-312.pyc
+312c69755957ff60d56891efe8a4dad151dcb7d863adfd53655231e9d401fa16  ./app/backend/ptw/__pycache__/canonical_workflow_manager.cpython-312.pyc
+b91fbe2b158e0b6e29bee79b5c54108fab7fdba120e0a61a4a815d3733ec4dfa  ./app/backend/ptw/__pycache__/excel_utils.cpython-312.pyc
+ece96b20cebbc2c95314c8779e43d171a904224fc32aa3e9ccc2c817af04d152  ./app/backend/ptw/__pycache__/filters.cpython-312.pyc
+a9e317383b5e3305c221417f8d30e8679d02c779e6d5ae0b1afa240b0a88ac05  ./app/backend/ptw/__pycache__/ptw_permissions.cpython-312.pyc
+7de3cab02732b3ab3d77f8fe550c03b1c16214287df802881256162a9320dac0  ./app/backend/ptw/__pycache__/permissions.cpython-312.pyc
+2a826f08dcec8a79e68b7614f69de7d0e44aa37a068fd028186411e10c2cf5a6  ./app/backend/ptw/__pycache__/team_members_api.cpython-312.pyc
+0bb92b50f6a9883d1aed11e65969cabf6a73b63ba4f42c0a9b475cf161f1aaf4  ./app/backend/ptw/__pycache__/serializers.cpython-312.pyc
+2fa3127879a85993900f3ddcd6124ba761dd2f5ff89a09142a66048d7787ad9f  ./app/backend/ptw/__pycache__/views.cpython-312.pyc
+a1020cdc1af8cafe7d6c6aeb3cc09613a0419ae431010c66e8efdbd6e15845e8  ./app/backend/ptw/__pycache__/report_utils.cpython-312.pyc
+f38df64db1f092db5a084adb2288a4e2f63083f825a182d3f0fbf2901d93b159  ./app/backend/ptw/__pycache__/workflow_manager.cpython-312.pyc
+1ac9276483dd429d9adba8200850d00a24b4b45478e7bd934c0ed32dcc400b11  ./app/backend/ptw/__pycache__/webhook_views.cpython-312.pyc
+671955f577f4cdd350a3f6651479d4912dd2ba0be44096bb84b0cd74a25a0fb3  ./app/backend/ptw/__pycache__/export_utils.cpython-312.pyc
+a9f6ef8dafb8b68e5b078e7b25bf55b9aca726ac62fa2432bf88348e09a61d83  ./app/backend/ptw/__pycache__/admin.cpython-312.pyc
+7ddb07e1b7b50a587fe3db1dcf089476aadba4340e3f43161c937c8dbb715f07  ./app/backend/ptw/__pycache__/readiness.cpython-312.pyc
+76450f7ab8d88195ac3abd3b94879184c64d08607d43538a59e33d7caf31bb81  ./app/backend/ptw/__pycache__/models.cpython-312.pyc
+3435ba02180b67bad4a45b4e8e3f467e47d0a4822ae5a8ac0c66f783e6f612fc  ./app/backend/ptw/__pycache__/throttles.cpython-312.pyc
+8e32e17cf4b17a0a25bb01d46ef7ca5e9cac66249b1e90a5f0d714ee0b2e447f  ./app/backend/ptw/__pycache__/template_utils.cpython-312.pyc
+14ed9d74ccde690af456085d45f3b0921c4df5483aeebfd72e10b49faa91e24d  ./app/backend/ptw/__pycache__/unified_signature_pipeline.cpython-312.pyc
+b77fd17a280f0ae99746c5af17fef506135d48e9a0e6db9a951316a67af98e11  ./app/backend/ptw/__pycache__/urls.cpython-312.pyc
+31d0aa127b65fa9de831f394d0918e59546897dbdaf5d8d9c3a139abd62a81ab  ./app/backend/ptw/__pycache__/unified_workflow_manager.cpython-312.pyc
+b0c5f269be58d1482512a8ad7cccc288edcef15bd660d530e8f3a121b9fb1f75  ./app/backend/ptw/__pycache__/tasks.cpython-312.pyc
+967cb40a31a557ab363dbdd86f3d1f203d7d5d9f32f5988831875e87b4509160  ./app/backend/ptw/__pycache__/workflow_views.cpython-312.pyc
+2d493e1cdc2efe928367bda06db00f40a473f56e8b63ff5d70962de7736e2f6e  ./app/backend/ptw/__pycache__/conflict_utils.cpython-312.pyc
+9180eb49378744e0c5e7a5f815e83911f7731ab36cc271b88aec9407c9bba72c  ./app/backend/ptw/__pycache__/qr_utils.cpython-312.pyc
+2ac46c21af0cf3dcf770060574dab03fb708f9a811151d54e4c25ecf63746c38  ./app/backend/ptw/__pycache__/kpi_utils.cpython-312.pyc
+a826fce60de32717d43b34d4020577f63185c4ab5ed54d2b3d6bcc2e00acb176  ./app/backend/ptw/__pycache__/signature_validators.cpython-312.pyc
+8a46420021ec1e8539be823ad7561d5b9c94d262883319e11fc8491e9fbc1222  ./app/backend/ptw/__pycache__/webhook_serializers.cpython-312.pyc
+aee239c994e55dd43bfa7d5e7feef5d37822b1e56ea33cbe25bcf8c8fc7d79b7  ./app/backend/ptw/__pycache__/status_utils.cpython-312.pyc
+d23ec7d6f375c6d726df1640ad9695a2780bc75332bbd4124faf28ce47d18ea7  ./app/backend/ptw/__pycache__/observability.cpython-312.pyc
+26af9bb1b6e276da1ac956aaecf83b6232198ce994298f8082a143d2fce0b972  ./app/backend/ptw/__pycache__/notification_utils.cpython-312.pyc
+e8056f78e4e0af7ef42a035a69f254f74652971209251a817955f9c72d0af22b  ./app/backend/ptw/canonical_workflow_manager.py
+01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b  ./app/backend/ptw/management/__init__.py
+34293db261138e55336976b53e9f2f4040ea6bb1a9800bc3ee8e288e0e846f10  ./app/backend/ptw/management/__pycache__/__init__.cpython-312.pyc
+c0591814d7f961eab1fe4edacde7ed2795253a12f0e876235b01bdc55a30c4cc  ./app/backend/ptw/management/commands/test_ptw_workflow.py
+67065c77346e8cbd5f84ca92591cedbffdbe58c61745e7c52b03c8d1783cfa80  ./app/backend/ptw/management/commands/debug_workflow.py
+22cc84269ec0ff4607bb4abcaa19d4d0e87e9a8fc198c83961ea9ab9a9ea889a  ./app/backend/ptw/management/commands/ptw_check_escalations.py
+01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b  ./app/backend/ptw/management/commands/__init__.py
+f2016983188dabccd9a9c0835979915e193c60cd0d94384dd0f49872b6d03420  ./app/backend/ptw/management/commands/__pycache__/__init__.cpython-312.pyc
+eea442940bbbbcc99139b9a17274211a592fe911dc8ce312f408fc385aa1abaa  ./app/backend/ptw/management/commands/__pycache__/test_ptw_workflow.cpython-312.pyc
+6967432e5710568c51da12cae37a792cbfeb09814d28afdb597b2cc40a7c7ac3  ./app/backend/ptw/management/commands/__pycache__/seed_permit_type_templates.cpython-312.pyc
+b075cd5c8dfe10539ea5fff4a0158a97041e31ed5f04b8dd3b1a2f3423fe2a88  ./app/backend/ptw/management/commands/__pycache__/create_permit_types.cpython-312.pyc
+5d6d42dd42aeb6f028f7c59b51a5b5681faba5537286ba7b7fc96f96424900cb  ./app/backend/ptw/management/commands/seed_permit_type_templates.py
+4426701b83c662f227b9801640e5661d19cd07bf6f9bda9b6a07d93f976e2e1b  ./app/backend/ptw/management/commands/create_comprehensive_permits.py
+1651dcbaf9b315a7b61ba61ffcca30434a58534d3c94d077e71b3160082f499c  ./app/backend/ptw/management/commands/create_permit_types.py
+41a0e0a133304e3a745e9198cfef39c7079c7f4854afdc730f6bbb9b0532f640  ./app/backend/ptw/urls.py
+32f8c369b78cb8ff2a6c30836f97dc3163c4cfb6c02193169640e709565746af  ./app/backend/ptw/models.py
+066b5b4f278fa76e720ef337b30a6e31d7d85d6a26e73022a524d77b1c1c8694  ./app/backend/ptw/status_utils.py
+7d45f84d2b9a7c28323a827d925af41c1b457d7d810226636e1cc08c641c6165  ./app/backend/ptw/tasks.py
+4b387d050fb6e91c3c4b9b447a4167fa11491479f5efc8513fd4ac58995b3943  ./app/backend/ptw/serializers.py
+31ec4c606b9bd903855b010ef016a2be3176c54421106eb20f1977985e6b419d  ./app/backend/ptw/webhook_views.py
+c6a853eeb5b91a03c098045da10ee28e1f1caa13f7306badbad01cfdbfedf67f  ./app/backend/ptw/ptw_permissions.py
+f4b14f99ff496d09cfb2f4fe1eccae7a8354a09d5a56682ad20f88f6d8b67e88  ./app/backend/ptw/unified_workflow_manager.py
+f3860afdb16b8d322a6d7d1a6ce2f7e93e372aa4b0628c6135b3a08a7732fbf3  ./app/backend/ptw/permissions.py
+12c900b1bd70caddbaf02d4f0818c072068e2312999da55e2ad239a91336aeda  ./app/backend/ptw/unified_signature_pipeline.py
+99608681f217ff7264297c3f772e324d6550380999c3c55d8694396435fa1626  ./app/backend/ptw/webhook_dispatcher.py
+c663f9529107ad57f8401905a14ffe7613009233e0d824c5fcc8f18afcb97a72  ./app/backend/ptw/kpi_utils.py
+dbbb30166f0b0a606e8c474afdd2c40581e5c7d796d018d65b7dfc400fa88220  ./app/backend/ptw/export_utils.py
+f4913392f7da3b62f7bb765dc3d3bd26756b2f083c1d69c08bda8a081ec3496d  ./app/backend/ptw/excel_utils.py
+a60d09d819650b5030cdae66d0aff99e2c9a592a35859d54fe97b14d227cab49  ./app/backend/ptw/tests/test_permissions_regression.py
+865658d66c2994ae143e99d8c16c00951f2d85648ee56a8542c0e6a4f67f7f69  ./app/backend/ptw/tests/test_permit_creation_and_qr.py
+d456264d360c5825896fef27463255ac82bbfcfe72f373c525602e5b1bdaeeff  ./app/backend/ptw/tests/test_isolation_points.py
+1d7e8fe5320a6f12218f6af84573c69d5a037a5e918d3ff041a63571e0c39433  ./app/backend/ptw/tests/test_checklist_validation.py
+57e816cdbd605dd596a8e97875f022151e10772397fd2101fbb50885fe142e71  ./app/backend/ptw/tests/test_permit_type_templates.py
+6c62338011ceeea82d303ebea889a3fbe9f8dd8f513a6625d78ad15dbe67c6f1  ./app/backend/ptw/tests/test_filters_and_pagination.py
+a12483d18a447d40d50b6c136d3c81da20c275ce5e72e4347847c6cde581f13b  ./app/backend/ptw/tests/test_health_endpoint.py
+67b2d4fc71f825c65d818ec077243f901e3a8a4d0d83c8e180300df6fac12ea1  ./app/backend/ptw/tests/test_signature_mapping.py
+8594707f00836eae91a74a4b9e8e35ddd0ff317636c2231a5b837c83adc29e9f  ./app/backend/ptw/tests/test_signature_gating.py
+ce49d38f664d12d1b57bea39a35dc1cbb3a3199b7d7eb67398022081e358d4da  ./app/backend/ptw/tests/test_readiness_endpoint.py
+b61fb384dbfdee39f3ef8257843b4d9d877488f5d893b1eb7018f5a5326ff364  ./app/backend/ptw/tests/test_notifications.py
+cde63224a7f3a2b185a52fdca166d904c5194d6b6a06237c319eff32d0972a66  ./app/backend/ptw/tests/test_closeout.py
+dccf329034765643b62b345b157a1c0bf3602730aa263c70f70a7e943467a7cf  ./app/backend/ptw/tests/test_offline_sync_conflicts.py
+93b0547bfcc6562f31b55d6c2388556518471965255929aae3d1f0851b9fa8b7  ./app/backend/ptw/tests/test_ptw_improvements.py
+dd0cc92359e59cab1c611be85e131a3b4ef7acafc1c124a81f2c7408ac4c3112  ./app/backend/ptw/tests/__pycache__/test_readiness_regression.cpython-312.pyc
+33a5b8fdc2b69d32577bb4d435085b0e14f0215e2f585cfbfea60c8141ff4a04  ./app/backend/ptw/tests/__pycache__/test_webhooks.cpython-312-pytest-8.3.5.pyc
+95ccbaebf720197f1abf909634e7159b6ca80919d8ebb57a57b3f03c0c6f230e  ./app/backend/ptw/tests/__pycache__/test_kpis.cpython-312.pyc
+f08c34c265b530f35468eca6c7afbd091eb4d2c21e7de18aebe63a8fc9ca7dbc  ./app/backend/ptw/tests/__pycache__/test_shared_helpers_example.cpython-312.pyc
+317af27e1b2b5514ffc20007ff03c8ef881500b4ccc550c1f6ee1a9cd2fbd775  ./app/backend/ptw/tests/__pycache__/test_isolation_points.cpython-312.pyc
+7500ef780b73720fc5837f752af77ca9d553106d1c94b5c563fd05091d1b6105  ./app/backend/ptw/tests/__pycache__/test_filters_and_pagination.cpython-312-pytest-8.3.5.pyc
+e4be97a9a320b742f729f5f8652e3fbd8a2e60253fa59619645f3f28dd3be7c6  ./app/backend/ptw/tests/__pycache__/test_permit_creation_and_qr.cpython-312.pyc
+4d12ae017b48774190165a850fb05cebfb1a866c1d3400c03ee02fb6ee741d9f  ./app/backend/ptw/tests/__pycache__/test_reports.cpython-312.pyc
+6b256133cab57bf7d4c250d8396ed33dae7630651e82389c57c8b64ab83ba7c4  ./app/backend/ptw/tests/__pycache__/test_permit_type_templates.cpython-312-pytest-8.3.5.pyc
+789513c9540fe725f7c5bc6948137534153920341a63104e4ead26ccdf34697a  ./app/backend/ptw/tests/__pycache__/test_analytics.cpython-312-pytest-8.3.5.pyc
+850f6b4a892174a18d1654240eac33ab4def220b71cd9dcbd07e2b5284fa88a5  ./app/backend/ptw/tests/__pycache__/test_permit_type_templates.cpython-312.pyc
+0747a72a6443e8edaa6075178cc1891d66c5fb404fff07174e219165dcb5e307  ./app/backend/ptw/tests/__pycache__/test_reports.cpython-312-pytest-8.3.5.pyc
+e9b2b61e87b3b1d7b0a110e374425df845b1484e1dbb057053317306a81d3046  ./app/backend/ptw/tests/__pycache__/test_readiness_endpoint.cpython-312-pytest-8.3.5.pyc
+94a2620d8f94a78d0594486698e54a221936f9bcaaab1d28fa41be2a18dff2a4  ./app/backend/ptw/tests/__pycache__/test_offline_sync_conflicts.cpython-312-pytest-8.3.5.pyc
+ecf448496bf63d0e2e6f838c347198811dfea47b0a330f44727bf84d70937154  ./app/backend/ptw/tests/__pycache__/test_permissions_regression.cpython-312-pytest-8.3.5.pyc
+3d5187e161f5a7e99c248ba1645239e9642e246a5b5f3a76e2fc06a222d5bfb4  ./app/backend/ptw/tests/__pycache__/test_webhooks.cpython-312.pyc
+a7588993f5573aa3deeb4b97a7220c5cc17940a41294f2ddff574448e65eb1e5  ./app/backend/ptw/tests/__pycache__/test_pr5_serializers.cpython-312.pyc
+6fd78a251cd2ad43a855c69e970f75d377e9615aec917e8a15c36dffdc9415f5  ./app/backend/ptw/tests/__pycache__/test_tbt.cpython-312.pyc
+0d946cae1b05e6b50b8e28f9336662dec9434e85294381a333bbcb3eaee53004  ./app/backend/ptw/tests/__pycache__/test_closeout.cpython-312-pytest-8.3.5.pyc
+b279ca73e305c9e7fc0c9af91a11059714e43415d5a92ba9d3adfcd6ad38d0c4  ./app/backend/ptw/tests/__pycache__/test_health_endpoint.cpython-312-pytest-8.3.5.pyc
+48610a354cd3d79f0b3e9216cdceb652a2b2821d3c28ce061a29ff9ed15aebee  ./app/backend/ptw/tests/__pycache__/test_notifications.cpython-312.pyc
+e2b5abcbde919ff1ce0facc84775557419042a37b9242866008ea7d3214fc4b0  ./app/backend/ptw/tests/__pycache__/test_workflow_statuses.cpython-312.pyc
+022dd6a7490fe891a7d324a7c9c208556b4cf3e6d1ce828ad1910688e6a8830d  ./app/backend/ptw/tests/__pycache__/test_throttling.cpython-312.pyc
+259858c68ba857480c989c4efeb3bcebfb6fc032aaf1555902aa820e7fbc566e  ./app/backend/ptw/tests/__pycache__/test_readiness_endpoint.cpython-312.pyc
+ef725c269ba7387685aaa20a9326e3c41ff1feca24550a07c04e7f0ecd77575a  ./app/backend/ptw/tests/__pycache__/test_filters_and_pagination.cpython-312.pyc
+cf84996121945ab25614c65e3ba61362f494d84d977a7fed329772a8e9ee6d69  ./app/backend/ptw/tests/__pycache__/test_exports.cpython-312.pyc
+899faae5acfb0bc55588117d2eb4843549fc3dc8bd7ba7c6cb000b070b7253c9  ./app/backend/ptw/tests/__pycache__/test_signature_gating.cpython-312.pyc
+542d1955cb23a378f1c52792f748cc4ceaff182f5411f54072db330e182225c4  ./app/backend/ptw/tests/__pycache__/test_closeout.cpython-312.pyc
+b3646272a6ff47343e1e9dcbc2b72b2c349eb8a11513a26b92e8eb54d6d0c3ce  ./app/backend/ptw/tests/__pycache__/test_notifications.cpython-312-pytest-8.3.5.pyc
+06ae24c4965b3bfd2452b548db0f15743473d68691c73b2dbcaa7a8bd984a416  ./app/backend/ptw/tests/__pycache__/test_kpis.cpython-312-pytest-8.3.5.pyc
+4a343ccd8f44658b2c2f25be33ebb58fdeac7679b5beb80a06dac8705cd017e5  ./app/backend/ptw/tests/__pycache__/test_offline_sync_conflicts.cpython-312.pyc
+0ddb2dc4dab069bf656dcf63099e9cd48ee003632dc77ddf4dcaaeb7f1a71d94  ./app/backend/ptw/tests/__pycache__/test_isolation_points.cpython-312-pytest-8.3.5.pyc
+80c9247ca5ca83c8a08a64f8f8aa636619d161c9055055bcf861b287a7f5d732  ./app/backend/ptw/tests/__pycache__/test_workflow_statuses.cpython-312-pytest-8.3.5.pyc
+752ea809d442c14dbf06b88d7e1ecf1d1e9925f5e709b8b95839bc6e7705b7fd  ./app/backend/ptw/tests/__pycache__/test_throttling.cpython-312-pytest-8.3.5.pyc
+602720c5d31aaf52e7fb54223461417e5618273ead5611af12932276c358fce3  ./app/backend/ptw/tests/__pycache__/test_readiness_regressions.cpython-312.pyc
+d908cd1761b0c1365f2bff7ec43fa60a5f769161a6de163f81976821631c1613  ./app/backend/ptw/tests/__pycache__/test_pr5_serializers.cpython-312-pytest-8.3.5.pyc
+41f454d73943df6c9645046bc7ecb3e47957db66f9f0ae41a19881b93965aa1d  ./app/backend/ptw/tests/__pycache__/test_exports.cpython-312-pytest-8.3.5.pyc
+adfc3c98a825baa74ea4f0db66c22387265b13c0278caf4f4d8ab21bcac7de5d  ./app/backend/ptw/tests/__pycache__/test_permissions_regression.cpython-312.pyc
+9b3fec34983e29de0cda6780240e144fddfec64071e8a44e414a4c92a04fc3b5  ./app/backend/ptw/tests/__pycache__/test_health_endpoint.cpython-312.pyc
+378052b7b35c25a5d4a876285e032bd424d12d10b7c7d2067de7dba78251a7d3  ./app/backend/ptw/tests/__pycache__/test_analytics.cpython-312.pyc
+1990d1ef5a9f7b3d060162ccf6e478efaab1b3f556975b7bddb7138e4601fdb6  ./app/backend/ptw/tests/__pycache__/test_signature_mapping.cpython-312.pyc
+44ad30938cdce51f13e064ad35b3873ce8a25244a73694b2029c84a95358cb7c  ./app/backend/ptw/tests/__pycache__/test_permit_creation_and_qr.cpython-312-pytest-8.3.5.pyc
+36253413ccee1aa1a454d6a78abbae5b39422bec7c8bbe74e26bf968519c3dd6  ./app/backend/ptw/tests/test_tbt.py
+8fcf03382a87c5bd9d28d2a9039f8d66039c8ebea760092f9b0030017c507312  ./app/backend/ptw/tests/test_shared_helpers_example.py
+6845f08aa2f13bb49f6f93a4b5c8164bdde9e3db414bbb974ecb1a13d4eaa010  ./app/backend/ptw/tests/test_exports.py
+7f97ba5ff067be4b6909059d150e387fe0f1ab8751cd3a09c803e22b23c5a691  ./app/backend/ptw/tests/test_throttling.py
+77af2827bce9dfcf149e539206dcf5b72f0310cba2ba3364ec03793d33895213  ./app/backend/ptw/tests/test_workflow_statuses.py
+0c00e95492d35cfcc6148006c5d160b93a89a5fd56707ceded7853cfcce74e2d  ./app/backend/ptw/tests/test_webhooks.py
+13852ddaeb7de11a7e77cf4755ed26f15c77e1db82b487ae5a94c71f0a47a20a  ./app/backend/ptw/tests/test_kpis.py
+b57e04e63b81837868a5c31118e404a373d711066e174a018353ac30e411a329  ./app/backend/ptw/tests/test_pr5_serializers.py
+1aa533a3c49d899527fb2c9af4be78b9e3e449b9876d9af2a47b2f1607fb9fb8  ./app/backend/ptw/tests/test_analytics.py
+27e802d0e2593a84526202772c0cba63757063e9e0ddad557aeede6a0058abbc  ./app/backend/ptw/tests/test_readiness_regression.py
+3746ddcb3dcccd21578f0aefb3980440d906d7852192e36713ae09d3e0d438d4  ./app/backend/ptw/tests/test_signature_permissions.py
+7862b6400d965839ce4f0f08f94a3f020baccbc8d46747d6150edcb58ea5b672  ./app/backend/ptw/tests/test_workflow_selection.py
+bc32ac277636e279bf4de0f7b8f63c05a2acd52933a6cb8efd4b3db5eb7d5bf9  ./app/backend/ptw/tests/test_consolidated_architecture.py
+2f7aa7f30346f45a186a0262aa9c27a12d58eeedeb5e0c6928e9829d23f21092  ./app/backend/ptw/tests/test_reports.py
+ef4e4588d261d879f596a82b9e06b500d99dbc2db65f4dd971413a23403a2abd  ./app/backend/ptw/tests/test_readiness_regressions.py
+04bcaa3cfaae777a3f6a4a39183472030afb413bcf2cd1e9f75d890c70ab2dc0  ./app/backend/ptw/readiness.py
+829489563762bab63917b72c1014df3fbcd8be906faa6043923491a489ac9e1a  ./app/frontend/src/features/ptw/routes.tsx
+0e5daccf1ea992ae22ba8ba0e28992dc6ec7c53d365a5a7420a7cbce2a7d7492  ./app/frontend/src/features/ptw/components/SyncStatusIndicator.tsx
+a9a58f5b09e68a4056c6e5124250f6854809bbece4ef01eb61101903e3adcdc4  ./app/frontend/src/features/ptw/components/MobilePermitApp.tsx
+36d0b3e572399aef79e65682bf56c13e566a258f4046ca4b37c831bedeff018b  ./app/frontend/src/features/ptw/components/EnhancedPermitForm.tsx
+3286fb25b816ff7079cac546e42f152fc54795d59b45b3aaa8ffc088784ccf08  ./app/frontend/src/features/ptw/components/PTWRecordPrintPreview.tsx.backup
+12adafb442b7aa2759c90224052e98d1baf897ac84c1f5827cf680d72dfefa63  ./app/frontend/src/features/ptw/components/PTWPrintPreview.tsx
+236621caf71220785608d36808b45d544c6a5248f6cf112865e06e243272488a  ./app/frontend/src/features/ptw/components/PTWKPIDashboard.tsx
+b3c31ae9e2329795b9fce451f80ab0750023e76eb37a2d6ae578a349c757a9ad  ./app/frontend/src/features/ptw/components/MobilePermitView.tsx
+1e1a2398b6bbd43f1cbeec0e85eca46c0d6d5cd2cbaf01666c9c6a960436328d  ./app/frontend/src/features/ptw/components/WorkflowManager.tsx
+db13feae10ad73434ea505093eb71414540140b6fbb12a7a4cfd783cb85eb53f  ./app/frontend/src/features/ptw/components/PTWRecordPrintPreview.tsx
+04dd2e39cd525801faace004e39c0ae825c624b996c5360f2f3c41eaea56720f  ./app/frontend/src/features/ptw/components/PTWStandardPrint.css
+ce299a4570ab56ca4d8564d82d045f12c04c3ac519bde2c8cbdce93f6bc5a8a8  ./app/frontend/src/features/ptw/components/EnhancedPermitForm.tsx.backup
+23b2727f63e53e16fe89b9553359358ca61eb984469f63f4517cda9b31d20e57  ./app/frontend/src/features/ptw/components/ComplianceDashboard.tsx
+d191879fb9ac8c0e566ad272626ef9580cebb22e6e793798cd65a56500b2de54  ./app/frontend/src/features/ptw/components/index.ts
+a8e1847a5afac9f05775abf4db897d563a054c519c10e28091b11bd247d85076  ./app/frontend/src/features/ptw/components/PTWStandardPrint.tsx
+69ce4d3e2d2987e869b53895795ac03e07429ce24ca2f8fed212d5e988c72bcd  ./app/frontend/src/features/ptw/components/WorkflowTaskDashboard.tsx
+0d4f4356cbf5b84edb501995930583092c5d90d79cfbd2b811bad4b2d099c83b  ./app/frontend/src/features/ptw/components/ExportButtons.tsx
+c280a11f9a3cb472324074adf4b43bd046e3b82b138eaecb6939207721f17ac2  ./app/frontend/src/features/ptw/components/PermitList.tsx
+fee0841da492874bdb03b50aa35f6bf93fea5e66fb9e2075db84e4efd765eefb  ./app/frontend/src/features/ptw/components/IntegrationHub.tsx
+1b20a144c3e94502bcb3478099ac6cac8d27ef134fa2ccacd82a5ab56364b0b2  ./app/frontend/src/features/ptw/components/PermitDetail.tsx
+644c07a0de5aaee0850f36f878722aaa9fac3a3ee2cb3b005ef2edabd6b16f73  ./app/frontend/src/features/ptw/components/ReadinessPanel.tsx
+3e0dcd4ebe65fbeae8b5f7369c4589d35296e25ba2aac85ca375cad259b1016c  ./app/frontend/src/features/ptw/components/PTWReports.tsx
+1ed411f34dd7d6d775c297373fe3d253669c0b084fd7d2dae0aaa946388ee919  ./app/frontend/src/features/ptw/components/PTWLayout.tsx
+e1e50f89e13dab646d7826e59b2954d1541831abd8831d9d0a17f9abb37eed3a  ./app/frontend/src/features/ptw/components/SyncConflictsPage.tsx
+abaeb8224a521655aafac619b84f794ff49bcacae6bcd1f8c29d3944cc43531e  ./app/frontend/src/features/ptw/components/PersonnelSelect.tsx
+6372c389537aebafcf9c09fac9103a7e14e0452f820d06026c422ece209180fb  ./app/frontend/src/features/ptw/components/TimeExtensionModal.tsx
+118e95a202e07c80e4fe1776ceb836a5619a0298d8c633187db6b4a84f65f23d  ./app/frontend/src/features/ptw/api.ts
+3c02d37388eb6b993e147f2038708249f87b3184d9eb1b88615dcd58e8417430  ./app/frontend/src/features/ptw/utils/ptwConstants.ts
+67c57ad87a1f9e79652930795541f6ccb0aae2a87e6257bf7bef82084c5e8571  ./app/frontend/src/features/ptw/utils/downloadHelper.ts
+6e69bed9d9631eae2fe34b4e630fb04d74b810042e7f1a8d03145d3d1dd91f1b  ./app/frontend/src/features/ptw/utils/workflowGuards.ts
+15510f15f3d20f64f5d944587510010e8139c6fceedc8db05395ce3cbd8ce8c4  ./app/frontend/src/features/ptw/types/offlineSync.ts
+6d4c25cf2a50e52aaa57f4337ffe86ca0f9bcca8ea0472f005d5e1c6b578e840  ./app/frontend/src/features/ptw/types/index.ts
+19d45d970772af412deac9624a0e528d8ac4078437bc933712d542c40f2a37ab  ./app/frontend/src/features/ptw/hooks/useOfflineSync2.ts
+1d72978e17bf3761c4bcb5fa3b5c16d29a01cdcf560e6dd13a6650af9e4dfca1  ./app/frontend/src/features/ptw/hooks/useOfflineSync.ts

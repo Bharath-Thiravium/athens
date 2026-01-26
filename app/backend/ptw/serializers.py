@@ -49,10 +49,10 @@ class GasReadingSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = GasReading
-        fields = ['id', 'gas_type', 'reading', 'unit', 'acceptable_range', 
+        fields = ['id', 'permit', 'gas_type', 'reading', 'unit', 'acceptable_range', 
                   'status', 'tested_by', 'tested_by_details', 'tested_at', 
                   'equipment_used', 'calibration_date']
-        read_only_fields = ['tested_at']
+        read_only_fields = ['tested_at', 'tested_by']
 
 class PermitPhotoSerializer(serializers.ModelSerializer):
     taken_by_details = UserMinimalSerializer(source='taken_by', read_only=True)
@@ -65,12 +65,115 @@ class PermitPhotoSerializer(serializers.ModelSerializer):
 
 class DigitalSignatureSerializer(serializers.ModelSerializer):
     signatory_details = UserMinimalSerializer(source='signatory', read_only=True)
+    # Normalized fields for standardized signature appearance
+    signer_name = serializers.SerializerMethodField()
+    employee_id = serializers.SerializerMethodField()
+    designation = serializers.SerializerMethodField()
+    department = serializers.SerializerMethodField()
+    company_logo_url = serializers.SerializerMethodField()
+    signature_render_mode = serializers.SerializerMethodField()
     
     class Meta:
         model = DigitalSignature
         fields = ['id', 'signature_type', 'signatory', 'signatory_details', 
-                  'signature_data', 'signed_at', 'ip_address', 'device_info']
+                  'signature_data', 'signed_at', 'ip_address', 'device_info',
+                  'signer_name', 'employee_id', 'designation', 'department', 'company_logo_url',
+                  'signature_render_mode']
         read_only_fields = ['signed_at']
+    
+    def get_signer_name(self, obj):
+        user = obj.signatory
+        if not user:
+            return 'Unknown'
+        full_name = f"{user.name or ''} {user.surname or ''}".strip()
+        return full_name or user.username
+    
+    def get_employee_id(self, obj):
+        user = obj.signatory
+        if not user:
+            return None
+        # Try UserDetail first, then AdminDetail
+        try:
+            if hasattr(user, 'user_detail') and user.user_detail.employee_id:
+                return user.user_detail.employee_id
+        except:
+            pass
+        return getattr(user, 'employee_id', None)
+    
+    def get_designation(self, obj):
+        user = obj.signatory
+        return getattr(user, 'designation', None) if user else None
+    
+    def get_department(self, obj):
+        user = obj.signatory
+        return getattr(user, 'department', None) if user else None
+    
+    def get_company_logo_url(self, obj):
+        user = obj.signatory
+        if not user:
+            return None
+        
+        request = self.context.get('request')
+        if not request:
+            return None
+        
+        # Use existing logo hierarchy logic
+        logo = self._get_company_logo(user)
+        if logo:
+            return request.build_absolute_uri(logo.url)
+        return None
+    
+    def _get_company_logo(self, user):
+        """Get company logo based on user type and hierarchy"""
+        from authentication.models import CustomUser
+        
+        # For EPC project admins, inherit from master's CompanyDetail
+        if user.user_type == 'projectadmin' and user.admin_type == 'epc':
+            try:
+                master_admin = CustomUser.objects.filter(admin_type='master').first()
+                if master_admin and hasattr(master_admin, 'company_detail'):
+                    company_detail = master_admin.company_detail
+                    if company_detail and company_detail.company_logo:
+                        return company_detail.company_logo
+            except:
+                pass
+        
+        # For other project admins, use their AdminDetail logo
+        elif user.user_type == 'projectadmin':
+            try:
+                admin_detail = user.admin_detail
+                if admin_detail and admin_detail.logo:
+                    return admin_detail.logo
+            except:
+                pass
+
+        # For EPCuser, inherit directly from master's CompanyDetail
+        elif user.user_type == 'adminuser' and user.admin_type == 'epcuser':
+            try:
+                master_admin = CustomUser.objects.filter(admin_type='master').first()
+                if master_admin and hasattr(master_admin, 'company_detail'):
+                    company_detail = master_admin.company_detail
+                    if company_detail and company_detail.company_logo:
+                        return company_detail.company_logo
+            except:
+                pass
+        
+        # For other admin users, get logo from their creator
+        elif user.user_type == 'adminuser' and user.created_by:
+            return self._get_company_logo(user.created_by)
+
+        return None
+
+    def get_signature_render_mode(self, obj):
+        # Check if signature_data contains precomposed card indicators
+        if obj.signature_data:
+            signature_data = str(obj.signature_data)
+            # If contains placeholder text or is a template-generated card, it's a card
+            if ('[TO_BE_FILLED]' in signature_data or 
+                'Digitally signed by' in signature_data or
+                signature_data.startswith('data:image/png;base64,')):
+                return 'card'
+        return 'raw'
 
 
 class PermitWorkerSerializer(serializers.ModelSerializer):
@@ -105,6 +208,17 @@ class PermitToolboxTalkAttendanceSerializer(serializers.ModelSerializer):
             'id', 'tbt', 'permit_worker', 'permit_worker_details',
             'acknowledged', 'acknowledged_at', 'ack_signature'
         ]
+
+class AssignVerifierSerializer(serializers.Serializer):
+    verifier_id = serializers.IntegerField(required=False)
+    verifier = serializers.IntegerField(required=False)
+
+    def validate(self, attrs):
+        verifier_id = attrs.get('verifier_id') or attrs.get('verifier')
+        if not verifier_id:
+            raise serializers.ValidationError({'verifier_id': 'Verifier ID is required.'})
+        attrs['verifier_id'] = verifier_id
+        return attrs
 
 class WorkflowStepSerializer(serializers.ModelSerializer):
     assignee_details = UserMinimalSerializer(source='assignee', read_only=True)
@@ -310,6 +424,7 @@ class PermitSerializer(serializers.ModelSerializer):
             # Compliance
             'compliance_standards',
             'permit_parameters',
+            'other_hazards',
             
             # Related Collections
             'assigned_workers', 'identified_hazards', 'gas_readings', 'photos',
@@ -381,6 +496,11 @@ class PermitSerializer(serializers.ModelSerializer):
             'requestor': pick_signature('requestor', 'issuer'),
             'verifier': pick_signature('verifier', 'receiver'),
             'approver': pick_signature('approver'),
+            'issuer': pick_signature('issuer'),
+            'receiver': pick_signature('receiver'),
+            'safety_officer': pick_signature('safety_officer'),
+            'area_manager': pick_signature('area_manager'),
+            'witness': pick_signature('witness'),
         }
 
     def get_toolbox_talk_attendance(self, obj):
@@ -396,6 +516,7 @@ class PermitListSerializer(serializers.ModelSerializer):
     created_by_details = UserMinimalSerializer(source='created_by', read_only=True)
     issuer_details = UserMinimalSerializer(source='issuer', read_only=True)
     receiver_details = UserMinimalSerializer(source='receiver', read_only=True)
+    verifier_details = UserMinimalSerializer(source='verifier', read_only=True)
     
     # Computed fields
     is_expired = serializers.SerializerMethodField()
@@ -410,8 +531,8 @@ class PermitListSerializer(serializers.ModelSerializer):
             'title', 'location', 'status', 'priority', 'risk_level',
             'planned_start_time', 'planned_end_time', 'created_at',
             'created_by', 'created_by_details', 'issuer', 'issuer_details',
-            'receiver', 'receiver_details', 'is_expired', 'risk_color',
-            'status_color', 'workers_count'
+            'receiver', 'receiver_details', 'verifier', 'verifier_details', 
+            'is_expired', 'risk_color', 'status_color', 'workers_count'
         ]
     
     def get_is_expired(self, obj):
@@ -491,7 +612,8 @@ class PermitCreateUpdateSerializer(serializers.ModelSerializer):
             'special_instructions', 'safety_checklist', 'requires_isolation',
             'isolation_details', 'isolation_certificate',
             'work_procedure', 'method_statement', 'risk_assessment_doc',
-            'mobile_created', 'offline_id', 'compliance_standards', 'permit_parameters'
+            'mobile_created', 'offline_id', 'compliance_standards', 'permit_parameters',
+            'other_hazards', 'verifier', 'status'
         ]
     
     def validate_permit_type(self, value):
@@ -540,6 +662,9 @@ class PermitCreateUpdateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Set created_by to current user
         validated_data['created_by'] = self.context['request'].user
+        
+        # Set receiver = creator (requestor = receiver = creator)
+        validated_data['receiver'] = self.context['request'].user
         
         # Set project from user's project
         user_project = getattr(self.context['request'].user, 'project', None)

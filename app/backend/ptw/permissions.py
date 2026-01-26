@@ -1,4 +1,5 @@
 from rest_framework import permissions
+from .ptw_permissions import ptw_permissions
 
 class CanManagePermits(permissions.BasePermission):
     """
@@ -96,24 +97,7 @@ class CanApprovePermits(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
-
-        # Only allow approval if permit is in correct status
-        if obj.status not in ['under_review', 'submitted']:
-            return False
-
-        # Client users can approve contractor and client permits
-        if (hasattr(request.user, 'django_user_type') and request.user.django_user_type == 'adminuser' and
-            hasattr(request.user, 'admin_type') and request.user.admin_type == 'clientuser' and
-            hasattr(request.user, 'grade') and request.user.grade in ['A', 'B', 'C']):
-            return True
-
-        # EPC A grade can approve EPC permits
-        if (hasattr(request.user, 'django_user_type') and request.user.django_user_type == 'adminuser' and
-            hasattr(request.user, 'admin_type') and request.user.admin_type == 'epcuser' and
-            hasattr(request.user, 'grade') and request.user.grade == 'A'):
-            return True
-
-        return False
+        return ptw_permissions.can_approve(request.user, obj)
 
 class CanVerifyPermits(permissions.BasePermission):
     """
@@ -144,22 +128,4 @@ class CanVerifyPermits(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
-            
-        # Only allow verification if permit is in submitted status
-        if obj.status != 'submitted':
-            return False
-
-        # EPC users can verify contractor and EPC permits
-        if (hasattr(request.user, 'django_user_type') and request.user.django_user_type == 'adminuser' and
-            hasattr(request.user, 'admin_type') and request.user.admin_type == 'epcuser' and
-            hasattr(request.user, 'grade') and request.user.grade in ['B', 'C']):
-            return True
-
-        # Client B grade can verify client permits
-        if (hasattr(request.user, 'django_user_type') and request.user.django_user_type == 'adminuser' and
-            hasattr(request.user, 'admin_type') and request.user.admin_type == 'clientuser' and
-            hasattr(request.user, 'grade') and request.user.grade == 'B'):
-            return True
-                
-        return False
-
+        return ptw_permissions.can_verify(request.user, obj)

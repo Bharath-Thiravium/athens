@@ -37,8 +37,13 @@ const PrintDocumentTemplate: React.FC<PrintDocumentTemplateProps> = ({
 }) => {
   const apiBase = import.meta.env.VITE_API_BASE_URL || '';
   const baseFromApi = apiBase ? apiBase.replace(/\/api\/?.*$/, '') : '';
-  const defaultLogo = baseFromApi ? `${baseFromApi}/media/logo.png` : '/media/logo.png';
-  const logoSrc = companyLogo || defaultLogo;
+  const logoCandidates = [
+    companyLogo,
+    baseFromApi ? `${baseFromApi}/media/company_logos/PROZEAL_GREEN_ENERGY_TM_LOGO.png` : '/media/company_logos/PROZEAL_GREEN_ENERGY_TM_LOGO.png',
+    baseFromApi ? `${baseFromApi}/media/company_logos/Prozeal_Logo.png` : '/media/company_logos/Prozeal_Logo.png',
+    baseFromApi ? `${baseFromApi}/logo.png` : '/logo.png'
+  ].filter(Boolean) as string[];
+  const logoSrc = logoCandidates[0];
 
   return (
     <div className="print-document">
@@ -53,8 +58,16 @@ const PrintDocumentTemplate: React.FC<PrintDocumentTemplateProps> = ({
                 className="company-logo"
                 onError={(event) => {
                   const target = event.currentTarget as HTMLImageElement;
-                  target.style.display = 'none';
+                  const currentIndex = Number(target.dataset.logoIndex || '0');
+                  const nextIndex = currentIndex + 1;
+                  if (nextIndex < logoCandidates.length) {
+                    target.dataset.logoIndex = String(nextIndex);
+                    target.src = logoCandidates[nextIndex];
+                  } else {
+                    target.style.display = 'none';
+                  }
                 }}
+                data-logo-index="0"
               />
             </td>
             <td className="company-section">

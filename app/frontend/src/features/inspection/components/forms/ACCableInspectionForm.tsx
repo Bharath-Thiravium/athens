@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { inspectionService } from '../../services/inspectionService';
 import useAuthStore from '@common/store/authStore';
 import api from '@common/utils/axiosetup';
+import { fetchSignaturePreviewUrl } from '@common/utils/signaturePreview';
 import PageLayout from '@common/components/PageLayout';
 import DigitalSignature from '../../../../components/DigitalSignature';
 import InspectionPrintPreview from '../InspectionPrintPreview';
@@ -40,6 +41,7 @@ const ACCableInspectionForm: React.FC = () => {
   useEffect(() => {
     const fetchUserDetails = async () => {
       try {
+        const backendBaseUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
         // Fetch user details and company data
         const [userResponse, companyResponse] = await Promise.all([
           api.get('/authentication/userdetail/'),
@@ -51,15 +53,11 @@ const ACCableInspectionForm: React.FC = () => {
         
         // Get signature template URL from API
         let signatureTemplate = null;
-        
+
         try {
-          const sigResponse = await api.get('/authentication/signature/template/preview/');
-          if (sigResponse.data.success && sigResponse.data.template_url) {
-            signatureTemplate = sigResponse.data.template_url.startsWith('http') 
-              ? sigResponse.data.template_url 
-              : `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}${sigResponse.data.template_url}`;
-          }
+          signatureTemplate = await fetchSignaturePreviewUrl();
         } catch (error) {
+          console.warn('Failed to load signature template preview:', error);
         }
         
         
@@ -67,7 +65,7 @@ const ACCableInspectionForm: React.FC = () => {
           ...userDetails,
           company_name: companyData.company_name,
           signature_template: signatureTemplate,
-          logo_url: companyData.company_logo ? `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}${companyData.company_logo}` : null
+          logo_url: companyData.company_logo ? `${backendBaseUrl}${companyData.company_logo}` : null
         });
         
         // Auto-fill tested by fields with current user info
@@ -396,7 +394,7 @@ const ACCableInspectionForm: React.FC = () => {
         {userDetails?.signature_template && (
           <div className="flex justify-center p-4">
             <img 
-              src={userDetails.signature_template.startsWith('http') ? userDetails.signature_template : `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}${userDetails.signature_template}`}
+              src={userDetails.signature_template}
               alt="Digital Signature Preview" 
               className="max-w-full max-h-96 object-contain"
             />

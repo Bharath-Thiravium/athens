@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Card, Descriptions, Tag, Button, Space, Tabs, Table, Alert,
-  Timeline, Modal, Form, Input, App, Spin,
+  Timeline, Modal, Form, Input, App, Spin, Tooltip,
   Typography, Divider, DatePicker, Image, message, Select, Upload, Checkbox
 } from 'antd';
 import { QrcodeOutlined, PrinterOutlined } from '@ant-design/icons';
@@ -9,7 +9,7 @@ import {
   CheckCircleOutlined, CloseCircleOutlined, 
   ExclamationCircleOutlined, ClockCircleOutlined,
   FileTextOutlined, HistoryOutlined,
-  TeamOutlined, ToolOutlined, SafetyOutlined
+  TeamOutlined, ToolOutlined, SafetyOutlined, EditOutlined, ArrowLeftOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -35,7 +35,7 @@ import {
   normalizeGrade,
 } from '../utils/workflowGuards';
 import ReadinessPanel from './ReadinessPanel';
-import { useDigitalSignature } from '../../user/hooks/useDigitalSignature';
+import PersonnelSelect from './PersonnelSelect';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -95,8 +95,6 @@ const PermitDetail: React.FC = () => {
   const [verificationForm] = Form.useForm();
   const [verificationRejectionForm] = Form.useForm();
   const [tbtForm] = Form.useForm();
-
-  const { generateSignature, loading: signatureLoading } = useDigitalSignature();
   
   const handleGenerateQR = async () => {
     if (!id || id === 'new' || !permit?.id || typeof permit.id !== 'number') {
@@ -127,32 +125,33 @@ const PermitDetail: React.FC = () => {
     return user.username || user.email || 'Unknown';
   };
 
-  const signatureUrlToDataUrl = async (signatureUrl: string) => {
-    const response = await fetch(signatureUrl);
-    const blob = await response.blob();
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error('Failed to read signature data'));
-      reader.readAsDataURL(blob);
-    });
-  };
-
   const handleAddSignature = async (signatureType: 'requestor' | 'verifier' | 'approver') => {
     if (!id) return;
+    
+    // Check if already signed
+    const signatureMap = permit?.signatures_by_type || {};
+    const existingSignature = signatureMap[signatureType];
+    
+    if (existingSignature) {
+      message.warning(`This permit has already been signed as ${signatureType}. Duplicate signatures are not allowed.`);
+      return;
+    }
+    
     setSignatureSaving(true);
     try {
-      const signatureUrl = await generateSignature();
-      if (!signatureUrl) return;
-      const signatureData = await signatureUrlToDataUrl(signatureUrl);
+      // Backend will generate the proper signed document signature automatically
       await addPermitSignature(parseInt(id), {
-        signature_type: signatureType,
-        signature_data: signatureData
+        signature_type: signatureType
       });
       message.success('Signature captured');
       fetchPermit();
     } catch (error: any) {
-      const errorMsg = error?.response?.data?.error || 'Failed to capture signature';
+      let errorMsg = 'Failed to capture signature';
+      if (error.response?.status === 404) {
+        errorMsg = 'No signature template found. Please create one in your profile.';
+      } else if (error?.response?.data?.error) {
+        errorMsg = error.response.data.error;
+      }
       message.error(errorMsg);
     } finally {
       setSignatureSaving(false);
@@ -328,7 +327,17 @@ const PermitDetail: React.FC = () => {
       setApprovalModal(false);
       fetchPermit();
     } catch (error: any) {
-      if (error?.response?.data?.isolation) {
+      if (error?.response?.data?.signature) {
+        message.error({
+          content: error.response.data.signature.message,
+          duration: 5
+        });
+        // Auto-open signature modal if signature missing
+        if (error.response.data.signature.missing?.includes('approver')) {
+          message.info('Please provide your digital signature before approval.');
+        }
+        setApprovalModal(false);
+      } else if (error?.response?.data?.isolation) {
         message.error({
           content: error.response.data.isolation,
           duration: 5
@@ -558,6 +567,7 @@ const PermitDetail: React.FC = () => {
       });
 
       message.success('Permit verified and sent for approval');
+      refreshReadiness();
       
       // Send notification to all users of selected grade
       const selectedApprover = availableApprovers.find((user) => user.id === values.approver_id);
@@ -592,8 +602,19 @@ const PermitDetail: React.FC = () => {
 
       setVerificationModal(false);
       fetchPermit();
-    } catch (error) {
-      message.error('Failed to verify permit');
+    } catch (error: any) {
+      if (error?.response?.data?.signature) {
+        message.error({
+          content: error.response.data.signature.message,
+          duration: 5
+        });
+        // Auto-open signature modal if signature missing
+        if (error.response.data.signature.missing?.includes('verifier')) {
+          message.info('Please provide your digital signature before verification.');
+        }
+      } else {
+        message.error('Failed to verify permit');
+      }
     } finally {
       setActionLoading(false);
     }
@@ -862,79 +883,179 @@ const PermitDetail: React.FC = () => {
     const { status } = permit;
 
     return (
-      <Space>
+      <Space size="small">
         {status === 'draft' && (
-          <Button type="primary" onClick={() => navigate(`/dashboard/ptw/edit/${id}`)}>
-            Edit Permit
-          </Button>
+          <Tooltip title="Edit Permit">
+            <Button 
+              shape="circle" 
+              type="primary" 
+              icon={<EditOutlined />} 
+              onClick={() => navigate(`/dashboard/ptw/edit/${id}`)}
+            />
+          </Tooltip>
         )}
 
         {(status === 'submitted' || status === 'under_review') && canVerifyPermit(permit) && (
           <>
-            <Button type="primary" onClick={() => {
-              fetchAvailableApprovers();
-              setVerificationModal(true);
-            }}>
-              Verify Permit
-            </Button>
-            <Button danger onClick={() => setVerificationRejectionModal(true)}>
-              Reject Verification
-            </Button>
+            <Tooltip title="Verify Permit">
+              <Button 
+                shape="circle" 
+                type="primary" 
+                icon={<CheckCircleOutlined />} 
+                onClick={() => {
+                  fetchAvailableApprovers();
+                  setVerificationModal(true);
+                }}
+              />
+            </Tooltip>
+            <Tooltip title="Reject Verification">
+              <Button 
+                shape="circle" 
+                danger 
+                icon={<CloseCircleOutlined />} 
+                onClick={() => setVerificationRejectionModal(true)}
+              />
+            </Tooltip>
           </>
         )}
 
+        {(status === 'draft' || status === 'submitted' || status === 'pending_verification') &&
+          permit.created_by === useAuthStore.getState().userId && (
+          <Tooltip title={permit.verifier ? 'Change Verifier' : 'Assign Verifier'}>
+            <Button 
+              shape="circle" 
+              icon={<TeamOutlined />} 
+              onClick={() => {
+                Modal.confirm({
+                  title: permit.verifier ? 'Change Verifier' : 'Assign Verifier',
+                  content: (
+                    <div>
+                      {permit.verifier ? (
+                        <div>
+                          <p>Current verifier: <strong>{getDisplayName(permit.verifier_details)}</strong></p>
+                          <p>Select a new verifier:</p>
+                        </div>
+                      ) : (
+                        <p>Select a verifier for this permit:</p>
+                      )}
+                      <PersonnelSelect 
+                        placeholder="Search by name, department, or designation"
+                        userType="epcuser,clientuser"
+                        grade="B,C"
+                        style={{ width: '100%' }}
+                        onChange={(verifierId) => {
+                          (window as any).selectedVerifierId = verifierId;
+                        }}
+                      />
+                    </div>
+                  ),
+                  onOk: async () => {
+                    const verifierId = (window as any).selectedVerifierId;
+                    if (verifierId) {
+                      try {
+                        await api.post(`/api/v1/ptw/permits/${id}/workflow/assign-verifier/`, {
+                          verifier_id: verifierId
+                        });
+                        message.success(permit.verifier ? 'Verifier updated successfully' : 'Verifier assigned successfully');
+                        fetchPermit();
+                      } catch (error: any) {
+                        message.error(permit.verifier ? 'Failed to update verifier' : 'Failed to assign verifier');
+                      }
+                    } else {
+                      message.warning('Please select a verifier');
+                    }
+                  }
+                });
+              }}
+            />
+          </Tooltip>
+        )}
+
         {(status === 'submitted' || status === 'under_review') && !canVerifyPermit(permit) && (
-          <Button type="default" disabled>
-            Awaiting Verification
-          </Button>
+          <Tooltip title="Awaiting Verification">
+            <Button shape="circle" disabled icon={<ClockCircleOutlined />} />
+          </Tooltip>
         )}
 
         {['pending_approval', 'under_review'].includes(status) && canApprovePermit(permit) && (
           <>
-            <Button type="primary" onClick={() => setApprovalModal(true)}>
-              Approve Permit
-            </Button>
-            <Button danger onClick={() => setRejectionModal(true)}>
-              Reject Permit
-            </Button>
+            <Tooltip title="Approve Permit">
+              <Button 
+                shape="circle" 
+                type="primary" 
+                icon={<CheckCircleOutlined />} 
+                onClick={() => setApprovalModal(true)}
+              />
+            </Tooltip>
+            <Tooltip title="Reject Permit">
+              <Button 
+                shape="circle" 
+                danger 
+                icon={<CloseCircleOutlined />} 
+                onClick={() => setRejectionModal(true)}
+              />
+            </Tooltip>
           </>
         )}
 
         {['pending_approval', 'under_review'].includes(status) && !canApprovePermit(permit) && (
-          <Button type="default" disabled>
-            {permit.approved_by_details ? 
-              `Already approved by ${permit.approved_by_details.name}` : 
-              'Awaiting Approval'
-            }
-          </Button>
+          <Tooltip title={permit.approved_by_details ? 
+            `Already approved by ${permit.approved_by_details.name}` : 
+            'Awaiting Approval'
+          }>
+            <Button shape="circle" disabled icon={<ClockCircleOutlined />} />
+          </Tooltip>
         )}
 
         {status === 'approved' && (
-          <Button type="primary" onClick={handleStartWork}>
-            Start Work
-          </Button>
+          <Tooltip title="Start Work">
+            <Button 
+              shape="circle" 
+              type="primary" 
+              icon={<ToolOutlined />} 
+              onClick={handleStartWork}
+            />
+          </Tooltip>
         )}
 
         {status === 'active' && (
           <>
-            <Button type="primary" onClick={handleCompleteWork}>
-              Complete Work
-            </Button>
-            <Button onClick={() => setExtensionModal(true)}>
-              Request Extension
-            </Button>
+            <Tooltip title="Complete Work">
+              <Button 
+                shape="circle" 
+                type="primary" 
+                icon={<CheckCircleOutlined />} 
+                onClick={handleCompleteWork}
+              />
+            </Tooltip>
+            <Tooltip title="Request Extension">
+              <Button 
+                shape="circle" 
+                icon={<ClockCircleOutlined />} 
+                onClick={() => setExtensionModal(true)}
+              />
+            </Tooltip>
           </>
         )}
 
         {status === 'completed' && (
-          <Button type="primary" onClick={handleClosePermit}>
-            Close Permit
-          </Button>
+          <Tooltip title="Close Permit">
+            <Button 
+              shape="circle" 
+              type="primary" 
+              icon={<CheckCircleOutlined />} 
+              onClick={handleClosePermit}
+            />
+          </Tooltip>
         )}
 
-        <Button onClick={() => navigate('/dashboard/ptw')}>
-          Back to List
-        </Button>
+        <Tooltip title="Back to List">
+          <Button 
+            shape="circle" 
+            icon={<ArrowLeftOutlined />} 
+            onClick={() => navigate('/dashboard/ptw')}
+          />
+        </Tooltip>
       </Space>
     );
   };
@@ -955,25 +1076,24 @@ const PermitDetail: React.FC = () => {
           <Title level={4} style={{ margin: 0 }}>Permit: {permit.permit_number}</Title>
           <Typography.Text type="secondary">{permit.permit_type_details?.name}</Typography.Text>
         </div>
-        <Space>
+        <Space size="small">
           {getStatusTag(permit.status)}
-          <Button 
-            icon={<QrcodeOutlined />} 
-            onClick={handleGenerateQR}
-            type="default"
-            loading={qrLoading}
-            disabled={!permit?.id || typeof permit.id !== 'number' || id === 'new'}
-            title={!permit?.id || typeof permit.id !== 'number' || id === 'new' ? 'Save permit first to generate QR code' : 'Generate QR code for mobile access'}
-          >
-            Generate QR
-          </Button>
-          <Button
-            icon={<PrinterOutlined />}
-            type="default"
-            onClick={() => window.open(`/dashboard/ptw/print/${permit.id}`, '_blank')}
-          >
-            Print
-          </Button>
+          <Tooltip title={!permit?.id || typeof permit.id !== 'number' || id === 'new' ? 'Save permit first to generate QR code' : 'Generate QR code for mobile access'}>
+            <Button 
+              shape="circle"
+              icon={<QrcodeOutlined />} 
+              onClick={handleGenerateQR}
+              loading={qrLoading}
+              disabled={!permit?.id || typeof permit.id !== 'number' || id === 'new'}
+            />
+          </Tooltip>
+          <Tooltip title="Print Permit">
+            <Button
+              shape="circle"
+              icon={<PrinterOutlined />}
+              onClick={() => window.open(`/dashboard/ptw/print/${permit.id}`, '_blank')}
+            />
+          </Tooltip>
         </Space>
       </div>
       <Card style={{ height: '100%' }}>
@@ -1606,7 +1726,7 @@ const PermitDetail: React.FC = () => {
                 const signatureMap = permit.signatures_by_type || {};
                 const currentUserId = useAuthStore.getState().userId;
                 const canSignRequestor = Number(currentUserId) === Number(permit.created_by);
-                const canSignVerifier = Number(currentUserId) === Number(permit.verifier);
+                const canSignVerifier = Number(currentUserId) === Number(permit.verifier) && permit.verifier;
                 const canSignApprover = Number(currentUserId) === Number(permit.approver || permit.approved_by);
 
                 const resolveSignatureSrc = (signatureData?: string | null) => {
@@ -1626,35 +1746,45 @@ const PermitDetail: React.FC = () => {
                   canSign: boolean,
                   signatureType: 'requestor' | 'verifier' | 'approver',
                   fallbackName: string
-                ) => (
-                  <Card size="small" style={{ flex: 1, minWidth: 220 }}>
-                    <Title level={5} style={{ marginTop: 0 }}>{label}</Title>
-                    <div><Text strong>Name:</Text> {getDisplayName(signature?.signatory_details) || fallbackName}</div>
-                    <div><Text strong>Date:</Text> {signature?.signed_at ? dayjs(signature.signed_at).format('YYYY-MM-DD HH:mm') : 'Pending'}</div>
-                    <div style={{ marginTop: 8, minHeight: 60, borderBottom: '1px solid #ddd' }}>
-                      {signature?.signature_data ? (
-                        <Image
-                          src={resolveSignatureSrc(signature.signature_data) || ''}
-                          alt={`${label} Signature`}
-                          style={{ maxHeight: 60 }}
-                          preview={false}
-                        />
-                      ) : (
-                        <Text type="secondary">Signature: __________________</Text>
+                ) => {
+                  const isAlreadySigned = Boolean(signature);
+                  const shouldShowButton = canSign && !isAlreadySigned;
+                  
+                  return (
+                    <Card size="small" style={{ flex: 1, minWidth: 220 }}>
+                      <Title level={5} style={{ marginTop: 0 }}>{label}</Title>
+                      <div><Text strong>Name:</Text> {getDisplayName(signature?.signatory_details) || fallbackName}</div>
+                      <div><Text strong>Date:</Text> {signature?.signed_at ? dayjs(signature.signed_at).format('YYYY-MM-DD HH:mm') : 'Pending'}</div>
+                      <div style={{ marginTop: 8, minHeight: 60, borderBottom: '1px solid #ddd' }}>
+                        {signature?.signature_data ? (
+                          <Image
+                            src={resolveSignatureSrc(signature.signature_data) || ''}
+                            alt={`${label} Signature`}
+                            style={{ maxHeight: 60 }}
+                            preview={false}
+                          />
+                        ) : (
+                          <Text type="secondary">Signature: __________________</Text>
+                        )}
+                      </div>
+                      {shouldShowButton && (
+                        <Button
+                          type="primary"
+                          onClick={() => handleAddSignature(signatureType)}
+                          loading={signatureSaving}
+                          style={{ marginTop: 12 }}
+                        >
+                          Sign as {label}
+                        </Button>
                       )}
-                    </div>
-                    {canSign && (
-                      <Button
-                        type="primary"
-                        onClick={() => handleAddSignature(signatureType)}
-                        loading={signatureSaving || signatureLoading}
-                        style={{ marginTop: 12 }}
-                      >
-                        Sign as {label}
-                      </Button>
-                    )}
-                  </Card>
-                );
+                      {isAlreadySigned && (
+                        <div style={{ marginTop: 12 }}>
+                          <Tag color="green" icon={<CheckCircleOutlined />}>Signed</Tag>
+                        </div>
+                      )}
+                    </Card>
+                  );
+                };
 
                 return (
                   <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>

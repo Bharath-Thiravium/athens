@@ -46,7 +46,103 @@ export default function PTWRecordPrintPreview({ permitData }: PTWRecordPrintPrev
     return date.toLocaleString();
   };
 
-  const formatList = (value: any, emptyText: string = 'None specified') => {
+  const formatDateOnly = (value?: string) => {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('en-GB'); // DD/MM/YYYY format
+  };
+
+  const formatList = (value: any, emptyText: string = 'N/A') => {
+    if (!value) return emptyText;
+    if (Array.isArray(value)) {
+      const items = value
+        .map((item) => {
+          if (typeof item === 'string' || typeof item === 'number') {
+            return String(item);
+          }
+          if (item && typeof item === 'object') {
+            return item.label || item.name || item.key || item.text || '';
+          }
+          return '';
+        })
+        .filter(Boolean);
+      if (items.length === 0) return emptyText;
+      return items.map(item => escapeHtml(item)).join(', ');
+    }
+    if (typeof value === 'object') {
+      const keys = Object.keys(value);
+      if (keys.length === 0) return emptyText;
+      return keys.map(key => escapeHtml(key)).join(', ');
+    }
+    return escapeHtml(String(value));
+  };
+
+  const findSignatureByType = (permit: any, type: string) => {
+    // Check signatures_by_type first (preferred)
+    if (permit.signatures_by_type && permit.signatures_by_type[type]) {
+      const candidate = permit.signatures_by_type[type];
+      if (!candidate.signature_type || candidate.signature_type === type) {
+        return candidate;
+      }
+    }
+    
+    // Fallback to searching signatures array
+    if (permit.signatures && Array.isArray(permit.signatures)) {
+      return permit.signatures.find((sig: any) => sig.signature_type === type) || null;
+    }
+    
+    // Fallback to digital_signatures array
+    if (permit.digital_signatures && Array.isArray(permit.digital_signatures)) {
+      return permit.digital_signatures.find((sig: any) => sig.signature_type === type) || null;
+    }
+    
+    return null;
+  };
+
+  const getSignatureRenderMode = (sig?: Types.DigitalSignature | null) => (
+    sig?.signature_render_mode === 'raw' ? 'raw' : 'card'
+  );
+
+  const resolveSignatureSrc = (signatureData?: string | null) => {
+    if (!signatureData) return null;
+    const trimmed = signatureData.trim();
+    
+    // Handle data URL format (base64)
+    if (trimmed.startsWith('data:image/png;base64,')) {
+      try {
+        // Extract base64 part and decode JSON
+        const base64Data = trimmed.substring('data:image/png;base64,'.length);
+        const decoded = atob(base64Data);
+        const jsonData = JSON.parse(decoded);
+        
+        // If it's a JSON with template_url, use that
+        if (jsonData.template_url) {
+          return jsonData.template_url;
+        }
+      } catch (e) {
+        // If JSON parsing fails, treat as regular data URL
+      }
+      return trimmed;
+    }
+    
+    // Handle HTTP URLs
+    if (trimmed.startsWith('http')) return trimmed;
+    
+    // Handle media paths
+    if (trimmed.startsWith('/media/')) {
+      const baseUrl = window.location.origin;
+      return `${baseUrl}${trimmed}`;
+    }
+    
+    // Handle SVG content
+    if (trimmed.startsWith('<svg')) {
+      return `data:image/svg+xml;utf8,${encodeURIComponent(trimmed)}`;
+    }
+    
+    // Assume base64 without prefix
+    return `data:image/png;base64,${trimmed}`;
+  };
     if (!value) return emptyText;
     if (Array.isArray(value)) {
       const items = value
@@ -93,39 +189,68 @@ export default function PTWRecordPrintPreview({ permitData }: PTWRecordPrintPrev
   };
 
   const renderSignature = (type: string, permit: any, label: string) => {
-    const signatures = permit.signatures || [];
-    const sig = signatures.find((s: any) => s.signature_type === type);
+    // Use helper function to find signature
+    const sig = findSignatureByType(permit, type);
     
     if (!sig) {
       return `
         <div class="signature-box">
           <div class="signature-label">${label}</div>
-          <div class="signature-placeholder">________________</div>
-          <div class="signature-name">Name: ________________</div>
-          <div class="signature-date">Date: ________________</div>
+          <div class="adobe-signature-block">
+            <div class="signature-partitions">
+              <div class="signature-left">
+                <div class="signer-name">${label}</div>
+                <div class="designation">Not signed</div>
+              </div>
+              <div class="signature-divider"></div>
+              <div class="signature-right">
+                <div class="signed-by">Awaiting signature</div>
+                <div class="signed-at">Date: —</div>
+              </div>
+            </div>
+          </div>
         </div>
       `;
     }
 
-    const signatureData = typeof sig.signature_data === 'string' ? sig.signature_data : '';
-    const sigImage = signatureData.startsWith('data:image') 
-      ? signatureData 
-      : `data:image/png;base64,${signatureData}`;
+    // Extract signature details safely
+    const signerName = typeof sig.signer_name === 'string' ? sig.signer_name : 
+                      (sig.signatory_details?.full_name || sig.signatory_details?.username || 'Unknown');
+    const designation = typeof sig.designation === 'string' ? sig.designation : '';
+    const employeeId = typeof sig.employee_id === 'string' ? sig.employee_id : '';
+    const signedDate = formatDateOnly(sig.signed_at);
+    const signatureImageSrc = resolveSignatureSrc(sig.signature_data);
+    const renderMode = getSignatureRenderMode(sig);
     
-    const signatoryName = sig.signatory_details 
-      ? `${sig.signatory_details.first_name || ''} ${sig.signatory_details.last_name || ''}`.trim()
-      : sig.signatory_name || 'Unknown';
-    
-    const sigDate = sig.signed_at ? new Date(sig.signed_at).toLocaleString() : 'N/A';
+    if (renderMode === 'card') {
+      return `
+        <div class="signature-box">
+          <div class="signature-label">${label}</div>
+          <div class="signature-card-only">
+            ${signatureImageSrc ? `<img src="${signatureImageSrc}" alt="${label} Signature" class="signature-card-image" />` : '<div class="signature-placeholder">Signature on file</div>'}
+          </div>
+        </div>
+      `;
+    }
 
     return `
       <div class="signature-box">
         <div class="signature-label">${label}</div>
-        <div class="signature-image-container">
-          <img src="${sigImage}" alt="${label} signature" class="signature-image" />
+        <div class="adobe-signature-block signature-raw">
+          <div class="signature-partitions">
+            <div class="signature-left">
+              <div class="signer-name">${escapeHtml(signerName)}</div>
+              ${employeeId ? `<div class="employee-id">ID: ${escapeHtml(employeeId)}</div>` : ''}
+              ${designation ? `<div class="designation">${escapeHtml(designation)}</div>` : ''}
+            </div>
+            <div class="signature-divider"></div>
+            <div class="signature-right">
+              <div class="signed-by">Digitally signed by ${escapeHtml(signerName)}</div>
+              <div class="signed-at">Date: ${signedDate}</div>
+            </div>
+          </div>
+          ${signatureImageSrc ? `<div class="signature-hand-row"><img src="${signatureImageSrc}" alt="${label} Signature" class="signature-hand-img" /></div>` : ''}
         </div>
-        <div class="signature-name">Name: ${signatoryName}</div>
-        <div class="signature-date">Date: ${sigDate}</div>
       </div>
     `;
   };
@@ -284,7 +409,7 @@ export default function PTWRecordPrintPreview({ permitData }: PTWRecordPrintPrev
         </div>
 
         <div class="section">
-          <div class="section-title">Digital Signatures</div>
+          <div class="section-title">J. Digital Signatures</div>
           <div class="signature-grid">
             ${renderSignature('requestor', permitData, 'Permit Requestor')}
             ${renderSignature('verifier', permitData, 'Verifier')}
@@ -331,12 +456,24 @@ export default function PTWRecordPrintPreview({ permitData }: PTWRecordPrintPrev
             .iso-table th { background: #f2f2f2; font-weight: bold; text-align: center; }
             .iso-table .center { text-align: center; }
             .signature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
-            .signature-box { border: 1px solid #111; padding: 6px; text-align: center; min-height: 70px; }
-            .signature-label { font-weight: bold; margin-bottom: 4px; font-size: 8pt; }
-            .signature-image-container { min-height: 40px; margin: 4px 0; }
-            .signature-image { max-width: 150px; max-height: 40px; border: 1px solid #ddd; }
-            .signature-placeholder { min-height: 40px; border-bottom: 1px solid #111; margin: 4px 0; }
-            .signature-name, .signature-date { font-size: 7.5pt; margin: 2px 0; }
+            .signature-box { border: 1px solid #111; padding: 6px; text-align: left; min-height: 90px; }
+            .signature-label { font-weight: bold; margin-bottom: 4px; font-size: 8pt; text-align: center; }
+            .adobe-signature-block { position: relative; min-height: 70px; border: 1px solid #ddd; background: #fff; }
+            .signature-raw { display: flex; flex-direction: column; }
+            .signature-watermark { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-repeat: no-repeat; background-position: center; background-size: contain; pointer-events: none; }
+            .signature-partitions { display: flex; align-items: stretch; min-height: 70px; padding: 6px; position: relative; z-index: 1; }
+            .signature-left { flex: 1; padding-right: 6px; }
+            .signature-divider { width: 1px; background: #111; margin: 0 6px; }
+            .signature-right { flex: 1; padding-left: 6px; font-size: 7pt; }
+            .signer-name { font-weight: bold; font-size: 9pt; margin-bottom: 2px; }
+            .employee-id, .designation { font-size: 7pt; color: #666; margin-bottom: 1px; }
+            .signed-by { font-weight: 500; margin-bottom: 2px; }
+            .department { font-size: 6pt; color: #888; margin-bottom: 1px; }
+            .signature-card-only { display: flex; align-items: center; justify-content: center; min-height: 70px; border: 1px solid #ddd; background: #fff; }
+            .signature-card-image { max-width: 100%; max-height: 80px; object-fit: contain; }
+            .signature-hand-row { display: flex; align-items: center; justify-content: center; min-height: 50px; padding: 4px 6px; }
+            .signature-hand-img { max-width: 100%; max-height: 50px; object-fit: contain; }
+            .signature-placeholder { font-size: 8pt; color: #666; }
             .iso-footer { margin-top: 12px; padding-top: 6px; border-top: 1px solid #bbb; text-align: center; font-size: 7.5pt; color: #555; }
             .controlled-document { font-weight: bold; color: #111; margin-bottom: 2px; }
           </style>

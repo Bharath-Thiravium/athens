@@ -199,7 +199,7 @@ class Permit(models.Model):
     risk_assessment_doc = models.FileField(upload_to='risk_assessments/', blank=True, null=True)
     
     # QR Code and Mobile
-    qr_code = models.CharField(max_length=500, blank=True)
+    qr_code = models.TextField(blank=True)
     mobile_created = models.BooleanField(default=False)
     offline_id = models.CharField(max_length=100, blank=True)
     version = models.IntegerField(default=1, db_index=True)
@@ -227,6 +227,9 @@ class Permit(models.Model):
     audit_trail = models.JSONField(default=list, blank=True)
     permit_parameters = models.JSONField(default=dict, blank=True)
     
+    # Additional fields
+    other_hazards = models.TextField(blank=True, default='', help_text='Additional hazards not covered in standard categories')
+    
     def __str__(self):
         return f"{self.permit_number} - {self.permit_type.name}"
 
@@ -250,7 +253,7 @@ class Permit(models.Model):
             'submitted': ['under_review', 'rejected', 'draft'],
             'under_review': ['approved', 'rejected', 'submitted'],
             'approved': ['active', 'cancelled'],
-            'active': ['completed', 'suspended'],
+            'active': ['completed', 'suspended', 'expired'],
             'suspended': ['active', 'cancelled'],
             'completed': [],
             'cancelled': [],
@@ -592,13 +595,16 @@ class DigitalSignature(models.Model):
 class PermitAudit(models.Model):
     ACTION_CHOICES = [
         ('created', 'Created'),
+        ('draft', 'Draft'),
         ('submitted', 'Submitted'),
+        ('under_review', 'Under Review'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
-        ('activated', 'Activated'),
+        ('active', 'Active'),
         ('suspended', 'Suspended'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
+        ('expired', 'Expired'),
         ('extended', 'Extended'),
         ('modified', 'Modified'),
         ('viewed', 'Viewed'),
@@ -945,14 +951,14 @@ def store_original_permit_data(sender, instance, **kwargs):
         count = Permit.objects.filter(created_at__year=year).count() + 1
         instance.permit_number = f"PTW-{year}-{count:06d}"
     
-    # Generate QR code data (actual QR image will be generated on demand)
-    if not instance.qr_code and instance.pk:
-        from .qr_utils import generate_permit_qr_data
-        instance.qr_code = generate_permit_qr_data(instance)
+    # QR code data is generated after initial save to avoid regen on every update.
 
 @receiver(post_save, sender=Permit)
 def create_audit_log(sender, instance, created, **kwargs):
     user = getattr(instance, '_current_user', None)
+    if getattr(instance, '_skip_audit_log', False):
+        instance._skip_audit_log = False
+        return
     
     if created:
         PermitAudit.objects.create(
@@ -978,6 +984,15 @@ def create_audit_log(sender, instance, created, **kwargs):
                 new_values={'status': instance.status}
             )
 
+    if created and not instance.qr_code:
+        try:
+            from .qr_utils import generate_permit_qr_data
+            qr_code = generate_permit_qr_data(instance)
+            Permit.objects.filter(pk=instance.pk).update(qr_code=qr_code)
+            instance.qr_code = qr_code
+        except Exception:
+            pass
+
 @receiver(post_save, sender=WorkflowStep)
 def handle_workflow_step_completion(sender, instance, created, **kwargs):
     if not created and instance.status in ['approved', 'completed']:
@@ -990,9 +1005,22 @@ def handle_workflow_step_completion(sender, instance, created, **kwargs):
             # All required steps completed, approve permit
             permit = workflow.permit
             if permit.can_transition_to('approved'):
-                permit.status = 'approved'
-                permit.approved_at = timezone.now()
-                permit.save()
+                try:
+                    from .canonical_workflow_manager import canonical_workflow_manager
+                    approver = (
+                        workflow.steps.filter(step_id='approval', status='approved')
+                        .select_related('assignee')
+                        .first()
+                    )
+                    if approver and approver.assignee:
+                        canonical_workflow_manager.transition(
+                            permit=permit,
+                            new_status='approved',
+                            user=approver.assignee,
+                            action='approve'
+                        )
+                except Exception:
+                    pass
 
 @receiver(pre_save, sender=PermitExtension)
 def store_original_extension_status(sender, instance, **kwargs):

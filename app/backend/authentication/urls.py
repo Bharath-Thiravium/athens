@@ -8,6 +8,8 @@ from . import notification_views
 from . import views_admin_delete
 from . import digital_signature_views
 from . import signature_views
+from .signature_views import template_data, generate_template, preview_template, reset_template
+from .signature_json_views import signature_json_data, sign_document_json, preview_signature_json, preview_template_legacy
 from . import signature_simple_views
 from . import signature_safe_views
 from . import signature_preview_simple
@@ -149,12 +151,25 @@ urlpatterns = [
     path('project-menu-access/user_menu_access/', UserMenuAccessView.as_view(), name='user_menu_access'),
     path('modules/', UserMenuAccessView.as_view(), name='menu_modules'),
 
-    # Digital Signature Template endpoints (UserDetail)
-    path('signature/template/data/', signature_safe_views.signature_template_data_safe, name='signature_template_data'),
-    path('signature/template/preview/', signature_preview_simple.signature_template_preview_simple, name='signature_template_preview'),
-    path('signature/preview/', signature_preview, name='signature_preview'),
-    path('signature/template/create/', signature_simple_views.create_signature_template_simple, name='create_signature_template'),
-    path('signature/template/generate/', generate_signature_template, name='generate_signature_template'),
+    # JSON-Only Digital Signature Endpoints (No Image Storage)
+    path('signature/json-data/', signature_json_data, name='signature_json_data'),
+    path('signature/sign-json/', sign_document_json, name='sign_document_json'),
+    path('signature/preview-json/', preview_signature_json, name='preview_signature_json'),
+    
+    # Standardized Digital Signature Template endpoints
+    path('signature/template-data/', template_data, name='signature_template_data'),
+    path('signature/generate-template/', generate_template, name='generate_signature_template'),
+    path('signature/generate/', generate_template, name='signature_generate'),  # Backward compatibility
+    path('signature/preview-template/', preview_template, name='preview_signature_template'),
+    path('signature/preview-template-legacy/', preview_template_legacy, name='preview_signature_template_legacy'),
+    path('signature/reset-template/', reset_template, name='reset_signature_template'),
+    
+    # Legacy Digital Signature Template endpoints (UserDetail)
+    path('signature/template/data/', signature_safe_views.signature_template_data_safe, name='signature_template_data_legacy'),
+    path('signature/template/preview/', signature_preview_simple.signature_template_preview_simple, name='signature_template_preview_legacy'),
+    path('signature/preview/', signature_preview, name='signature_preview_legacy'),
+    path('signature/template/create/', signature_simple_views.create_signature_template_simple, name='create_signature_template_legacy'),
+    path('signature/template/generate/', generate_signature_template, name='generate_signature_template_legacy'),
     
     # Team member selection endpoints
     path('api/', include(router.urls)),

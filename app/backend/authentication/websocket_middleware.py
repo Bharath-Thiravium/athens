@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 @database_sync_to_async
 def get_user_from_token(token):
     """
-    Get user from JWT token with proper validation
+    Get user from JWT token with proper validation and tenant context
     """
     try:
         # Use rest_framework_simplejwt for proper token validation
@@ -26,16 +26,17 @@ def get_user_from_token(token):
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
         user_id = payload.get('user_id')
         token_type = payload.get('token_type')
+        tenant_id = payload.get('tenant_id')
         
         # Ensure it's an access token
         if token_type != 'access':
             logger.warning(f"Invalid token type for WebSocket: {token_type}")
-            return AnonymousUser()
+            return AnonymousUser(), None
             
         if user_id:
             user = User.objects.get(id=user_id, is_active=True)
-            logger.info(f"WebSocket authentication successful for user {user.username}")
-            return user
+            logger.info(f"WebSocket authentication successful for user {user.username}, tenant: {tenant_id}")
+            return user, tenant_id
             
     except (InvalidToken, TokenError) as e:
         logger.warning(f"WebSocket token validation failed: {str(e)}")
@@ -50,7 +51,7 @@ def get_user_from_token(token):
     except Exception as e:
         logger.error(f"WebSocket authentication error: {str(e)}")
         
-    return AnonymousUser()
+    return AnonymousUser(), None
 
 
 class JWTAuthMiddleware(BaseMiddleware):
@@ -67,17 +68,20 @@ class JWTAuthMiddleware(BaseMiddleware):
         if token and len(token) > 0:
             token = token[0]
             logger.info(f"WebSocket connection attempt with token: {token[:20]}...")
-            scope['user'] = await get_user_from_token(token)
+            user, tenant_id = await get_user_from_token(token)
+            scope['user'] = user
+            scope['athens_tenant_id'] = tenant_id
         else:
             logger.warning("WebSocket connection attempt without token")
             scope['user'] = AnonymousUser()
+            scope['athens_tenant_id'] = None
         
         # Log the final authentication result
         user = scope['user']
         if user.is_anonymous:
             logger.warning("WebSocket connection: User is anonymous")
         else:
-            logger.info(f"WebSocket connection: Authenticated as {user.username}")
+            logger.info(f"WebSocket connection: Authenticated as {user.username}, tenant: {scope.get('athens_tenant_id')}")
         
         return await super().__call__(scope, receive, send)
 

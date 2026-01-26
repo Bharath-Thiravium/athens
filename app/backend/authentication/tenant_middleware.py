@@ -36,6 +36,7 @@ class AthensTenantMiddleware(MiddlewareMixin):
         '/static/',
         '/media/',
         '/system/',  # System management endpoints
+        '/ws/',  # WebSocket connections handled by WebSocket middleware
         '/favicon.ico',
         '/robots.txt',
     ]

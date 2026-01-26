@@ -4,24 +4,32 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db import transaction
-from .models import Permit, WorkflowStep
+from django.http import Http404
+from .models import Permit, WorkflowStep, WorkflowInstance
+from .canonical_workflow_manager import canonical_workflow_manager
+from .ptw_permissions import ptw_permissions
+from .api_errors import ptw_api_errors
+from .serializers import PermitSerializer, WorkflowStepSerializer, AssignVerifierSerializer
+from .signature_service import signature_service
 from .workflow_manager import workflow_manager
-from .serializers import PermitSerializer, WorkflowStepSerializer
+from .unified_error_handling import PTWValidationError, PTWPermissionError, PTWWorkflowError
 from authentication.models import CustomUser
 from authentication.serializers import AdminUserCommonSerializer
+from .status_utils import normalize_permit_status
 import logging
 
 logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@transaction.atomic
 def initiate_workflow(request, permit_id):
     """Initiate workflow for a permit"""
     try:
         permit = get_object_or_404(Permit, id=permit_id, project=request.user.project)
         
         # Check if user can initiate workflow
-        if permit.created_by != request.user:
+        if not ptw_permissions.can_submit_permit(request.user, permit):
             return Response(
                 {'error': 'Only permit creator can initiate workflow'},
                 status=status.HTTP_403_FORBIDDEN
@@ -42,8 +50,12 @@ def initiate_workflow(request, permit_id):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Initiate workflow
+        # Validate required signatures before initiating workflow
+        signature_service.validate_signature_for_workflow(permit, 'submit', request.user)
+        
+        # Initiate workflow using unified manager (creates steps + status)
         workflow = workflow_manager.initiate_workflow(permit, creator)
+        permit.refresh_from_db()
         
         # Send notification
         from .notification_utils import notify_permit_submitted
@@ -56,6 +68,12 @@ def initiate_workflow(request, permit_id):
             'next_step': 'verification' if creator.user_type == 'contractor' else 'select_verifier'
         }, status=status.HTTP_200_OK)
         
+    except ValueError as e:
+        return ptw_api_errors.validation_error(str(e))
+    except PTWPermissionError as e:
+        return ptw_api_errors.permission_error(str(e))
+    except (PTWValidationError, PTWWorkflowError) as e:
+        return ptw_api_errors.validation_error(str(e))
     except Exception as e:
         logger.error(f"Error initiating workflow: {str(e)}")
         return Response(
@@ -65,21 +83,28 @@ def initiate_workflow(request, permit_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@transaction.atomic
 def assign_verifier(request, permit_id):
     """Assign verifier to permit (for EPC/Client created permits)"""
     try:
         permit = get_object_or_404(Permit, id=permit_id, project=request.user.project)
-        verifier_id = request.data.get('verifier_id')
-        
-        if not verifier_id:
-            return Response(
-                {'error': 'Verifier ID is required'},
-                status=status.HTTP_400_BAD_REQUEST
+        serializer = AssignVerifierSerializer(data=request.data)
+        if not serializer.is_valid():
+            return ptw_api_errors.validation_error(
+                "Verifier ID is required",
+                field="verifier_id",
+                details=serializer.errors,
             )
-        
-        # Get verifier
-        verifier = get_object_or_404(CustomUser, id=verifier_id, project=request.user.project)
-        
+        verifier_id = serializer.validated_data["verifier_id"]
+
+        current_status = normalize_permit_status(permit.status)
+        if current_status not in ['draft', 'submitted']:
+            return ptw_api_errors.validation_error(
+                'Cannot change verifier after verification is completed',
+                field='status',
+                details={'status': permit.status},
+            )
+
         # Get assigner's admin profile
         try:
             assigner = request.user
@@ -90,13 +115,26 @@ def assign_verifier(request, permit_id):
             )
         
         # Check permissions
-        if permit.created_by != request.user:
-            return Response(
-                {'error': 'Only permit creator can assign verifier'},
-                status=status.HTTP_403_FORBIDDEN
+        if not ptw_permissions.can_select_verifier(request.user, permit):
+            return ptw_api_errors.permission_error(
+                'Only permit creator can assign verifier',
+                action='assign_verifier',
+            )
+
+        verifier = CustomUser.objects.filter(id=verifier_id, project=permit.project).first()
+        if not verifier:
+            return ptw_api_errors.validation_error(
+                'Verifier not found for this project',
+                field='verifier_id',
             )
         
-        # Assign verifier
+        # Ensure workflow exists, then assign verifier via workflow manager
+        try:
+            permit.workflow
+        except WorkflowInstance.DoesNotExist:
+            workflow_manager.initiate_workflow(permit, assigner)
+            permit.refresh_from_db()
+
         verification_step = workflow_manager.assign_verifier(permit, verifier, assigner)
         
         # Send notification
@@ -109,6 +147,14 @@ def assign_verifier(request, permit_id):
             'permit_status': permit.status
         }, status=status.HTTP_200_OK)
         
+    except Http404:
+        return ptw_api_errors.not_found_error('Permit not found', resource='permit')
+    except ValueError as e:
+        return ptw_api_errors.validation_error(str(e))
+    except PTWPermissionError as e:
+        return ptw_api_errors.permission_error(str(e))
+    except (PTWValidationError, PTWWorkflowError) as e:
+        return ptw_api_errors.validation_error(str(e))
     except Exception as e:
         logger.error(f"Error assigning verifier: {str(e)}")
         return Response(
@@ -118,6 +164,7 @@ def assign_verifier(request, permit_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@transaction.atomic
 def verify_permit(request, permit_id):
     """Verify permit (approve/reject verification)"""
     try:
@@ -164,10 +211,19 @@ def verify_permit(request, permit_id):
                 )
             selected_approver = get_object_or_404(CustomUser, id=approver_id, project=request.user.project)
         
-        # Verify permit
+        # Validate required signatures before verification
+        if action == 'approve':
+            signature_service.validate_signature_for_workflow(permit, 'verify', request.user)
+        
+        # Verify permit using workflow manager (updates steps + status)
         verification_step = workflow_manager.verify_permit(
-            permit, verifier, action, comments, selected_approver
+            permit=permit,
+            verifier=verifier,
+            action=action,
+            comments=comments,
+            selected_approver=selected_approver
         )
+        permit.refresh_from_db()
         
         # Send notifications
         from .notification_utils import notify_approver_assigned, notify_permit_rejected
@@ -187,6 +243,12 @@ def verify_permit(request, permit_id):
         
         return Response(response_data, status=status.HTTP_200_OK)
         
+    except ValueError as e:
+        return ptw_api_errors.validation_error(str(e))
+    except PTWPermissionError as e:
+        return ptw_api_errors.permission_error(str(e))
+    except (PTWValidationError, PTWWorkflowError) as e:
+        return ptw_api_errors.validation_error(str(e))
     except Exception as e:
         logger.error(f"Error verifying permit: {str(e)}")
         return Response(
@@ -196,6 +258,7 @@ def verify_permit(request, permit_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@transaction.atomic
 def assign_approver(request, permit_id):
     """Assign approver to verified permit"""
     try:
@@ -234,8 +297,9 @@ def assign_approver(request, permit_id):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Assign approver
+        # Assign approver using workflow manager (updates steps + status)
         approval_step = workflow_manager.assign_approver(permit, approver, assigner)
+        permit.refresh_from_db()
         
         return Response({
             'message': 'Approver assigned successfully',
@@ -243,6 +307,12 @@ def assign_approver(request, permit_id):
             'permit_status': permit.status
         }, status=status.HTTP_200_OK)
         
+    except ValueError as e:
+        return ptw_api_errors.validation_error(str(e))
+    except PTWPermissionError as e:
+        return ptw_api_errors.permission_error(str(e))
+    except (PTWValidationError, PTWWorkflowError) as e:
+        return ptw_api_errors.validation_error(str(e))
     except Exception as e:
         logger.error(f"Error assigning approver: {str(e)}")
         return Response(
@@ -252,6 +322,7 @@ def assign_approver(request, permit_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@transaction.atomic
 def approve_permit(request, permit_id):
     """Approve permit (final approval)"""
     from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -301,8 +372,18 @@ def approve_permit(request, permit_id):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
-        # Approve permit
-        approval_step = workflow_manager.approve_permit(permit, approver, action, comments)
+        # Validate required signatures before approval
+        if action == 'approve':
+            signature_service.validate_signature_for_workflow(permit, 'approve', request.user)
+        
+        # Approve permit using workflow manager (updates steps + status)
+        approval_step = workflow_manager.approve_permit(
+            permit=permit,
+            approver=approver,
+            action=action,
+            comments=comments
+        )
+        permit.refresh_from_db()
         
         # Send notifications
         from .notification_utils import notify_permit_approved, notify_permit_rejected
@@ -317,6 +398,12 @@ def approve_permit(request, permit_id):
             'approval_step': WorkflowStepSerializer(approval_step).data
         }, status=status.HTTP_200_OK)
         
+    except ValueError as e:
+        return ptw_api_errors.validation_error(str(e))
+    except PTWPermissionError as e:
+        return ptw_api_errors.permission_error(str(e))
+    except (PTWValidationError, PTWWorkflowError) as e:
+        return ptw_api_errors.validation_error(str(e))
     except Exception as e:
         logger.error(f"Error approving permit: {str(e)}")
         return Response(
@@ -332,8 +419,11 @@ def get_available_verifiers(request):
         user_type = request.GET.get('user_type')  # 'epc' or 'client'
         grade = request.GET.get('grade')  # 'a', 'b', or 'c'
         
-        verifiers = workflow_manager.get_available_verifiers(
-            request.user.project, user_type, grade
+        # Get available verifiers using permission helper
+        verifiers = ptw_permissions.get_available_verifiers(
+            project=request.user.project,
+            user_type=user_type,
+            grade=grade
         )
         
         return Response({
@@ -355,8 +445,11 @@ def get_available_approvers(request):
         user_type = request.GET.get('user_type')  # 'epc' or 'client'
         grade = request.GET.get('grade')  # 'a', 'b', or 'c'
         
-        approvers = workflow_manager.get_available_approvers(
-            request.user.project, user_type, grade
+        # Get available approvers using permission helper
+        approvers = ptw_permissions.get_available_approvers(
+            project=request.user.project,
+            user_type=user_type,
+            grade=grade
         )
         
         return Response({
@@ -377,7 +470,12 @@ def get_workflow_status(request, permit_id):
     try:
         permit = get_object_or_404(Permit, id=permit_id, project=request.user.project)
         
-        workflow_status = workflow_manager.get_workflow_status(permit)
+        # Get workflow status from permit model
+        workflow_status = {
+            'status': permit.status,
+            'current_step': permit.workflow.current_step if hasattr(permit, 'workflow') else None,
+            'steps': list(permit.workflow.steps.values('step_id', 'status', 'assignee__username')) if hasattr(permit, 'workflow') else []
+        }
         
         return Response({
             'permit_id': permit.id,
@@ -444,6 +542,7 @@ def get_my_workflow_tasks(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@transaction.atomic
 def resubmit_permit(request, permit_id):
     """Resubmit rejected permit"""
     try:
@@ -471,15 +570,18 @@ def resubmit_permit(request, permit_id):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Reset permit status and reinitiate workflow
-        permit.status = 'draft'
-        permit.save()
-        
         # Delete old workflow
         if hasattr(permit, 'workflow'):
             permit.workflow.delete()
-        
-        # Initiate new workflow
+
+        # Reset status via canonical manager then re-initiate workflow
+        canonical_workflow_manager.transition(
+            permit=permit,
+            new_status='draft',
+            user=creator,
+            action='resubmit_workflow'
+        )
+
         workflow = workflow_manager.initiate_workflow(permit, creator)
         
         return Response({
@@ -488,6 +590,12 @@ def resubmit_permit(request, permit_id):
             'permit_status': permit.status
         }, status=status.HTTP_200_OK)
         
+    except ValueError as e:
+        return ptw_api_errors.validation_error(str(e))
+    except PTWPermissionError as e:
+        return ptw_api_errors.permission_error(str(e))
+    except (PTWValidationError, PTWWorkflowError) as e:
+        return ptw_api_errors.validation_error(str(e))
     except Exception as e:
         logger.error(f"Error resubmitting permit: {str(e)}")
         return Response(

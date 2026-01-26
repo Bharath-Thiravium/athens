@@ -104,6 +104,7 @@ export interface DigitalSignature {
   signed_at: string;
   ip_address?: string;
   device_info?: Record<string, any>;
+  signature_render_mode?: 'raw' | 'card';
 }
 
 export interface PermitToolboxTalk {
@@ -331,6 +332,84 @@ export interface PermitIsolationResponse {
   };
 }
 
+// Readiness Types
+export interface SignatureDetails {
+  requestor: {
+    required: boolean;
+    present: boolean;
+    signed_by?: string;
+    signed_at?: string;
+    required_user?: string;
+  };
+  verifier: {
+    required: boolean;
+    present: boolean;
+    signed_by?: string;
+    signed_at?: string;
+    required_user?: string;
+  };
+  approver: {
+    required: boolean;
+    present: boolean;
+    signed_by?: string;
+    signed_at?: string;
+    required_user?: string;
+  };
+}
+
+export interface PermitReadiness {
+  permit_id: number;
+  permit_number: string;
+  status: string;
+  requires: {
+    gas_testing: boolean;
+    structured_isolation: boolean;
+    closeout: boolean;
+    deisolation: boolean;
+    signatures: boolean;
+  };
+  readiness: {
+    can_verify: boolean;
+    can_approve: boolean;
+    can_activate: boolean;
+    can_complete: boolean;
+  };
+  missing: {
+    approve: string[];
+    activate: string[];
+    complete: string[];
+  };
+  details: {
+    gas: {
+      required: boolean;
+      safe?: boolean;
+      latest?: {
+        tested_at?: string;
+        tested_by?: string;
+      };
+    };
+    isolation: {
+      required: boolean;
+      required_points?: number;
+      verified_required?: number;
+      pending_required?: number;
+    };
+    ppe: {
+      required_items: string[];
+      missing_items: string[];
+    };
+    checklist: {
+      required: string[];
+      missing: string[];
+    };
+    closeout: {
+      template_exists: boolean;
+      is_complete?: boolean;
+      missing_items: string[];
+    };
+    signatures: SignatureDetails;
+  };
+}
 
 
 

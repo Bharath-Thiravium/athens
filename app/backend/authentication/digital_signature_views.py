@@ -56,13 +56,38 @@ def save_signature(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_signature(request):
-    """Get user's signature for preview"""
+    """Get user's signature for preview with normalized fields"""
     try:
         signature = UserSignature.objects.get(user=request.user)
+        
+        # Get normalized signature data
+        user = request.user
+        full_name = f"{user.name or ''} {user.surname or ''}".strip() or user.username
+        
+        # Get employee ID
+        employee_id = None
+        try:
+            if hasattr(user, 'user_detail') and user.user_detail.employee_id:
+                employee_id = user.user_detail.employee_id
+        except:
+            pass
+        
+        # Get company logo URL
+        company_logo_url = None
+        logo = _get_company_logo(user)
+        if logo:
+            company_logo_url = request.build_absolute_uri(logo.url)
+        
         return Response({
             'has_signature': True,
             'signature_url': signature.signature_image.url,
-            'created_at': signature.created_at
+            'created_at': signature.created_at,
+            # Normalized fields
+            'signer_name': full_name,
+            'employee_id': employee_id,
+            'designation': user.designation,
+            'department': user.department,
+            'company_logo_url': company_logo_url
         })
     except UserSignature.DoesNotExist:
         return Response({'has_signature': False})
@@ -122,7 +147,7 @@ def sign_form(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_form_signature(request):
-    """Get signature for a specific form (for print view)"""
+    """Get signature for a specific form (for print view) with normalized fields"""
     try:
         form_type = request.GET.get('form_type')
         form_id = request.GET.get('form_id')
@@ -149,12 +174,34 @@ def get_form_signature(request):
             ip_address=request.META.get('REMOTE_ADDR')
         )
         
+        # Get normalized signature data
+        user = request.user
+        full_name = f"{user.name or ''} {user.surname or ''}".strip() or user.username
+        
+        # Get employee ID
+        employee_id = None
+        try:
+            if hasattr(user, 'user_detail') and user.user_detail.employee_id:
+                employee_id = user.user_detail.employee_id
+        except:
+            pass
+        
+        # Get company logo URL
+        company_logo_url = None
+        logo = _get_company_logo(user)
+        if logo:
+            company_logo_url = request.build_absolute_uri(logo.url)
+        
         return Response({
             'signature_url': user_signature.signature_image.url,
-            'signed_at': form_signature.signed_at,
+            'signed_at': form_signature.signed_at.isoformat(),
             'signature_hash': form_signature.signature_hash,
-            'user_name': request.user.get_full_name(),
-            'user_designation': getattr(request.user, 'designation', ''),
+            # Normalized fields
+            'signer_name': full_name,
+            'employee_id': employee_id,
+            'designation': user.designation,
+            'department': user.department,
+            'company_logo_url': company_logo_url
         })
         
     except FormSignature.DoesNotExist:
@@ -193,3 +240,45 @@ def log_print_action(request):
         
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def _get_company_logo(user):
+    """Get company logo based on user type and hierarchy"""
+    from .models import CustomUser
+    
+    # For EPC project admins, inherit from master's CompanyDetail
+    if user.user_type == 'projectadmin' and user.admin_type == 'epc':
+        try:
+            master_admin = CustomUser.objects.filter(admin_type='master').first()
+            if master_admin and hasattr(master_admin, 'company_detail'):
+                company_detail = master_admin.company_detail
+                if company_detail and company_detail.company_logo:
+                    return company_detail.company_logo
+        except:
+            pass
+    
+    # For other project admins, use their AdminDetail logo
+    elif user.user_type == 'projectadmin':
+        try:
+            admin_detail = user.admin_detail
+            if admin_detail and admin_detail.logo:
+                return admin_detail.logo
+        except:
+            pass
+
+    # For EPCuser, inherit directly from master's CompanyDetail
+    elif user.user_type == 'adminuser' and user.admin_type == 'epcuser':
+        try:
+            master_admin = CustomUser.objects.filter(admin_type='master').first()
+            if master_admin and hasattr(master_admin, 'company_detail'):
+                company_detail = master_admin.company_detail
+                if company_detail and company_detail.company_logo:
+                    return company_detail.company_logo
+        except:
+            pass
+    
+    # For other admin users, get logo from their creator
+    elif user.user_type == 'adminuser' and user.created_by:
+        return _get_company_logo(user.created_by)
+
+    return None

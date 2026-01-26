@@ -1287,7 +1287,7 @@ body {
 .premium-menu .ant-menu-submenu-title {
   color: var(--sb-item) !important;
   font-size: 14px !important;
-  font-weight: 500 !important;
+  font-weight: 300 !important;
   margin: 2px 12px !important;
   border-radius: 8px !important;
   transition: background-color 0.15s ease-out, color 0.15s ease-out !important;
@@ -1346,7 +1346,7 @@ body {
 
 .premium-menu .ant-menu-sub .ant-menu-item {
   font-size: 13px !important;
-  font-weight: 500 !important;
+  font-weight: 300 !important;
   color: var(--sb-muted) !important;
   padding-left: 32px !important;
 }
@@ -1401,6 +1401,63 @@ body {
 .menu-item-badge .notification-badge {
   top: 8px;
   right: 8px;
+}
+
+/* Signature preview centering - force center */
+.signature-preview-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 20px;
+  text-align: center;
+}
+
+.signature-preview-image {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+  float: none !important;
+}
+
+/* Digital signature preview centering (AntD Image wrapper-safe) */
+.ds-preview-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+}
+
+.ds-preview-wrapper {
+  display: block !important;
+  margin: 0 auto !important;
+  width: 100%;
+}
+
+.ds-preview-wrapper img,
+.ds-preview-img {
+  display: block !important;
+  margin: 0 auto !important;
+  max-width: 100%;
+  height: auto;
+  float: none !important;
+}
+
+/* Legacy signature preview (keep for compatibility) */
+.signature-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  text-align: center;
+}
+
+.signature-preview img {
+  display: block;
+  max-width: 100%;
+  height: auto;
 }
 
 /* Header height enforcement */

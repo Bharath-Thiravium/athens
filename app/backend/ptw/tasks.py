@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.conf import settings
 from datetime import timedelta
 from .workflow_manager import workflow_manager
+from .canonical_workflow_manager import canonical_workflow_manager
 from .models import Permit, WorkflowStep, EscalationRule, WebhookDeliveryLog
 from authentication.models_notification import Notification
 from .notification_utils import create_ptw_notification
@@ -167,8 +168,13 @@ def auto_expire_permits():
         )
         
         for permit in expired_permits:
-            permit.status = 'expired'
-            permit.save()
+            canonical_workflow_manager.transition(
+                permit=permit,
+                new_status='expired',
+                user=None,
+                action='auto_expire',
+                system=True
+            )
             
             # Send expiration notification to creator using utility
             create_ptw_notification(

@@ -13,6 +13,47 @@ import api from '../utils/axiosetup';
 // Re-export the core types so other components can import them from this central service file.
 export type { Notification, NotificationPayload, NotificationType };
 
+const normalizeWsOrigin = (value: string): string | null => {
+  if (!value) return null;
+
+  try {
+    const parsed = new URL(value);
+    const protocol =
+      parsed.protocol === 'https:' ? 'wss:' : parsed.protocol === 'http:' ? 'ws:' : parsed.protocol;
+    return `${protocol}//${parsed.host}`;
+  } catch (error) {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (/^[a-z]+:\/\//i.test(trimmed)) {
+      return null;
+    }
+    if (typeof window !== 'undefined') {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${protocol}//${trimmed.replace(/\/+$/, '')}`;
+    }
+    return null;
+  }
+};
+
+const resolveWebSocketOrigin = (): string | null => {
+  const wsBaseEnv = (import.meta.env.VITE_WS_BASE_URL as string | undefined) || '';
+  if (wsBaseEnv) {
+    return normalizeWsOrigin(wsBaseEnv);
+  }
+
+  const apiBaseEnv = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '';
+  if (apiBaseEnv) {
+    return normalizeWsOrigin(apiBaseEnv);
+  }
+
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}`;
+  }
+
+  return null;
+};
+
 export const useWebSocketNotificationService = () => {
   // Clear old notification cache on service initialization
   useEffect(() => {
@@ -31,20 +72,17 @@ export const useWebSocketNotificationService = () => {
   }, []);
 
   const token = useAuthStore((state) => state.token);
+  const wsOrigin = useMemo(resolveWebSocketOrigin, []);
   
   // Update the WebSocket URL to ensure it's correctly formatted
   const webSocketUrl = useMemo(() => {
-    if (!token) {
+    if (!token || !wsOrigin) {
       return null;
     }
 
     try {
-      // Always use wss for production domain
-      const wsProtocol = 'wss';
-      const wsHost = 'prozeal.athenas.co.in';
-
       // Ensure the URL matches the backend's expected format
-      const url = `${wsProtocol}://${wsHost}/ws/notifications/?token=${token}`;
+      const url = `${wsOrigin}/ws/notifications/?token=${token}`;
       console.log('WebSocket URL:', url);
 
       return url;
@@ -53,7 +91,7 @@ export const useWebSocketNotificationService = () => {
       // Return null to prevent connection attempts with invalid URLs
       return null;
     }
-  }, [token]);
+  }, [token, wsOrigin]);
 
   const { 
     lastMessage, 
@@ -179,16 +217,13 @@ export const useWebSocketNotificationService = () => {
 
   // Add a function to test the WebSocket connection
   const testWebSocketConnection = () => {
-    if (!token) {
+    if (!token || !wsOrigin) {
       return;
     }
     
     try {
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      const wsHost = 'prozeal.athenas.co.in';
-      
-      // Try the correct WebSocket URL
-      const url = `${wsProtocol}://${wsHost}/ws/notifications/?token=${token}`;
+      // Try the resolved WebSocket URL
+      const url = `${wsOrigin}/ws/notifications/?token=${token}`;
       
       const testSocket = new WebSocket(url);
       
@@ -205,10 +240,10 @@ export const useWebSocketNotificationService = () => {
 
   // Call the test function once when the hook is initialized
   useEffect(() => {
-    if (token) {
+    if (token && import.meta.env.DEV) {
       testWebSocketConnection();
     }
-  }, [token]);
+  }, [token, wsOrigin]);
 
   return {
     lastMessage,
@@ -223,9 +258,6 @@ export const useWebSocketNotificationService = () => {
     reconnect,
   };
 };
-
-
-
 
 
 

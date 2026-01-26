@@ -1,102 +1,157 @@
 .digital-signature-container {
-  display: flex;
-  width: 100%;
-  min-height: 90px;
-  border: 1px solid #d0d0d0;
-  background: #ffffff;
-  box-sizing: border-box;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  background: #fff;
   font-family: Arial, sans-serif;
-  position: relative;
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 400px;
+  min-height: 80px;
 }
 
 .signature-content {
-  z-index: 2;
+  position: relative;
   display: flex;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 4px;
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 80px;
+  padding: 8px 8px 40px 8px;
 }
 
-.signature-content::before {
-  content: '';
+.signature-logo-watermark {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: inherit;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
+  inset: 0;
+  margin: auto;
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
   opacity: 0.5;
-  z-index: -1;
+  z-index: 0;
+  pointer-events: none;
 }
 
-.signature-left-section {
-  flex: 0 0 55%;
+
+
+.signature-left-partition {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  padding-right: 8px;
   display: flex;
   flex-direction: column;
+}
+
+.signature-divider {
+  width: 1px;
+  background: #d9d9d9;
+  margin: 0 8px;
+  position: relative;
+  z-index: 1;
+  flex: none;
+}
+
+.signature-right-partition {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  padding-left: 8px;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+}
+
+.signature-image-area {
+  position: absolute;
+  bottom: 4px;
+  left: 8px;
+  right: 8px;
+  height: 28px;
+  z-index: 1;
+  display: flex;
   justify-content: center;
-  padding-right: 16px;
-  overflow: hidden;
+  align-items: center;
+}
+
+.signature-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .signer-name {
   font-weight: bold;
-  font-size: 1.5em;
-  text-align: left;
-  width: 100%;
-  word-wrap: break-word;
-  white-space: normal;
-  overflow-wrap: break-word;
-  line-height: 1.2;
+  font-size: 14px;
+  color: #000;
   margin-bottom: 4px;
 }
 
-.signer-designation {
-  font-size: 0.9em;
+.employee-id {
   color: #666;
-  text-align: left;
-  width: 100%;
-  word-wrap: break-word;
-  white-space: normal;
-  overflow-wrap: break-word;
-  line-height: 1.1;
+  font-size: 11px;
   margin-bottom: 2px;
 }
 
-.signer-company {
-  font-size: 0.85em;
+.designation {
+  color: #666;
+  font-size: 11px;
+}
+
+.signed-by-text {
+  color: #000;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.department {
   color: #888;
-  text-align: left;
-  width: 100%;
-  word-wrap: break-word;
-  white-space: normal;
-  overflow-wrap: break-word;
-  line-height: 1.1;
+  font-size: 10px;
+  margin-bottom: 2px;
 }
 
-.signature-divider {
-  flex: 0 0 1px;
-  background-color: #c0c0c0;
-  align-self: stretch;
-  margin: 0 8px;
-}
-
-.signature-right-section {
-  flex: 0 0 45%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  padding-left: 8px;
-  padding-top: 2px;
-  overflow: hidden;
-}
-
-.verification-text {
-  font-size: 0.8em;
-  line-height: 1.4;
-  margin-bottom: 3px;
-  text-align: right;
-  word-wrap: break-word;
+.signed-at {
   color: #333;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* Print styles */
+@media print {
+  .digital-signature-container {
+    border: 1px solid #000;
+    background: #fff;
+    page-break-inside: avoid;
+    max-width: 480px; /* Wider on print for better Adobe-like appearance */
+  }
+  
+  .signature-divider {
+    background: #000;
+  }
+  
+  .signature-logo-watermark {
+    opacity: 0.5 !important;
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .signature-content {
+    flex-direction: column;
+  }
+  
+  .signature-divider {
+    width: 100%;
+    height: 1px;
+    margin: 8px 0;
+  }
+  
+  .signature-left-partition,
+  .signature-right-partition {
+    padding: 0;
+  }
+  
+  .signature-image-area {
+    position: static;
+    height: 28px;
+    margin-top: 8px;
+  }
 }

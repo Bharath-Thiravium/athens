@@ -1,0 +1,213 @@
+/* Standardized Digital Signature Template Styles */
+
+.signature-template-container {
+  padding: 0 48px;
+  margin: 0 auto;
+  max-width: 1200px;
+}
+
+.signature-template-card {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.loading-container {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.loading-text {
+  margin-top: 16px;
+  color: #666;
+}
+
+/* Status Styles */
+.status-ready {
+  padding: 16px;
+  background-color: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 6px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-icon {
+  font-size: 16px;
+}
+
+.status-icon.success {
+  color: #52c41a;
+}
+
+.status-text {
+  font-weight: 500;
+}
+
+.status-text.success {
+  color: #52c41a;
+}
+
+.status-alert {
+  margin-bottom: 24px;
+}
+
+/* Template Information */
+.template-info {
+  margin-bottom: 24px;
+}
+
+.info-value {
+  font-weight: 500;
+}
+
+.info-value.success {
+  color: #52c41a;
+}
+
+.info-value.warning {
+  color: #faad14;
+}
+
+/* Missing Fields */
+.missing-fields-alert {
+  margin-top: 16px;
+}
+
+.missing-fields-list {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.missing-fields-list li {
+  margin-bottom: 4px;
+}
+
+/* Information Note */
+.info-note {
+  margin-top: 24px;
+  padding: 12px;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* Preview Modal */
+.preview-modal .ant-modal-content {
+  border-radius: 8px;
+}
+
+.preview-loading {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.preview-loading div {
+  margin-top: 16px;
+  color: #666;
+}
+
+.preview-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background-color: #fafafa;
+  border-radius: 6px;
+  min-height: 200px;
+}
+
+.preview-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.preview-error {
+  padding: 20px;
+  text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .signature-template-container {
+    padding: 0 16px;
+  }
+  
+  .status-ready {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  
+  .status-content {
+    width: 100%;
+  }
+  
+  .template-info .ant-descriptions-item-label,
+  .template-info .ant-descriptions-item-content {
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .signature-template-container {
+    padding: 0 8px;
+  }
+  
+  .card-title {
+    font-size: 14px;
+  }
+  
+  .info-note {
+    font-size: 11px;
+  }
+}
+
+.signature-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.preview-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Print Styles */
+@media print {
+  .signature-template-container {
+    padding: 0;
+  }
+  
+  .signature-template-card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+  
+  .preview-modal {
+    display: none !important;
+  }
+}

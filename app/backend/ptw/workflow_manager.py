@@ -5,6 +5,7 @@ from django.db.models import Q
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .models import Permit, WorkflowInstance, WorkflowStep, PermitAudit
+from .canonical_workflow_manager import canonical_workflow_manager
 from authentication.models import CustomUser
 from authentication.models_notification import Notification
 import logging
@@ -61,11 +62,14 @@ class PTWWorkflowManager:
                 required=True,
                 status='pending'
             )
-            
-            # Update permit status
-            permit.status = 'submitted'
-            permit.submitted_at = timezone.now()
-            permit.save()
+
+            # Update permit status via canonical manager
+            canonical_workflow_manager.transition(
+                permit=permit,
+                new_status='submitted',
+                user=creator,
+                action='initiate_workflow'
+            )
             
             # Create audit log
             self._create_audit_log(permit, 'workflow_initiated', creator, 
@@ -110,10 +114,21 @@ class PTWWorkflowManager:
             # Update workflow current step
             workflow.current_step = 2
             workflow.save()
-            
-            # Update permit status
-            permit.status = 'submitted'
-            permit.save()
+
+            # Ensure verifier is set without direct status updates
+            if permit.verifier_id != verifier.id:
+                permit.verifier = verifier
+                permit._current_user = assigned_by
+                permit.save(update_fields=['verifier'])
+
+            if permit.status == 'draft':
+                canonical_workflow_manager.transition(
+                    permit=permit,
+                    new_status='submitted',
+                    user=assigned_by,
+                    action='assign_verifier',
+                    metadata={'verifier_id': verifier.id}
+                )
             
             # Send notification to verifier
             self._send_verification_notifications(permit, [verifier], assigned_by)
@@ -166,8 +181,8 @@ class PTWWorkflowManager:
     def verify_permit(self, permit, verifier, action, comments='', selected_approver=None):
         """Handle permit verification - verifier selects approver"""
         try:
-            workflow = permit.workflow
-            verification_step = WorkflowStep.objects.get(
+            workflow = WorkflowInstance.objects.select_for_update().get(pk=permit.workflow_id)
+            verification_step = WorkflowStep.objects.select_for_update().get(
                 workflow=workflow,
                 step_id='verification',
                 assignee=verifier
@@ -207,11 +222,18 @@ class PTWWorkflowManager:
                 self._send_approval_notifications(permit, [selected_approver], verifier)
                 
                 # Update permit status
-                permit.status = 'under_review'
-                permit.verifier = verifier
-                permit.verified_at = timezone.now()
-                permit.verification_comments = comments
-                permit.save()
+                canonical_workflow_manager.transition(
+                    permit=permit,
+                    new_status='under_review',
+                    user=verifier,
+                    action='verify_approve',
+                    comments=comments,
+                    metadata={
+                        'verifier_id': verifier.id,
+                        'approver_id': selected_approver.id if selected_approver else None,
+                        'verification_comments': comments,
+                    }
+                )
                 
                 # Create audit log
                 self._create_audit_log(permit, 'verified', verifier,
@@ -225,8 +247,13 @@ class PTWWorkflowManager:
                 verification_step.save()
                 
                 # Update permit status
-                permit.status = 'rejected'
-                permit.save()
+                canonical_workflow_manager.transition(
+                    permit=permit,
+                    new_status='rejected',
+                    user=verifier,
+                    action='verify_reject',
+                    comments=comments
+                )
                 
                 # Send rejection notification to creator
                 self._send_rejection_notifications(permit, permit.created_by, verifier, comments)
@@ -301,9 +328,20 @@ class PTWWorkflowManager:
             # Update workflow and permit
             workflow.current_step = 3
             workflow.save()
-            
-            permit.status = 'under_review'
-            permit.save()
+
+            if permit.status != 'under_review':
+                canonical_workflow_manager.transition(
+                    permit=permit,
+                    new_status='under_review',
+                    user=assigned_by,
+                    action='assign_approver',
+                    metadata={'approver_id': approver.id}
+                )
+            else:
+                if permit.approver_id != approver.id:
+                    permit.approver = approver
+                    permit._current_user = assigned_by
+                    permit.save(update_fields=['approver'])
             
             # Send notification to approver
             self._send_approval_notifications(permit, [approver], assigned_by)
@@ -322,10 +360,10 @@ class PTWWorkflowManager:
     def approve_permit(self, permit, approver, action, comments=''):
         """Handle permit approval - first approver wins"""
         try:
-            workflow = permit.workflow
+            workflow = WorkflowInstance.objects.select_for_update().get(pk=permit.workflow_id)
             
             # Check if already approved by someone else
-            existing_approval = WorkflowStep.objects.filter(
+            existing_approval = WorkflowStep.objects.select_for_update().filter(
                 workflow=workflow,
                 step_id='approval',
                 status='approved'
@@ -340,7 +378,7 @@ class PTWWorkflowManager:
                 }
             
             # Get current user's approval step
-            approval_step = WorkflowStep.objects.get(
+            approval_step = WorkflowStep.objects.select_for_update().get(
                 workflow=workflow,
                 step_id='approval',
                 assignee=approver
@@ -365,11 +403,14 @@ class PTWWorkflowManager:
                 workflow.save()
                 
                 # Update permit status
-                permit.status = 'approved'
-                permit.approved_at = timezone.now()
-                permit.approved_by = approver
-                permit.approval_comments = comments
-                permit.save()
+                canonical_workflow_manager.transition(
+                    permit=permit,
+                    new_status='approved',
+                    user=approver,
+                    action='approve_approve',
+                    comments=comments,
+                    metadata={'approval_comments': comments}
+                )
                 
                 # Send success notification to creator
                 self._send_approval_success_notifications(permit, permit.created_by, approver)
@@ -386,8 +427,13 @@ class PTWWorkflowManager:
                 approval_step.save()
                 
                 # Update permit status
-                permit.status = 'rejected'
-                permit.save()
+                canonical_workflow_manager.transition(
+                    permit=permit,
+                    new_status='rejected',
+                    user=approver,
+                    action='approve_reject',
+                    comments=comments
+                )
                 
                 # Send rejection notification to creator
                 self._send_rejection_notifications(permit, permit.created_by, approver, comments)
