@@ -354,8 +354,6 @@ const speakTranslation = () => {
 
 **Days 4-5: Deployment Setup**
 ```bash
-# Docker setup
-# Dockerfile for backend
 FROM python:3.11-slim
 WORKDIR /app
 COPY requirements.txt .
@@ -363,7 +361,6 @@ RUN pip install -r requirements.txt
 COPY . .
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
-# Docker compose
 version: '3.8'
 services:
   backend:

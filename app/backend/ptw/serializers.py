@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db import models
 from .models import (
     Permit, PermitType, PermitApproval, PermitWorker, PermitExtension, 
     PermitAudit, WorkflowTemplate, WorkflowInstance, WorkflowStep,
@@ -72,13 +73,14 @@ class DigitalSignatureSerializer(serializers.ModelSerializer):
     department = serializers.SerializerMethodField()
     company_logo_url = serializers.SerializerMethodField()
     signature_render_mode = serializers.SerializerMethodField()
+    signature_template_url = serializers.SerializerMethodField()
     
     class Meta:
         model = DigitalSignature
         fields = ['id', 'signature_type', 'signatory', 'signatory_details', 
                   'signature_data', 'signed_at', 'ip_address', 'device_info',
                   'signer_name', 'employee_id', 'designation', 'department', 'company_logo_url',
-                  'signature_render_mode']
+                  'signature_render_mode', 'signature_template_url']
         read_only_fields = ['signed_at']
     
     def get_signer_name(self, obj):
@@ -122,46 +124,71 @@ class DigitalSignatureSerializer(serializers.ModelSerializer):
         if logo:
             return request.build_absolute_uri(logo.url)
         return None
+
+    def get_signature_template_url(self, obj):
+        user = obj.signatory
+        if not user:
+            return None
+
+        request = self.context.get('request')
+        if not request:
+            return None
+
+        template = None
+        try:
+            if hasattr(user, 'user_detail') and user.user_detail and user.user_detail.signature_template:
+                template = user.user_detail.signature_template
+            elif hasattr(user, 'admin_detail') and user.admin_detail and user.admin_detail.signature_template:
+                template = user.admin_detail.signature_template
+        except Exception:
+            template = None
+
+        if not template:
+            return None
+
+        try:
+            return request.build_absolute_uri(template.url)
+        except Exception:
+            return template.url
     
     def _get_company_logo(self, user):
-        """Get company logo based on user type and hierarchy"""
+        """Get individual user's company logo (not tenant logo)"""
         from authentication.models import CustomUser
         
-        # For EPC project admins, inherit from master's CompanyDetail
-        if user.user_type == 'projectadmin' and user.admin_type == 'epc':
+        if not user:
+            return None
+        
+        # Try AdminDetail first (user's own logo)
+        try:
+            if hasattr(user, 'admin_detail') and user.admin_detail and user.admin_detail.logo:
+                return user.admin_detail.logo
+        except Exception:
+            pass
+        
+        # Try CompanyDetail next (user's company logo)
+        try:
+            if hasattr(user, 'company_detail') and user.company_detail and user.company_detail.company_logo:
+                return user.company_detail.company_logo
+        except Exception:
+            pass
+        
+        # Find users from same company based on company_name
+        if user.company_name:
             try:
-                master_admin = CustomUser.objects.filter(admin_type='master').first()
-                if master_admin and hasattr(master_admin, 'company_detail'):
-                    company_detail = master_admin.company_detail
-                    if company_detail and company_detail.company_logo:
-                        return company_detail.company_logo
-            except:
+                company_user = CustomUser.objects.filter(
+                    company_name=user.company_name
+                ).exclude(id=user.id).first()
+                
+                if company_user:
+                    # Try company user's AdminDetail
+                    if hasattr(company_user, 'admin_detail') and company_user.admin_detail and company_user.admin_detail.logo:
+                        return company_user.admin_detail.logo
+                    # Try company user's CompanyDetail
+                    if hasattr(company_user, 'company_detail') and company_user.company_detail and company_user.company_detail.company_logo:
+                        return company_user.company_detail.company_logo
+            except Exception:
                 pass
         
-        # For other project admins, use their AdminDetail logo
-        elif user.user_type == 'projectadmin':
-            try:
-                admin_detail = user.admin_detail
-                if admin_detail and admin_detail.logo:
-                    return admin_detail.logo
-            except:
-                pass
-
-        # For EPCuser, inherit directly from master's CompanyDetail
-        elif user.user_type == 'adminuser' and user.admin_type == 'epcuser':
-            try:
-                master_admin = CustomUser.objects.filter(admin_type='master').first()
-                if master_admin and hasattr(master_admin, 'company_detail'):
-                    company_detail = master_admin.company_detail
-                    if company_detail and company_detail.company_logo:
-                        return company_detail.company_logo
-            except:
-                pass
-        
-        # For other admin users, get logo from their creator
-        elif user.user_type == 'adminuser' and user.created_by:
-            return self._get_company_logo(user.created_by)
-
         return None
 
     def get_signature_render_mode(self, obj):
@@ -337,6 +364,9 @@ class PermitSerializer(serializers.ModelSerializer):
     approved_by_details = UserMinimalSerializer(source='approved_by', read_only=True)
     verifier_details = UserMinimalSerializer(source='verifier', read_only=True)
     
+    # Tenant/Company information
+    tenant_company_logo_url = serializers.SerializerMethodField()
+    
     # Related collections
     assigned_workers = PermitWorkerSerializer(many=True, read_only=True)
     identified_hazards = PermitHazardSerializer(many=True, read_only=True)
@@ -433,7 +463,7 @@ class PermitSerializer(serializers.ModelSerializer):
             
             # Computed Fields
             'is_expired', 'duration_hours', 'risk_color', 'status_color',
-            'work_hours_display', 'is_within_work_hours'
+            'work_hours_display', 'is_within_work_hours', 'tenant_company_logo_url'
         ]
         read_only_fields = [
             'id', 'permit_number', 'created_by', 'created_at', 'updated_at',
@@ -477,6 +507,56 @@ class PermitSerializer(serializers.ModelSerializer):
     
     def get_is_within_work_hours(self, obj):
         return obj.is_within_work_hours()
+    
+    def get_tenant_company_logo_url(self, obj):
+        """Get tenant company logo URL (main company hosting the system)"""
+        request = self.context.get('request')
+        if not request:
+            return None
+        
+        from authentication.models import CustomUser
+        from control_plane.models import TenantCompany
+        
+        # Try to get tenant logo from TenantCompany first
+        if obj.project and obj.project.athens_tenant_id:
+            try:
+                tenant_company = TenantCompany.objects.get(id=obj.project.athens_tenant_id)
+                # TenantCompany doesn't have logo field, so look for master admin
+                master_admin = CustomUser.objects.filter(
+                    admin_type='master',
+                    athens_tenant_id=obj.project.athens_tenant_id
+                ).first()
+                
+                if master_admin:
+                    # Try master's AdminDetail
+                    try:
+                        if hasattr(master_admin, 'admin_detail') and master_admin.admin_detail and master_admin.admin_detail.logo:
+                            return request.build_absolute_uri(master_admin.admin_detail.logo.url)
+                    except Exception:
+                        pass
+                    
+                    # Try master's CompanyDetail
+                    try:
+                        if hasattr(master_admin, 'company_detail') and master_admin.company_detail and master_admin.company_detail.company_logo:
+                            return request.build_absolute_uri(master_admin.company_detail.company_logo.url)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+        
+        # Fallback: Look for Prozeal tenant company logo
+        tenant_user = CustomUser.objects.filter(
+            company_name__icontains='Prozeal Green Energy Limited'
+        ).first()
+        
+        if tenant_user:
+            try:
+                if hasattr(tenant_user, 'admin_detail') and tenant_user.admin_detail and tenant_user.admin_detail.logo:
+                    return request.build_absolute_uri(tenant_user.admin_detail.logo.url)
+            except Exception:
+                pass
+        
+        return None
 
     def get_signatures_by_type(self, obj):
         serializer = DigitalSignatureSerializer

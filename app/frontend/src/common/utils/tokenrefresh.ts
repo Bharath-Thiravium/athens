@@ -137,13 +137,25 @@ const refreshToken = async (): Promise<string | null> => {
       });
       
       const decoded = extractUserInfoFromToken(newAccessToken);
+      
+      // Use admin_type from JWT token as the primary user type if available
+      const newUserType = decoded?.django_user_type || decoded?.usertype || authState.usertype;
+      const newDjangoUserType = decoded?.django_user_type || decoded?.usertype || authState.django_user_type;
+      
+      console.log('Token refresh - using updated user types:', {
+        jwt_admin_type: decoded?.django_user_type,
+        jwt_user_type: decoded?.usertype,
+        final_usertype: newUserType,
+        final_django_user_type: newDjangoUserType
+      });
+      
       useAuthStore.getState().setToken(
         newAccessToken,
         authState.refreshToken,
         authState.projectId,
         authState.username,
-        decoded?.usertype || authState.usertype,
-        decoded?.django_user_type || authState.django_user_type,
+        newUserType,
+        newDjangoUserType,
         decoded?.isSuperAdmin || false,
         authState.userId,
         authState.isPasswordResetRequired,
@@ -215,13 +227,18 @@ export const testTokenRefresh = async (): Promise<void> => {
     if (response.data && response.data.access) {
       const authState = useAuthStore.getState();
       const decoded = extractUserInfoFromToken(response.data.access);
+      
+      // Use admin_type from JWT token as the primary user type if available
+      const newUserType = decoded?.django_user_type || decoded?.usertype || authState.usertype;
+      const newDjangoUserType = decoded?.django_user_type || decoded?.usertype || authState.django_user_type;
+      
       useAuthStore.getState().setToken(
         response.data.access,
         authState.refreshToken,
         authState.projectId,
         authState.username,
-        decoded?.usertype || authState.usertype,
-        decoded?.django_user_type || authState.django_user_type,
+        newUserType,
+        newDjangoUserType,
         decoded?.isSuperAdmin || false,
         authState.userId,
         authState.isPasswordResetRequired,

@@ -105,6 +105,7 @@ export interface DigitalSignature {
   ip_address?: string;
   device_info?: Record<string, any>;
   signature_render_mode?: 'raw' | 'card';
+  signature_template_url?: string | null;
 }
 
 export interface PermitToolboxTalk {
@@ -410,7 +411,6 @@ export interface PermitReadiness {
     signatures: SignatureDetails;
   };
 }
-
 
 
 

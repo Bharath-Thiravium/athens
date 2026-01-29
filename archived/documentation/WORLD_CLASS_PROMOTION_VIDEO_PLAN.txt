@@ -286,7 +286,6 @@ TECHNICAL ARCHITECTURE:
 - Backend: Django REST Framework
 - Database: PostgreSQL + Redis
 - AI: OpenAI + Anthropic + LangChain
-- Deployment: Docker + Cloud
 
 INDUSTRY COVERAGE:
 - Construction & Infrastructure
@@ -478,7 +477,6 @@ TECHNICAL EXCELLENCE:
 - Database: PostgreSQL + Redis Caching
 - AI Integration: OpenAI, Anthropic, LangChain
 - Security: JWT Authentication + Role-based Access
-- Deployment: Docker Containers + Cloud Ready
 
 TARGET INDUSTRIES:
 - Construction & Infrastructure

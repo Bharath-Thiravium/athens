@@ -2,7 +2,7 @@
 
 ## Environment Configuration
 
-**For venv (non-Docker) production setup:**
+**For venv production setup:**
 
 ### Database Configuration
 - **DB_HOST**: `localhost` (PostgreSQL running locally)
@@ -98,7 +98,7 @@ tail -f /var/log/athens_backend.log
 ## Troubleshooting
 
 ### Migration Fails: "could not translate host name 'database'"
-**Cause**: Using Docker .env with DB_HOST=database  
+**Cause**: Using an environment file with DB_HOST=database  
 **Fix**: Use `.env.production` which has DB_HOST=localhost
 
 ### Migration Fails: "SECRET_KEY must be set"

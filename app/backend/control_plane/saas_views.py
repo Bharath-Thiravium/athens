@@ -222,11 +222,12 @@ class SaaSTenantSyncAPIView(APIView):
 
 class SaaSMasterViewSet(viewsets.ModelViewSet):
     tenant_name_subquery = TenantCompany.objects.filter(id=OuterRef('athens_tenant_id')).values('display_name')[:1]
-    queryset = CustomUser.objects.filter(user_type='master').annotate(
+    queryset = CustomUser.objects.filter(admin_type='master').select_related('user_detail').annotate(
         tenant_name=Subquery(tenant_name_subquery)
     )
     serializer_class = MasterUserSerializer
     permission_classes = [IsSuperAdmin]
+    pagination_class = PageNumberPagination
 
     def perform_create(self, serializer):
         user = serializer.save(created_by=self.request.user)
@@ -241,9 +242,10 @@ class SaaSMasterViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         qs = self.get_queryset()
-        q = request.query_params.get('q')
-        tenant_id = request.query_params.get('tenant_id')
-        status = request.query_params.get('status')
+        query_params = getattr(request, 'query_params', request.GET)
+        q = query_params.get('q')
+        tenant_id = query_params.get('tenant_id')
+        status = query_params.get('status')
         if q:
             qs = qs.filter(Q(username__icontains=q) | Q(email__icontains=q))
         if tenant_id:
@@ -253,10 +255,15 @@ class SaaSMasterViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(is_active=True)
             elif status == 'disabled':
                 qs = qs.filter(is_active=False)
-        paginator = PageNumberPagination()
-        page = paginator.paginate_queryset(qs.order_by('-id'), request)
-        serializer = SaaSMasterListSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        
+        # Use DRF's standard pagination
+        page = self.paginate_queryset(qs.order_by('-id'))
+        if page is not None:
+            serializer = SaaSMasterListSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = SaaSMasterListSerializer(qs.order_by('-id'), many=True)
+        return Response(serializer.data)
 
 
 class SaaSSubscriptionViewSet(viewsets.ViewSet):
@@ -292,9 +299,10 @@ class SaaSSubscriptionListView(APIView):
 
     def get(self, request):
         qs = SaaSSubscription.objects.select_related('tenant').all()
-        status_param = request.query_params.get('status')
-        plan = request.query_params.get('plan')
-        period_end_lte = request.query_params.get('period_end_lte')
+        query_params = getattr(request, 'query_params', request.GET)
+        status_param = query_params.get('status')
+        plan = query_params.get('plan')
+        period_end_lte = query_params.get('period_end_lte')
         if status_param:
             qs = qs.filter(status=status_param)
         if plan:
@@ -317,11 +325,12 @@ class SaaSAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        tenant_id = self.request.query_params.get('tenant_id')
-        actor_id = self.request.query_params.get('actor_id')
-        action = self.request.query_params.get('action')
-        date_from = self.request.query_params.get('from')
-        date_to = self.request.query_params.get('to')
+        query_params = getattr(self.request, 'query_params', self.request.GET)
+        tenant_id = query_params.get('tenant_id')
+        actor_id = query_params.get('actor_id')
+        action = query_params.get('action')
+        date_from = query_params.get('from')
+        date_to = query_params.get('to')
         if tenant_id:
             qs = qs.filter(entity_type='tenant', entity_id=str(tenant_id))
         if actor_id:
@@ -340,9 +349,10 @@ class SaaSMetricsOverviewAPIView(APIView):
 
     def _get_range(self, request):
         now = timezone.now().date()
-        range_param = request.query_params.get('range')
-        date_from = request.query_params.get('from')
-        date_to = request.query_params.get('to')
+        query_params = getattr(request, 'query_params', request.GET)
+        range_param = query_params.get('range')
+        date_from = query_params.get('from')
+        date_to = query_params.get('to')
         if date_from and date_to:
             try:
                 return timezone.datetime.fromisoformat(date_from).date(), timezone.datetime.fromisoformat(date_to).date()
@@ -459,11 +469,12 @@ class SaaSTenantListView(APIView):
         qs = TenantCompany.objects.all().select_related('saas_subscription').annotate(
             masters_count=Subquery(master_counts, output_field=IntegerField())
         )
-        q = request.query_params.get('q')
-        status = request.query_params.get('status')
-        plan = request.query_params.get('plan')
-        sub_status = request.query_params.get('sub_status')
-        sort = request.query_params.get('sort')
+        query_params = getattr(request, 'query_params', request.GET)
+        q = query_params.get('q')
+        status = query_params.get('status')
+        plan = query_params.get('plan')
+        sub_status = query_params.get('sub_status')
+        sort = query_params.get('sort')
         if q:
             qs = qs.filter(Q(name__icontains=q) | Q(display_name__icontains=q))
         if status:

@@ -196,115 +196,27 @@ class UserDetailSerializer(serializers.ModelSerializer):
                             'name', 'surname', 'designation', 'department', 'email', 'admin_type', 'user_type']
 
 import logging
+from .tokens import apply_custom_claims, build_token_response
 logger = logging.getLogger(__name__)
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        # Add critical fields to JWT payload for frontend authorization
-        token['admin_type'] = normalize_master_type(user.admin_type)
-        token['user_type'] = normalize_master_type(user.user_type)
-        token['is_superadmin'] = (user.user_type == 'superadmin')
-        token['tenant_id'] = str(getattr(user, 'athens_tenant_id', '') or '') or None
-        if user.project:
-            token['project_id'] = user.project.id
-        return token
+        return apply_custom_claims(token, user)
 
     def validate(self, attrs):
         logger.debug(f"Validating token obtain pair for username: {attrs.get('username')}")
         
         # Use Django's built-in authentication but handle password validation more gracefully
         try:
-            data = super().validate(attrs)
+            super().validate(attrs)
         except Exception as e:
             logger.error(f"Authentication failed for {attrs.get('username')}: {str(e)}")
             raise
-            
+
         user = self.user.__class__.objects.get(pk=self.user.pk)
-        
-        # Check user_type first, then admin_type
-        # Handle master users - both user_type='master' and admin_type='master'
-        if is_master_user(user):
-            data['usertype'] = 'masteradmin'
-            data['username'] = user.username
-        elif user.user_type == 'superadmin':
-            data['usertype'] = 'superadmin'
-            data['username'] = user.username
-        elif user.user_type == 'projectadmin':
-            # For multiple contractor admins, append index to usertype if admin_type is contractor
-            if user.admin_type == 'contractor':
-                # Attempt to find index of this contractor admin among all contractor admins in the project
-                if user.project:  # Only if user has a project
-                    contractor_admins = CustomUser.objects.filter(project=user.project, user_type='projectadmin', admin_type='contractor').order_by('id')
-                    index = None
-                    for i, admin in enumerate(contractor_admins, start=1):
-                        if admin.pk == user.pk:
-                            index = i
-                            break
-                    if index:
-                        data['usertype'] = f'contractor{index}'
-                    else:
-                        data['usertype'] = user.admin_type
-                else:
-                    data['usertype'] = user.admin_type
-                data['username'] = user.username
-            else:
-                data['usertype'] = user.admin_type
-                data['username'] = user.username
-        elif user.user_type == 'adminuser':
-            data['usertype'] = user.admin_type
-            data['username'] = user.email
-        else:
-            # Fallback for other user types
-            data['usertype'] = getattr(user, 'user_type', 'user')
-            data['username'] = getattr(user, 'username', None)
-        data['isPasswordResetRequired'] = getattr(user, 'is_password_reset_required', False)
-        data['user_id'] = user.id
-        data['django_user_type'] = normalize_master_type(user.user_type)  # <-- Add this line
-        data['grade'] = getattr(user, 'grade', None)  # Add grade field
-        data['department'] = getattr(user, 'department', None)  # Add department field
-        # Add project_id to token response if user has a project
-        if user.project:
-            data['project_id'] = user.project.id
-        else:
-            data['project_id'] = None
-
-        # Add approval status for users who need approval
-        data['is_approved'] = True  # Default to approved
-        data['has_submitted_details'] = True  # Default to submitted
-
-        # Master users are always approved and don't need to submit details
-        if is_master_user(user):
-            data['is_approved'] = True
-            data['has_submitted_details'] = True
-        elif user.user_type == 'projectadmin':
-            try:
-                admin_detail = user.admin_detail
-                data['has_submitted_details'] = bool(
-                    admin_detail.phone_number and
-                    admin_detail.pan_number and
-                    admin_detail.gst_number
-                )
-                data['is_approved'] = admin_detail.is_approved
-            except:
-                data['has_submitted_details'] = False
-                data['is_approved'] = False
-
-        elif user.user_type == 'adminuser':
-            try:
-                user_detail = user.user_detail
-                data['has_submitted_details'] = bool(
-                    user_detail.mobile and
-                    user_detail.pan and
-                    user_detail.employee_id
-                )
-                data['is_approved'] = user_detail.is_approved
-            except:
-                data['has_submitted_details'] = False
-                data['is_approved'] = False
-
-        return data
+        return build_token_response(user)
 
 class CompanyDetailSerializer(serializers.ModelSerializer):
     """

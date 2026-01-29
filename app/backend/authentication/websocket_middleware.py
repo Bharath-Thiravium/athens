@@ -13,6 +13,19 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
+def _log_token_expiry(token, reason):
+    try:
+        payload = jwt.decode(
+            token,
+            options={"verify_signature": False, "verify_exp": False},
+            algorithms=["HS256"],
+        )
+        exp = payload.get("exp")
+        logger.warning("WebSocket token %s; exp=%s", reason, exp)
+    except Exception:
+        logger.warning("WebSocket token %s", reason)
+
+
 @database_sync_to_async
 def get_user_from_token(token):
     """
@@ -40,8 +53,9 @@ def get_user_from_token(token):
             
     except (InvalidToken, TokenError) as e:
         logger.warning(f"WebSocket token validation failed: {str(e)}")
+        _log_token_expiry(token, "invalid")
     except jwt.ExpiredSignatureError:
-        logger.warning("WebSocket token expired")
+        _log_token_expiry(token, "expired")
     except jwt.DecodeError:
         logger.warning("WebSocket token decode error")
     except jwt.InvalidTokenError:

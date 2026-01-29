@@ -9,5 +9,5 @@ Belongs here:
 
 Do not place here:
 - Application source code
-- Infrastructure manifests (Docker, nginx, systemd)
+- Infrastructure manifests (nginx, systemd)
 - Long-lived services or daemons

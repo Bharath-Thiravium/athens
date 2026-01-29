@@ -11,7 +11,6 @@ Athens EHS (Environmental, Health & Safety) is a comprehensive enterprise-grade 
 - **Authentication**: JWT-based with multi-tenant project isolation
 - **File Storage**: Django FileField with organized directory structure
 - **Notifications**: Real-time notification system with database persistence
-- **Deployment**: Docker containerization with Nginx reverse proxy
 
 ### System-Wide Design Principles
 1. **Project Isolation**: Strict data segregation by project/tenant
@@ -309,7 +308,6 @@ media/
 
 ### Container Strategy
 ```yaml
-# docker-compose.yml structure
 services:
   backend:          # Django application
   frontend:         # React application
@@ -427,7 +425,6 @@ services:
 ## Quick Reference Links
 
 - [System Setup Guide](README.md)
-- [Docker Setup Guide](DOCKER_SETUP_GUIDE.md)
 - [API Documentation](API_DOCUMENTATION.md)
 - [Security Guidelines](SECURITY_GUIDELINES.md)
 - [Troubleshooting Guide](MIXED_CONTENT_TROUBLESHOOTING.md)

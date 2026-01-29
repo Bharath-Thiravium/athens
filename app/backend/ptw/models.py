@@ -919,6 +919,8 @@ class PermitIsolationPoint(models.Model):
 # Signals for audit trail and workflow management
 @receiver(pre_save, sender=Permit)
 def store_original_permit_data(sender, instance, **kwargs):
+    if getattr(settings, 'DISABLE_MODEL_SIGNALS', False):
+        return
     if instance.version is None:
         instance.version = 1
 
@@ -955,6 +957,8 @@ def store_original_permit_data(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Permit)
 def create_audit_log(sender, instance, created, **kwargs):
+    if getattr(settings, 'DISABLE_MODEL_SIGNALS', False):
+        return
     user = getattr(instance, '_current_user', None)
     if getattr(instance, '_skip_audit_log', False):
         instance._skip_audit_log = False
@@ -995,6 +999,8 @@ def create_audit_log(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=WorkflowStep)
 def handle_workflow_step_completion(sender, instance, created, **kwargs):
+    if getattr(settings, 'DISABLE_MODEL_SIGNALS', False):
+        return
     if not created and instance.status in ['approved', 'completed']:
         # Check if all required steps are completed
         workflow = instance.workflow
@@ -1024,6 +1030,8 @@ def handle_workflow_step_completion(sender, instance, created, **kwargs):
 
 @receiver(pre_save, sender=PermitExtension)
 def store_original_extension_status(sender, instance, **kwargs):
+    if getattr(settings, 'DISABLE_MODEL_SIGNALS', False):
+        return
     if instance.pk:
         try:
             instance._original_status = PermitExtension.objects.get(pk=instance.pk).status

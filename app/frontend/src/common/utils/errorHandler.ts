@@ -45,6 +45,40 @@ export const ErrorTypes = {
   UNKNOWN_ERROR: 'UNKNOWN_ERROR'
 } as const;
 
+export const normalizeErrorMessage = (value: any, fallback = ''): string => {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((item) => normalizeErrorMessage(item, ''))
+      .filter(Boolean);
+    return parts.length ? parts.join(', ') : fallback;
+  }
+  if (typeof value === 'object') {
+    const candidate =
+      (value as any).message ??
+      (value as any).detail ??
+      (value as any).error ??
+      (value as any).code;
+    if (candidate !== undefined) {
+      return normalizeErrorMessage(candidate, fallback);
+    }
+    try {
+      return JSON.stringify(value);
+    } catch (err) {
+      return fallback;
+    }
+  }
+  return String(value);
+};
+
 export const getErrorType = (error: any): string => {
   if (!error.response) {
     return ErrorTypes.NETWORK_ERROR;
@@ -85,15 +119,15 @@ export const getErrorMessage = (error: any, context?: ErrorContext): string => {
 
   // Try to get specific error message from response
   if (error.response?.data?.message) {
-    return error.response.data.message;
+    return normalizeErrorMessage(error.response.data.message, defaultMessages[errorType as keyof typeof defaultMessages]);
   }
 
   if (error.response?.data?.error) {
-    return error.response.data.error;
+    return normalizeErrorMessage(error.response.data.error, defaultMessages[errorType as keyof typeof defaultMessages]);
   }
 
   if (error.message) {
-    return error.message;
+    return normalizeErrorMessage(error.message, defaultMessages[errorType as keyof typeof defaultMessages]);
   }
 
   return defaultMessages[errorType as keyof typeof defaultMessages];

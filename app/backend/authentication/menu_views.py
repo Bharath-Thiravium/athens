@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -8,6 +9,7 @@ from .menu_serializers import MenuCategorySerializer, MenuModuleSerializer, Comp
 from .usertype_utils import is_master_user
 from .menu_access_utils import get_allowed_menu_module_ids_for_tenant, sync_company_menu_access
 import logging
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +41,15 @@ class UserMenuAccessView(APIView):
         project_id = request.GET.get('project_id') or getattr(user, 'project_id', None)
         
         try:
+            # Create cache key based on user, project, and user type
+            cache_key_data = f"{user.id}:{project_id}:{user.user_type}:{getattr(user, 'admin_type', '')}"
+            cache_key = f"menu_access:{hashlib.md5(cache_key_data.encode()).hexdigest()}"
+            
+            # Try to get from cache first
+            cached_result = cache.get(cache_key)
+            if cached_result:
+                return Response(cached_result, status=status.HTTP_200_OK)
+            
             # Get user's athens_tenant_id
             athens_tenant_id = getattr(user, 'athens_tenant_id', None)
             if not athens_tenant_id and getattr(user, 'project', None):
@@ -67,14 +78,26 @@ class UserMenuAccessView(APIView):
                 except:
                     pass
             
-            # Get categories with accessible modules
-            categories = MenuCategory.objects.filter(is_active=True).prefetch_related('modules')
+            # OPTIMIZED: Get all user permissions in one query
+            user_permissions = {}
+            if hasattr(user, 'id'):
+                user_perms = UserMenuPermission.objects.filter(user=user).select_related('module')
+                user_permissions = {perm.module_id: perm.can_access for perm in user_perms}
+            
+            # OPTIMIZED: Get categories with modules in one query with prefetch
+            categories = MenuCategory.objects.filter(is_active=True).prefetch_related(
+                'modules__category'
+            ).order_by('order')
+            
             accessible_categories = []
             
             for category in categories:
                 accessible_modules = []
                 
-                for module in category.modules.filter(is_active=True):
+                # OPTIMIZED: Filter active modules in Python to avoid extra queries
+                active_modules = [m for m in category.modules.all() if m.is_active]
+                
+                for module in active_modules:
                     # Check company access
                     if module.id not in allowed_company_module_ids:
                         continue
@@ -83,12 +106,24 @@ class UserMenuAccessView(APIView):
                     if allowed_project_module_ids is not None and module.id not in allowed_project_module_ids:
                         continue
                     
-                    # Check user permission if required
+                    # RESTRICT SYSTEM ADMINISTRATION MODULES TO PROJECT ADMINS ONLY
+                    if category.key in ['system_administration', 'admin']:
+                        # Only allow access for project admins and master admins
+                        user_type = getattr(user, 'user_type', None)
+                        admin_type = getattr(user, 'admin_type', None)
+                        
+                        logger.info(f"System admin check for user {user.username}: user_type={user_type}, admin_type={admin_type}")
+                        
+                        # Allow access for:
+                        # 1. Project admins (created by master admin)
+                        # 2. Master admins
+                        if not (user_type == 'projectadmin' or admin_type in ['master', 'masteradmin']):
+                            logger.info(f"Blocking system admin access for user {user.username}")
+                            continue
+                    
+                    # OPTIMIZED: Check user permission from pre-loaded dict
                     if module.requires_permission:
-                        user_permission = UserMenuPermission.objects.filter(
-                            user=user, module=module
-                        ).first()
-                        if user_permission and not user_permission.can_access:
+                        if module.id in user_permissions and not user_permissions[module.id]:
                             continue
                     
                     accessible_modules.append({
@@ -114,6 +149,9 @@ class UserMenuAccessView(APIView):
                     'project': project_info,
                     'menu': accessible_categories
                 }
+            
+            # Cache the result for 5 minutes
+            cache.set(cache_key, response_data, 300)
             
             return Response(response_data, status=status.HTTP_200_OK)
             

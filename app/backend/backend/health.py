@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 def health_check(request):
     """
-    Health check endpoint for Docker containers and load balancers
+    Health check endpoint for load balancers
     """
     try:
         # Check database connection

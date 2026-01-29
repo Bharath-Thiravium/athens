@@ -76,7 +76,7 @@ export const generatePermitQrCode = (id: number) =>
     `${API_URL}/permits/${id}/generate_qr_code/`
   );
 
-export const addPermitSignature = (id: number, data: { signature_type: string; signature_data: string }) =>
+export const addPermitSignature = (id: number, data: { signature_type: string }) =>
   api.post(`${API_URL}/permits/${id}/add_signature/`, data);
 
 export const createPermit = (data: Partial<Types.Permit>) =>
@@ -193,11 +193,15 @@ export const searchUsers = (params?: {
   project?: number;
 }) => api.get(`${API_URL}/team-members/get_users_by_type_and_grade/`, { params });
 
-export const getAvailableVerifiers = (params?: string) => 
-  api.get(`${API_URL}/workflow/verifiers/?${params || ''}`);
+export const getAvailableVerifiers = (params?: {
+  user_type?: string;
+  grade?: string;
+}) => api.get(`${API_URL}/workflow/verifiers/`, { params });
 
-export const getAvailableApprovers = (params?: string) => 
-  api.get(`${API_URL}/workflow/approvers/?${params || ''}`);
+export const getAvailableApprovers = (params?: {
+  user_type?: string;
+  grade?: string;
+}) => api.get(`${API_URL}/workflow/approvers/`, { params });
 
 export const getWorkflowStatus = (permitId: number) => 
   api.get(`${API_URL}/permits/${permitId}/workflow/status/`);

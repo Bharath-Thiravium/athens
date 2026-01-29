@@ -9,16 +9,20 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import permission_classes, api_view
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.authentication import JWTAuthentication
 import logging
+import os
 import random
 import string
+from datetime import timedelta
 from django.utils.html import escape
 from django.core.exceptions import ValidationError
 from .security_utils import sanitize_log_input, secure_filename, validate_file_path, safe_join
 from .password_utils import generate_secure_password, validate_password_strength
 from .file_handlers import SecureFileHandler
 from .usertype_utils import is_master_user, normalize_master_type
+from .tokens import build_refresh_response
 
 from django.db import models
 from .models import Project, CustomUser, UserDetail, CompanyDetail, AdminDetail
@@ -45,6 +49,11 @@ class UserDetailRetrieveUpdateView(generics.RetrieveUpdateAPIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def get_object(self):
+        # Restrict access for master users - they don't need profile details
+        if is_master_user(self.request.user):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Master admins do not have access to user profile details.")
+        
         # Get or create UserDetail for the current user
         user_detail, created = UserDetail.objects.get_or_create(user=self.request.user)
         return user_detail
@@ -156,6 +165,52 @@ logger = logging.getLogger(__name__)
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+
+class CustomTokenRefreshView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
+        if not refresh_token:
+            return Response({"detail": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            data = build_refresh_response(refresh_token)
+            try:
+                refresh = RefreshToken(refresh_token)
+                exp = refresh.get("exp")
+                if exp:
+                    logger.info("Token refresh succeeded; refresh_exp=%s", exp)
+            except Exception:
+                pass
+            return Response(data, status=status.HTTP_200_OK)
+        except TokenError as exc:
+            logger.warning("Token refresh failed: %s", sanitize_log_input(str(exc)))
+            return Response({"detail": "Token is invalid or expired."}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class WebsocketTokenRefreshView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
+        if not refresh_token:
+            return Response({"detail": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            refresh = RefreshToken(refresh_token)
+            access = refresh.access_token
+            ws_minutes = int(os.getenv("WEBSOCKET_ACCESS_TOKEN_MINUTES", "15"))
+            access.set_exp(lifetime=timedelta(minutes=ws_minutes))
+            access["token_purpose"] = "websocket"
+            logger.info("WebSocket token refresh succeeded; access_exp=%s", access.get("exp"))
+            return Response({"access": str(access)}, status=status.HTTP_200_OK)
+        except TokenError as exc:
+            logger.warning("WebSocket token refresh failed: %s", sanitize_log_input(str(exc)))
+            return Response({"detail": "Token is invalid or expired."}, status=status.HTTP_401_UNAUTHORIZED)
 
 @api_view(['GET'])
 def index(request):

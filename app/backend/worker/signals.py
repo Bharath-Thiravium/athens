@@ -3,12 +3,15 @@ from django.dispatch import receiver
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.apps import apps
+from django.conf import settings
 
 @receiver(post_migrate)
 def create_worker_permissions(sender, **kwargs):
     """
     Create custom permissions for the worker app after migrations.
     """
+    if getattr(settings, 'DISABLE_MODEL_SIGNALS', False):
+        return
     if sender.name == 'worker':
         # Get the content type for the Worker model
         Worker = apps.get_model('worker', 'Worker')

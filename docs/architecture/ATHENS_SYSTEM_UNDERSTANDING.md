@@ -7,7 +7,6 @@ This document captures my current understanding of the codebase based on a focus
 - Stack:
   - Backend: Django 5.x + Django REST Framework + Channels (WebSocket), PostgreSQL (primary) with SQLite backup.
   - Frontend: React + TypeScript + Vite + Ant Design.
-  - Deployment: Docker + Nginx, with support for traditional local dev via Vite and `manage.py runserver`.
 - Core cross-cutting concerns:
   - Multi-tenant (company-level) isolation using `athens_tenant_id`.
   - Project-based scoping within a tenant.
@@ -128,7 +127,6 @@ Routes: `frontend/src/app/App.tsx`
 
 ## 5. Operations and Deployments
 Primary docs and scripts:
-- Quick start and maintenance: `README.md`, `DOCKER_SETUP_GUIDE.md`, `diagnose_system.sh`, `docker-setup.sh`.
 - Nginx config: `nginx/nginx.conf`.
 
 ## 6. Notable Risks / Gaps

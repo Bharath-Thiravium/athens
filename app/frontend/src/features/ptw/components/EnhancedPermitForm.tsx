@@ -328,42 +328,55 @@ const EnhancedPermitForm: React.FC = () => {
             ? permitParameters.checklist_items
             : [];
           
-          // Set form values
-          form.setFieldsValue({
-            permit_number: permit.permit_number,
-            permit_type: permit.permit_type,
-            description: permit.description,
-            location: permit.location,
-            gps_coordinates: permit.gps_coordinates,
+          // Ensure permit_type is properly set as number
+          const permitTypeId = permit.permit_type ? Number(permit.permit_type) : null;
+          
+          // Set form values with proper data types
+          const formValues = {
+            permit_number: permit.permit_number || '',
+            permit_type: permitTypeId,
+            description: permit.description || '',
+            location: permit.location || '',
+            gps_coordinates: permit.gps_coordinates || '',
             planned_start_time: permit.planned_start_time ? dayjs(permit.planned_start_time) : null,
             planned_end_time: permit.planned_end_time ? dayjs(permit.planned_end_time) : null,
-            risk_assessment_completed: permit.risk_assessment_completed,
-            probability: permit.probability,
-            severity: permit.severity,
-            control_measures: permit.control_measures,
+            work_nature: permit.work_nature || 'day',
+            risk_assessment_completed: Boolean(permit.risk_assessment_completed),
+            probability: permit.probability ? Number(permit.probability) : null,
+            severity: permit.severity ? Number(permit.severity) : null,
+            control_measures: permit.control_measures || '',
             ppe_requirements: Array.isArray(permit.ppe_requirements) ? permit.ppe_requirements : [],
-            special_instructions: permit.special_instructions,
+            special_instructions: permit.special_instructions || '',
             safety_checklist: checklistValues,
-            requires_isolation: permit.requires_isolation,
-            mobile_created: permit.mobile_created,
-            offline_id: permit.offline_id,
-            permit_parameters: permitParameters
-          });
+            requires_isolation: Boolean(permit.requires_isolation),
+            isolation_details: permit.isolation_details || '',
+            mobile_created: Boolean(permit.mobile_created),
+            offline_id: permit.offline_id || '',
+            permit_parameters: permitParameters,
+            verifier: permit.verifier || null,
+            emergency_contacts: permit.emergency_contacts || ''
+          };
+          
+          form.setFieldsValue(formValues);
+          setFormData(formValues);
+          setAllFormValues(formValues);
 
           if (storedChecklistItems.length > 0) {
             setChecklistItems(storedChecklistItems);
           }
 
-          if (permit.permit_type) {
-            await loadResolvedTemplate(permit.permit_type);
+          // Load template after setting permit type
+          if (permitTypeId) {
+            await loadResolvedTemplate(permitTypeId);
           }
           
           // Set risk calculation
           if (permit.probability && permit.severity) {
-            calculateRisk(permit.probability, permit.severity);
+            calculateRisk(Number(permit.probability), Number(permit.severity));
           }
           
         } catch (error) {
+          console.error('Failed to load permit data:', error);
           message.error('Failed to load permit data');
         } finally {
           setLoading(false);
@@ -1026,12 +1039,13 @@ const EnhancedPermitForm: React.FC = () => {
                   rules={[
                     {
                       validator: (_, value) => {
-                        if (!value || (Array.isArray(value) && value.length === 0)) {
+                        if (value === undefined || value === null || value === '') {
                           return Promise.reject(new Error('Please select a permit type'));
                         }
                         const actualValue = Array.isArray(value) ? value[0] : value;
-                        if (!actualValue || isNaN(Number(actualValue))) {
-                          return Promise.reject(new Error('Invalid permit type selected'));
+                        const numValue = Number(actualValue);
+                        if (isNaN(numValue) || numValue <= 0) {
+                          return Promise.reject(new Error('Please select a valid permit type'));
                         }
                         return Promise.resolve();
                       }
@@ -1880,12 +1894,17 @@ const EnhancedPermitForm: React.FC = () => {
             <Alert
               message="Permit Validity"
               description={(() => {
-                const selectedType = permitTypes.find(type => type.id === form.getFieldValue('permit_type'));
+                const currentPermitType = form.getFieldValue('permit_type');
+                const selectedType = permitTypes.find(type => type.id === currentPermitType);
                 const params = form.getFieldValue('permit_parameters') || {};
-                const validityHours = params.validity_hours
-                  ?? resolvedTemplate?.resolved_flags?.validity_hours
-                  ?? selectedType?.validity_hours
-                  ?? 8;
+                const resolvedFlags = resolvedTemplate?.resolved_flags || {};
+                
+                // Get validity hours from multiple sources with proper fallback
+                const validityHours = params.validity_hours ||
+                  resolvedFlags.validity_hours ||
+                  selectedType?.validity_hours ||
+                  8;
+                
                 return selectedType
                   ? `This permit will be valid for ${validityHours} hours after approval.`
                   : 'Validity period will be determined by permit type.';
@@ -1918,9 +1937,10 @@ const EnhancedPermitForm: React.FC = () => {
       if (Array.isArray(permitTypeId)) {
         permitTypeId = permitTypeId[0];
       }
+      permitTypeId = Number(permitTypeId);
       
-      if (!permitTypeId || isNaN(Number(permitTypeId))) {
-        console.error('Invalid permit type:', permitTypeId);
+      if (!permitTypeId || isNaN(permitTypeId) || permitTypeId <= 0) {
+        console.error('Invalid permit type:', values.permit_type, 'converted to:', permitTypeId);
         message.error('Please select a valid permit type');
         setCurrentStep(0);
         return;
@@ -1989,7 +2009,7 @@ const EnhancedPermitForm: React.FC = () => {
       
       // Transform form data to match backend API
       const submitData = {
-        permit_type: Number(permitTypeId),
+        permit_type: permitTypeId,
         description: values.description?.trim() || '',
         location: values.location?.trim() || '',
         gps_coordinates: values.gps_coordinates?.trim() || '',
@@ -2009,7 +2029,8 @@ const EnhancedPermitForm: React.FC = () => {
         mobile_created: Boolean(values.mobile_created),
         offline_id: values.offline_id?.trim() || '',
         permit_parameters: values.permit_parameters || {},
-        verifier: values.verifier || null
+        verifier: values.verifier || null,
+        emergency_contacts: values.emergency_contacts?.trim() || ''
       };
       
       
@@ -2107,9 +2128,9 @@ const EnhancedPermitForm: React.FC = () => {
       </div>
 
       {/* Progress Steps */}
-      <Steps current={currentStep} style={{ marginBottom: 24 }}>
+      <Steps current={currentStep} style={{ marginBottom: 24 }} type="navigation">
         {steps.map((step, index) => (
-          <Step key={index} title={step.title} icon={step.icon} />
+          <Step key={index} title={step.title} icon={step.icon} disabled />
         ))}
       </Steps>
 

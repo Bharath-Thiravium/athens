@@ -74,10 +74,8 @@ python3 manage.py test ptw.tests.test_permit_extension
 python3 manage.py test ptw
 ```
 
-### Run Tests via Docker (Recommended for CI/CD)
 ```bash
 cd /var/www/athens
-docker-compose -f docker-compose.dev.yml exec backend python manage.py test ptw.tests.test_permit_extension
 ```
 
 ## Status

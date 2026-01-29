@@ -101,60 +101,56 @@ const PTWStandardPrint: React.FC = () => {
   const resolveSignatureSrc = (signatureData?: string | null) => {
     if (!signatureData) return null;
     const trimmed = signatureData.trim();
-    
-    // Handle data URL format (base64)
-    if (trimmed.startsWith('data:image/png;base64,')) {
+
+    if (trimmed.startsWith('{')) {
       try {
-        // Extract base64 part and decode JSON
-        const base64Data = trimmed.substring('data:image/png;base64,'.length);
-        const decoded = atob(base64Data);
-        const jsonData = JSON.parse(decoded);
-        
-        // If it's a JSON with template_url, use that
-        if (jsonData.template_url) {
+        const jsonData = JSON.parse(trimmed);
+        if (jsonData?.template_url) {
           return jsonData.template_url;
         }
       } catch (e) {
-        // If JSON parsing fails, treat as regular data URL
+        // Fall through and treat as image data below.
       }
-      return trimmed;
     }
-    
-    // Handle HTTP URLs
-    if (trimmed.startsWith('http')) return trimmed;
-    
-    // Handle media paths
-    if (trimmed.startsWith('/media/')) {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
-      return `${baseUrl}${trimmed}`;
-    }
-    
-    // Handle SVG content
-    if (trimmed.startsWith('<svg')) {
-      return `data:image/svg+xml;utf8,${encodeURIComponent(trimmed)}`;
-    }
-    
-    // Assume base64 without prefix
-    return `data:image/png;base64,${trimmed}`;
-  };
 
-  const isPrecomposedCard = (signatureData?: string | null) => {
-    if (!signatureData) return false;
-    const trimmed = signatureData.trim();
-    
     if (trimmed.startsWith('data:image/png;base64,')) {
       try {
         const base64Data = trimmed.substring('data:image/png;base64,'.length);
         const decoded = atob(base64Data);
         const jsonData = JSON.parse(decoded);
-        return !!jsonData.template_url; // Has template_url = precomposed card
+        if (jsonData?.template_url) {
+          return jsonData.template_url;
+        }
       } catch (e) {
-        // If JSON parsing fails, check if it's a large PNG (likely precomposed)
-        return trimmed.length > 1000; // Large base64 = likely precomposed card
+        // Fall through and treat as image data URL below.
+      }
+      return trimmed;
+    }
+
+    if (/^[A-Za-z0-9+/=]+$/.test(trimmed)) {
+      try {
+        const decoded = atob(trimmed);
+        const jsonData = JSON.parse(decoded);
+        if (jsonData?.template_url) {
+          return jsonData.template_url;
+        }
+      } catch (e) {
+        // Not JSON base64, fall through.
       }
     }
-    
-    return false;
+
+    if (trimmed.startsWith('http')) return trimmed;
+
+    if (trimmed.startsWith('/media/')) {
+      const baseUrl = window.location.origin;
+      return `${baseUrl}${trimmed}`;
+    }
+
+    if (trimmed.startsWith('<svg')) {
+      return `data:image/svg+xml;utf8,${encodeURIComponent(trimmed)}`;
+    }
+
+    return `data:image/png;base64,${trimmed}`;
   };
 
   const findSignatureByType = (signatures: any, type: string) => {
@@ -174,11 +170,6 @@ const PTWStandardPrint: React.FC = () => {
     }
     
     return null;
-  };
-
-  const getSignatureRenderMode = (sig?: Types.DigitalSignature | null) => {
-    if (!sig?.signature_render_mode) return 'card';
-    return sig.signature_render_mode;
   };
 
   const checklistItems = (() => {
@@ -214,6 +205,7 @@ const PTWStandardPrint: React.FC = () => {
 
   const signatureMap = permit.signatures_by_type || {};
   const signatureLogo =
+    permit.tenant_company_logo_url ||
     signatureMap.requestor?.company_logo_url ||
     signatureMap.verifier?.company_logo_url ||
     signatureMap.approver?.company_logo_url;
@@ -434,62 +426,63 @@ const PTWStandardPrint: React.FC = () => {
             {[
               { label: 'Requestor', type: 'requestor', fallback: permit.created_by_details },
               { label: 'Verifier', type: 'verifier', fallback: permit.verifier_details },
-              { label: 'Approver', type: 'approver', fallback: permit.approved_by_details }
+              ...(permit.approved_by_details ? [{ label: 'Approver', type: 'approver', fallback: permit.approved_by_details }] : [])
             ].map((entry) => {
               const sig = findSignatureByType(signatureMap, entry.type);
+              const fallbackUser = entry.fallback;
               
-              if (!sig) {
-                return (
-                  <div key={entry.type} className="ptw-signature-card">
-                    <div className="ptw-signature-label">{entry.label}</div>
-                    <div className="ptw-signature-image-container">
-                      <div className="ptw-adobe-signature-block">
-                        <div className="ptw-signature-partitions">
-                          <div className="ptw-signature-left">
-                            <div className="ptw-signer-name">{entry.label}</div>
-                            <div className="ptw-designation">Not signed</div>
-                          </div>
-                          <div className="ptw-signature-divider"></div>
-                          <div className="ptw-signature-right">
-                            <div className="ptw-signed-by">Awaiting signature</div>
-                            <div className="ptw-signed-at">Date: —</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              // Extract signature details safely
-              const signerName = typeof sig.signer_name === 'string' ? sig.signer_name : 
-                                (sig.signatory_details?.full_name || sig.signatory_details?.username || 'Unknown');
-              const designation = typeof sig.designation === 'string' ? sig.designation : '';
-              const employeeId = typeof sig.employee_id === 'string' ? sig.employee_id : '';
-              const signedDate = formatDateOnly(sig.signed_at);
-              const signatureImageSrc = resolveSignatureSrc(sig.signature_data);
-              const isPrecomposed = isPrecomposedCard(sig.signature_data);
-              const renderMode = isPrecomposed ? 'card' : getSignatureRenderMode(sig);
+              // Get user details from signature or fallback
+              const signerName = sig?.signer_name || 
+                                sig?.signatory_details?.full_name || 
+                                sig?.signatory_details?.username ||
+                                (fallbackUser ? `${fallbackUser.name || ''} ${fallbackUser.surname || ''}`.trim() : '') ||
+                                fallbackUser?.username ||
+                                'Unknown';
+              
+              const designation = sig?.designation || fallbackUser?.designation || '';
+              const department = sig?.department || fallbackUser?.department || '';
+              const employeeId = sig?.employee_id || fallbackUser?.employee_id || '';
+              const signedDate = sig ? formatDateOnly(sig.signed_at) : '—';
+              const signatureImageSrc = sig
+                ? (sig.signature_template_url || resolveSignatureSrc(sig.signature_data) || null)
+                : null;
+              const companyLogo = sig?.company_logo_url || fallbackUser?.company_logo_url;
+              const renderMode = sig?.signature_render_mode === 'raw' && !signatureImageSrc ? 'raw' : 'card';
               
               return (
                 <div key={entry.type} className="ptw-signature-card">
                   <div className="ptw-signature-label">{entry.label}</div>
-                  {renderMode === 'card' ? (
-                    <div className="ptw-signature-card-only">
-                      {signatureImageSrc ? (
-                        <img
-                          src={signatureImageSrc}
-                          alt={`${entry.label} signature card`}
-                          className="ptw-signature-card-image"
-                        />
-                      ) : (
-                        <div className="ptw-signature-placeholder">Signature on file</div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="ptw-signature-image-container">
-                      <div className="ptw-adobe-signature-block">
-                        <div className="ptw-signature-partitions">
+                  <div className="ptw-signature-image-container">
+                    {renderMode === 'card' ? (
+                      <div className="ptw-signature-card-only">
+                        {signatureImageSrc ? (
+                          <img
+                            src={signatureImageSrc}
+                            alt={`${entry.label} Signature`}
+                            className="ptw-signature-card-image"
+                          />
+                        ) : (
+                          <div className="ptw-signature-placeholder">Signature on file</div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="ptw-adobe-signature-block" style={{ position: 'relative' }}>
+                        {companyLogo && (
+                          <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundImage: `url(${companyLogo})`,
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'center',
+                            backgroundSize: 'contain',
+                            opacity: 0.4,
+                            pointerEvents: 'none'
+                          }} />
+                        )}
+                        <div className="ptw-signature-partitions" style={{ position: 'relative', zIndex: 1 }}>
                           <div className="ptw-signature-left">
                             <div className="ptw-signer-name">{signerName}</div>
                             {employeeId && <div className="ptw-employee-id">ID: {employeeId}</div>}
@@ -497,22 +490,23 @@ const PTWStandardPrint: React.FC = () => {
                           </div>
                           <div className="ptw-signature-divider"></div>
                           <div className="ptw-signature-right">
-                            <div className="ptw-signed-by">Digitally signed by {signerName}</div>
-                            <div className="ptw-signed-at">Date: {signedDate}</div>
+                            {sig ? (
+                              <>
+                                <div className="ptw-signed-by">Digitally signed by {signerName}</div>
+                                {department && <div className="ptw-department">{department}</div>}
+                                <div className="ptw-signed-at">{formatDateTime(sig.signed_at)}</div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="ptw-signed-by">Awaiting signature</div>
+                                <div className="ptw-signed-at">Date: —</div>
+                              </>
+                            )}
                           </div>
                         </div>
-                        {signatureImageSrc && (
-                          <div className="ptw-signature-image-overlay">
-                            <img 
-                              src={signatureImageSrc} 
-                              alt={`${entry.label} signature`} 
-                              className="ptw-signature-template-image"
-                            />
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               );
             })}

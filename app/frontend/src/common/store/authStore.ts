@@ -51,6 +51,7 @@ interface AuthState {
   clearToken: () => void;
   isAuthenticated: () => boolean;
   restoreUserDataFromToken: () => void; // Add method to restore user data from token
+  forceTokenSync: () => void; // Force sync with current JWT token
   logout: (showMessage?: boolean) => Promise<{ success: boolean; showMessage?: boolean }>;
   secureLogout: () => Promise<void>; // Enhanced logout with better error handling
 }
@@ -450,22 +451,28 @@ const useAuthStore = create<AuthState>((set, get) => ({
   },
   restoreUserDataFromToken: () => {
     const token = get().token;
-    const currentUsertype = get().usertype;
-    const currentDjangoUserType = get().django_user_type;
     
-    // Only restore if we have a token but missing user data
-    if (token && (!currentUsertype || !currentDjangoUserType)) {
-      console.log('Attempting to restore user data from token...');
+    if (token) {
+      console.log('Forcing user data restore from current token...');
       const userInfo = extractUserInfoFromToken(token);
       
       if (userInfo) {
-        console.log('Restored user data from token:', userInfo);
+        console.log('Updating auth store with token data:', {
+          current_usertype: get().usertype,
+          current_django_user_type: get().django_user_type,
+          token_usertype: userInfo.usertype,
+          token_django_user_type: userInfo.django_user_type
+        });
+        
+        // Use admin_type as primary user type if available
+        const newUsertype = normalizeUserType(userInfo.django_user_type) || normalizeUserType(userInfo.usertype) || get().usertype;
+        const newDjangoUserType = normalizeUserType(userInfo.django_user_type) || normalizeUserType(userInfo.usertype) || get().django_user_type;
         
         // Update localStorage
         if (typeof window !== 'undefined') {
           if (userInfo.username) localStorage.setItem('username', userInfo.username);
-          if (userInfo.usertype) localStorage.setItem('usertype', normalizeUserType(userInfo.usertype)!);
-          if (userInfo.django_user_type) localStorage.setItem('django_user_type', normalizeUserType(userInfo.django_user_type)!);
+          if (newUsertype) localStorage.setItem('usertype', newUsertype);
+          if (newDjangoUserType) localStorage.setItem('django_user_type', newDjangoUserType);
           if (userInfo.userId) localStorage.setItem('userId', String(userInfo.userId));
           if (userInfo.projectId) localStorage.setItem('projectId', String(userInfo.projectId));
           localStorage.setItem('isSuperAdmin', String(!!userInfo.isSuperAdmin));
@@ -474,16 +481,22 @@ const useAuthStore = create<AuthState>((set, get) => ({
         // Update store state
         set({
           username: userInfo.username || get().username,
-          usertype: normalizeUserType(userInfo.usertype) || get().usertype,
-          django_user_type: normalizeUserType(userInfo.django_user_type) || get().django_user_type,
+          usertype: newUsertype,
+          django_user_type: newDjangoUserType,
           isSuperAdmin: !!userInfo.isSuperAdmin,
           userId: userInfo.userId || get().userId,
           projectId: userInfo.projectId || get().projectId,
         });
+        
+        console.log('Auth store updated successfully');
       } else {
         console.warn('Could not extract user info from token');
       }
     }
+  },
+  forceTokenSync: () => {
+    // Force sync auth store with current JWT token data
+    get().restoreUserDataFromToken();
   },
 }));
 

@@ -128,7 +128,6 @@
 ls -la *_MODULE_BLUEPRINT.md
 
 # Validate core functionality
-./validate-docker.sh
 ```
 
 ### Health Indicators:
@@ -153,7 +152,6 @@ ls -la *_MODULE_BLUEPRINT.md
 
 ### Supporting Documentation:
 - `README.md` - System setup and operation
-- `DOCKER_SETUP_GUIDE.md` - Deployment procedures
 - `MIXED_CONTENT_TROUBLESHOOTING.md` - Common issues
 - `SYSTEM_STATUS.md` - Current operational status
 

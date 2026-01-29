@@ -43,13 +43,17 @@ const moduleKeyAliases: Record<string, string> = {
   analytics_dashboard: 'analytics',
   worker_management: 'workers',
   manpower_management: 'manpower',
-  safety_observation: 'safetyobservation',
-  incident_management: 'incidentmanagement',
+  safety_observation: 'safety_observation',
+  incident_management: 'incident_management',
+  inspection_management: 'inspection_management',
   toolbox_talk: 'toolboxtalk',
   induction_training: 'inductiontraining',
   job_training: 'jobtraining',
   voice_translator: 'voice-translator',
   training_check_in: 'training-check-in',
+  user_management: 'user_management',
+  permission_control: 'permission_control',
+  system_settings: 'system_settings',
 };
 
 export const normalizeModuleKey = (key: string) => moduleKeyAliases[key] || key;
@@ -68,6 +72,7 @@ const categoryIconMap: Record<string, React.ReactNode> = {
 
 /**
  * Menu item mapping based on module keys
+ * Note: System Administration modules are controlled by backend API only
  */
 const getMenuItemByKey = (key: string): MenuItem | MenuItem[] | null => {
   const menuMap: Record<string, MenuItem | MenuItem[]> = {
@@ -97,6 +102,15 @@ const getMenuItemByKey = (key: string): MenuItem | MenuItem[] | null => {
     'toolboxtalk': { key: '/dashboard/toolboxtalk', icon: <BookOutlined />, label: 'Toolbox Talk' },
     
     // Safety modules
+    'safety_observation': {
+      key: 'safetyobservation',
+      icon: <SafetyOutlined />,
+      label: 'Safety Observation',
+      children: [
+        { key: '/dashboard/safetyobservation/form', icon: <FormOutlined />, label: 'Observation Form' },
+        { key: '/dashboard/safetyobservation/list', icon: <TeamOutlined />, label: 'Observation List' },
+      ]
+    },
     'safetyobservation': {
       key: 'safetyobservation',
       icon: <SafetyOutlined />,
@@ -104,6 +118,16 @@ const getMenuItemByKey = (key: string): MenuItem | MenuItem[] | null => {
       children: [
         { key: '/dashboard/safetyobservation/form', icon: <FormOutlined />, label: 'Observation Form' },
         { key: '/dashboard/safetyobservation/list', icon: <TeamOutlined />, label: 'Observation List' },
+      ]
+    },
+    'incident_management': {
+      key: 'incidentmanagement',
+      icon: <SafetyOutlined />,
+      label: 'Incident Management',
+      children: [
+        { key: '/dashboard/incidentmanagement/incidents', icon: <FileTextOutlined />, label: 'All Incidents' },
+        { key: '/dashboard/incidentmanagement/create', icon: <PlusOutlined />, label: 'Report Incident' },
+        { key: '/dashboard/incidentmanagement', icon: <BarChartOutlined />, label: 'Dashboard' },
       ]
     },
     'incidentmanagement': {
@@ -132,6 +156,16 @@ const getMenuItemByKey = (key: string): MenuItem | MenuItem[] | null => {
     
     // Inspections
     'inspection': {
+      key: 'inspection',
+      icon: <ExperimentOutlined />,
+      label: 'Inspections',
+      children: [
+        { key: '/dashboard/inspection', icon: <FileTextOutlined />, label: 'All Inspections' },
+        { key: '/dashboard/inspection/create', icon: <PlusOutlined />, label: 'Create Inspection' },
+        { key: '/dashboard/inspection/reports', icon: <BarChartOutlined />, label: 'Reports' }
+      ]
+    },
+    'inspection_management': {
       key: 'inspection',
       icon: <ExperimentOutlined />,
       label: 'Inspections',
@@ -206,6 +240,23 @@ const buildMenuItemsFromCategories = (categories: any[]): MenuItem[] => {
       if (!normalizedKey) {
         return;
       }
+      
+      // Handle System Administration modules from backend API
+      if (category.key === 'system_administration' || category.key === 'admin') {
+        const sysAdminModules: Record<string, MenuItem> = {
+          'user_management': { key: '/dashboard/users', icon: <UserOutlined />, label: 'User Management' },
+          'permission_control': { key: '/dashboard/permissions', icon: <SettingOutlined />, label: 'Permission Control' },
+          'system_settings': { key: '/dashboard/settings', icon: <SettingOutlined />, label: 'System Settings' },
+        };
+        
+        const sysAdminItem = sysAdminModules[normalizedKey];
+        if (sysAdminItem && !usedKeys.has(sysAdminItem.key)) {
+          usedKeys.add(sysAdminItem.key);
+          children.push(sysAdminItem);
+        }
+        return;
+      }
+      
       const menuItem = getMenuItemByKey(normalizedKey);
       const addItem = (item: MenuItem) => {
         if (!usedKeys.has(item.key)) {

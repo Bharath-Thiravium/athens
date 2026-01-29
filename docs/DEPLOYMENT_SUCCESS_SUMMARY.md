@@ -84,7 +84,7 @@
 - Fixed `0010_canonicalize_permit_statuses` dependency: `0009_webhooks` → `0011_webhooks`
 
 ### Environment Configuration
-**Problem**: Wrong DB_HOST (using Docker config)
+**Problem**: Wrong DB_HOST (using container-style config)
 **Fixed**: Used `.env.production` with `DB_HOST=localhost`
 
 ---

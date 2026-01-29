@@ -159,12 +159,13 @@ class MasterUserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         tenant_id = validated_data.pop('tenant_id')
         password = validated_data.pop('password')
+        is_active = validated_data.pop('is_active', True)
         user = CustomUser.objects.create_user(
             user_type='master',
             admin_type='master',
             athens_tenant_id=tenant_id,
             is_staff=True,
-            is_active=validated_data.get('is_active', True),
+            is_active=is_active,
             **validated_data,
         )
         user.set_password(password)
@@ -219,8 +220,11 @@ class SaaSMasterListSerializer(serializers.ModelSerializer):
     date_joined = serializers.SerializerMethodField()
 
     def get_date_joined(self, obj):
-        detail = getattr(obj, 'user_detail', None)
-        return detail.created_at if detail else None
+        if hasattr(obj, 'user_detail') and obj.user_detail:
+            # UserDetail has date_of_joining, not date_joined
+            return obj.user_detail.date_of_joining or obj.user_detail.created_at
+        # CustomUser doesn't have date_joined, use last_login or None
+        return obj.last_login
 
     class Meta:
         model = CustomUser

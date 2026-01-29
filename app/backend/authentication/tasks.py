@@ -3,6 +3,7 @@ Celery tasks for SAP credential synchronization
 """
 
 from celery import shared_task
+from django.conf import settings
 from .sap_sync import SAPCredentialSync
 import logging
 
@@ -14,6 +15,9 @@ def sync_sap_credentials_task(self):
     Automated SAP credential synchronization task
     Runs periodically to keep Athens in sync with SAP
     """
+    if getattr(settings, 'DISABLE_BACKGROUND_JOBS', False):
+        logger.warning("Background jobs disabled; skipping SAP credential sync")
+        return "SAP sync skipped (background jobs disabled)"
     try:
         sync_service = SAPCredentialSync()
         success = sync_service.sync_master_credentials()

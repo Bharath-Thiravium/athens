@@ -206,7 +206,7 @@ const App: React.FC = () => {
   // CSRF token setup removed - not needed for current backend configuration
 
   useEffect(() => {
-    // Prevent navigation loops during logout
+    // Only redirect on initial load, not on every location change
     if (location.pathname === '/login') {
       return;
     }
@@ -218,7 +218,7 @@ const App: React.FC = () => {
     } else if (token && !isPasswordResetRequired && location.pathname === '/') {
       navigate(isSuperAdmin ? '/superadmin/dashboard' : '/dashboard', { replace: true });
     }
-  }, [token, isPasswordResetRequired, isSuperAdmin, navigate, location.pathname]);
+  }, [token, isPasswordResetRequired, isSuperAdmin, navigate]);
   
   const loadingSpinner = (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -273,7 +273,7 @@ const App: React.FC = () => {
               <Route path="pending-approvals" element={<RoleBasedRoute allowedRoles={['masteradmin']}><PendingApprovals /></RoleBasedRoute>} />
               <Route path="users" element={<RoleBasedRoute allowedRoles={['client', 'epc', 'contractor', 'contractor1', 'contractor2', 'contractor3', 'contractor4', 'contractor5']}><UserList /></RoleBasedRoute>} />
               <Route path="userdetail" element={<RoleBasedRoute allowedRoles={['adminuser', 'clientuser', 'epcuser', 'contractoruser']}><UserDetail /></RoleBasedRoute>} />
-              <Route path="profile" element={<ProfileWrapper />} />
+              <Route path="profile" element={<RoleBasedRoute allowedRoles={['adminuser', 'clientuser', 'epcuser', 'contractoruser']}><ProfileWrapper /></RoleBasedRoute>} />
               <Route path="settings" element={<CompanyDetailsForm />} />
               <Route path="chatbox" element={<RoleBasedRoute allowedRoles={['clientuser', 'contractoruser', 'epcuser']}><ChatBox /></RoleBasedRoute>} />
               <Route path="ai-bot" element={<RoleBasedRoute allowedRoles={['adminuser', 'clientuser', 'epcuser', 'contractoruser']}><AIBotWidget /></RoleBasedRoute>} />

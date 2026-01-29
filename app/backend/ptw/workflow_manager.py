@@ -66,8 +66,8 @@ class PTWWorkflowManager:
             # Update permit status via canonical manager
             canonical_workflow_manager.transition(
                 permit=permit,
-                new_status='submitted',
-                user=creator,
+                target_status='submitted',
+                actor=creator,
                 action='initiate_workflow'
             )
             
@@ -124,8 +124,8 @@ class PTWWorkflowManager:
             if permit.status == 'draft':
                 canonical_workflow_manager.transition(
                     permit=permit,
-                    new_status='submitted',
-                    user=assigned_by,
+                    target_status='submitted',
+                    actor=assigned_by,
                     action='assign_verifier',
                     metadata={'verifier_id': verifier.id}
                 )
@@ -224,8 +224,8 @@ class PTWWorkflowManager:
                 # Update permit status
                 canonical_workflow_manager.transition(
                     permit=permit,
-                    new_status='under_review',
-                    user=verifier,
+                    target_status='under_review',
+                    actor=verifier,
                     action='verify_approve',
                     comments=comments,
                     metadata={
@@ -249,8 +249,8 @@ class PTWWorkflowManager:
                 # Update permit status
                 canonical_workflow_manager.transition(
                     permit=permit,
-                    new_status='rejected',
-                    user=verifier,
+                    target_status='rejected',
+                    actor=verifier,
                     action='verify_reject',
                     comments=comments
                 )
@@ -332,8 +332,8 @@ class PTWWorkflowManager:
             if permit.status != 'under_review':
                 canonical_workflow_manager.transition(
                     permit=permit,
-                    new_status='under_review',
-                    user=assigned_by,
+                    target_status='under_review',
+                    actor=assigned_by,
                     action='assign_approver',
                     metadata={'approver_id': approver.id}
                 )
@@ -405,8 +405,8 @@ class PTWWorkflowManager:
                 # Update permit status
                 canonical_workflow_manager.transition(
                     permit=permit,
-                    new_status='approved',
-                    user=approver,
+                    target_status='approved',
+                    actor=approver,
                     action='approve_approve',
                     comments=comments,
                     metadata={'approval_comments': comments}
@@ -429,8 +429,8 @@ class PTWWorkflowManager:
                 # Update permit status
                 canonical_workflow_manager.transition(
                     permit=permit,
-                    new_status='rejected',
-                    user=approver,
+                    target_status='rejected',
+                    actor=approver,
                     action='approve_reject',
                     comments=comments
                 )

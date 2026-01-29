@@ -9,6 +9,7 @@ import {
   InfoCircleOutlined
 } from '@ant-design/icons';
 import api from '@common/utils/axiosetup';
+import { normalizeErrorMessage } from '@common/utils/errorHandler';
 import DigitalSignature from '../../../components/DigitalSignature';
 import '@common/styles/global.css';
 
@@ -89,7 +90,7 @@ const AdminDigitalSignatureTemplate: React.FC<AdminDigitalSignatureTemplateProps
         await fetchTemplateInfo(); // Refresh info
         onTemplateCreated?.();
       } else {
-        message.error(response.data.error || 'Failed to create admin template');
+        message.error(normalizeErrorMessage(response.data.error, 'Failed to create admin template'));
       }
     } catch (error: any) {
       message.error('Failed to create admin signature template');
@@ -114,7 +115,7 @@ const AdminDigitalSignatureTemplate: React.FC<AdminDigitalSignatureTemplateProps
         await fetchTemplateInfo(); // Refresh info
         onTemplateCreated?.();
       } else {
-        message.error(response.data.error || 'Failed to regenerate admin template');
+        message.error(normalizeErrorMessage(response.data.error, 'Failed to regenerate admin template'));
       }
     } catch (error: any) {
       message.error('Failed to regenerate admin signature template');

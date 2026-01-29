@@ -205,7 +205,6 @@
 - **Cloud-native deployment** (AWS, Azure, GCP)
 - **On-premise installation**
 - **Hybrid cloud solutions**
-- **Docker containerization**
 - **Kubernetes orchestration**
 - **Multi-tenant architecture**
 - **Global deployment** capabilities

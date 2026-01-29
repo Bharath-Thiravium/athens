@@ -32,7 +32,6 @@ EHS PRO - COMPLETE PROJECT HIGHLIGHTS
 • Database: PostgreSQL + Redis Caching
 • AI Integration: OpenAI, Anthropic, LangChain
 • Security: JWT Authentication + Role-based Access
-• Deployment: Docker Containers + Cloud Ready
 
 📊 **PROVEN RESULTS**
 • 75% Reduction in Incident Recurrence

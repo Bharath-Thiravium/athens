@@ -97,7 +97,7 @@ export ATHENS_BACKEND_PORT=$ATHENS_BACKEND_PORT
 python startup_guard.py
 
 # Start backend with uvicorn
-python -m uvicorn backend.asgi:application --host 0.0.0.0 --port $ATHENS_BACKEND_PORT --workers 2 --limit-concurrency 30 --proxy-headers --forwarded-allow-ips=* &
+python -m uvicorn backend.asgi:application --host 0.0.0.0 --port $ATHENS_BACKEND_PORT --workers ${UVICORN_WORKERS:-3} --timeout-keep-alive ${UVICORN_TIMEOUT_KEEP_ALIVE:-70} --limit-concurrency ${UVICORN_LIMIT_CONCURRENCY:-100} --proxy-headers --forwarded-allow-ips=* &
 ATHENS_BACKEND_PID=$!
 
 sleep 8

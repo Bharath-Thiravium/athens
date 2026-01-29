@@ -64,6 +64,8 @@ const PermitDetail: React.FC = () => {
   const [qrLoading, setQrLoading] = useState(false);
   const [availableApprovers, setAvailableApprovers] = useState<any[]>([]);
   const [loadingApprovers, setLoadingApprovers] = useState(false);
+  const [availableVerifiers, setAvailableVerifiers] = useState<any[]>([]);
+  const [loadingVerifiers, setLoadingVerifiers] = useState(false);
 
   // Closeout state
   const [closeout, setCloseout] = useState<Types.PermitCloseout | null>(null);
@@ -111,7 +113,7 @@ const PermitDetail: React.FC = () => {
       message.success('QR Code generated successfully');
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || 'Failed to generate QR code';
-      message.error(errorMsg);
+      message.error(String(errorMsg));
     } finally {
       setQrLoading(false);
     }
@@ -140,19 +142,44 @@ const PermitDetail: React.FC = () => {
     setSignatureSaving(true);
     try {
       // Backend will generate the proper signed document signature automatically
-      await addPermitSignature(parseInt(id), {
+      const response = await addPermitSignature(parseInt(id), {
         signature_type: signatureType
       });
-      message.success('Signature captured');
-      fetchPermit();
+      
+      // Handle successful response - ensure we only pass strings to message
+      if (response.data) {
+        const successMessage = response.data.message || 'Signature captured successfully';
+        message.success(String(successMessage));
+        fetchPermit();
+        refreshReadiness();
+      }
     } catch (error: any) {
       let errorMsg = 'Failed to capture signature';
+      
       if (error.response?.status === 404) {
         errorMsg = 'No signature template found. Please create one in your profile.';
       } else if (error?.response?.data?.error) {
-        errorMsg = error.response.data.error;
+        // Handle structured error response - extract message from nested object
+        const errorData = error.response.data.error;
+        if (typeof errorData === 'object') {
+          if (errorData.message) {
+            errorMsg = String(errorData.message);
+          } else if (errorData.code) {
+            errorMsg = String(errorData.code);
+          } else {
+            errorMsg = 'Signature error occurred';
+          }
+        } else if (typeof errorData === 'string') {
+          errorMsg = String(errorData);
+        }
+      } else if (error?.response?.data?.message) {
+        errorMsg = String(error.response.data.message);
+      } else if (error?.message) {
+        errorMsg = String(error.message);
       }
-      message.error(errorMsg);
+      
+      // Ensure we only pass strings to message.error
+      message.error(String(errorMsg));
     } finally {
       setSignatureSaving(false);
     }
@@ -269,7 +296,7 @@ const PermitDetail: React.FC = () => {
       setTbtFile(null);
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || 'Failed to update Toolbox Talk';
-      message.error(errorMsg);
+      message.error(String(errorMsg));
     } finally {
       setTbtUpdating(false);
     }
@@ -293,7 +320,7 @@ const PermitDetail: React.FC = () => {
       });
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || 'Failed to update attendance';
-      message.error(errorMsg);
+      message.error(String(errorMsg));
     }
   };
   
@@ -328,20 +355,16 @@ const PermitDetail: React.FC = () => {
       fetchPermit();
     } catch (error: any) {
       if (error?.response?.data?.signature) {
-        message.error({
-          content: error.response.data.signature.message,
-          duration: 5
-        });
+        const signatureMessage = error.response.data.signature.message || 'Signature required';
+        message.error(String(signatureMessage));
         // Auto-open signature modal if signature missing
         if (error.response.data.signature.missing?.includes('approver')) {
           message.info('Please provide your digital signature before approval.');
         }
         setApprovalModal(false);
       } else if (error?.response?.data?.isolation) {
-        message.error({
-          content: error.response.data.isolation,
-          duration: 5
-        });
+        const isolationMessage = error.response.data.isolation || 'Isolation requirements not met';
+        message.error(String(isolationMessage));
         setActiveTabKey('isolation');
         setApprovalModal(false);
       } else {
@@ -449,16 +472,12 @@ const PermitDetail: React.FC = () => {
         } catch (error: any) {
           // Check if error is due to incomplete closeout or isolation
           if (error?.response?.data?.closeout) {
-            message.error({
-              content: error.response.data.closeout,
-              duration: 5
-            });
+            const closeoutMessage = error.response.data.closeout || 'Closeout requirements not met';
+            message.error(String(closeoutMessage));
             setActiveTabKey('closeout');
           } else if (error?.response?.data?.isolation) {
-            message.error({
-              content: error.response.data.isolation,
-              duration: 5
-            });
+            const isolationMessage = error.response.data.isolation || 'Isolation requirements not met';
+            message.error(String(isolationMessage));
             setActiveTabKey('isolation');
           } else {
             message.error('Failed to complete work');
@@ -486,16 +505,12 @@ const PermitDetail: React.FC = () => {
         } catch (error: any) {
           // Check if error is due to incomplete closeout or isolation
           if (error?.response?.data?.closeout) {
-            message.error({
-              content: error.response.data.closeout,
-              duration: 5
-            });
+            const closeoutMessage = error.response.data.closeout || 'Closeout requirements not met';
+            message.error(String(closeoutMessage));
             setActiveTabKey('closeout');
           } else if (error?.response?.data?.isolation) {
-            message.error({
-              content: error.response.data.isolation,
-              duration: 5
-            });
+            const isolationMessage = error.response.data.isolation || 'Isolation requirements not met';
+            message.error(String(isolationMessage));
             setActiveTabKey('isolation');
           } else {
             message.error('Failed to close permit');
@@ -530,14 +545,28 @@ const PermitDetail: React.FC = () => {
     }
   };
 
+  const fetchAvailableVerifiers = async () => {
+    setLoadingVerifiers(true);
+    try {
+      const response = await api.get('/api/v1/ptw/workflow/verifiers/');
+      setAvailableVerifiers(response.data.verifiers || []);
+    } catch (error) {
+      message.error('Failed to load verifiers');
+    } finally {
+      setLoadingVerifiers(false);
+    }
+  };
+
   const fetchAvailableApprovers = async () => {
     setLoadingApprovers(true);
     try {
       const authState = useAuthStore.getState();
       const verifierType = normalizeAdminType(authState.usertype);
       const verifierGrade = normalizeGrade(authState.grade);
-      const params = buildWorkflowParams(verifierType, verifierGrade);
-      const response = await getAvailableApprovers(params);
+      const response = await getAvailableApprovers({
+        user_type: verifierType || undefined,
+        grade: verifierGrade || undefined
+      });
       const candidates = response.data.approvers || [];
       const filtered = candidates.filter((approver: any) =>
         isAllowedApprover(verifierType, verifierGrade, approver)
@@ -604,10 +633,8 @@ const PermitDetail: React.FC = () => {
       fetchPermit();
     } catch (error: any) {
       if (error?.response?.data?.signature) {
-        message.error({
-          content: error.response.data.signature.message,
-          duration: 5
-        });
+        const signatureMessage = error.response.data.signature.message || 'Signature required';
+        message.error(String(signatureMessage));
         // Auto-open signature modal if signature missing
         if (error.response.data.signature.missing?.includes('verifier')) {
           message.info('Please provide your digital signature before verification.');
@@ -684,7 +711,14 @@ const PermitDetail: React.FC = () => {
       fetchCloseout();
     } catch (error: any) {
       if (error?.response?.data?.error) {
-        message.error(error.response.data.error);
+        const errorData = error.response.data.error;
+        let errorMsg = 'Failed to complete closeout';
+        if (typeof errorData === 'object') {
+          errorMsg = errorData.message || errorData.code || errorMsg;
+        } else {
+          errorMsg = String(errorData);
+        }
+        message.error(String(errorMsg));
       } else {
         message.error('Failed to complete closeout');
       }
@@ -748,7 +782,16 @@ const PermitDetail: React.FC = () => {
       message.success('Isolation point assigned');
       fetchIsolation();
     } catch (error: any) {
-      message.error(error?.response?.data?.error || 'Failed to assign point');
+      let errorMsg = 'Failed to assign point';
+      if (error?.response?.data?.error) {
+        const errorData = error.response.data.error;
+        if (typeof errorData === 'object') {
+          errorMsg = errorData.message || errorData.code || errorMsg;
+        } else {
+          errorMsg = String(errorData);
+        }
+      }
+      message.error(String(errorMsg));
     } finally {
       setIsolationLoading(false);
     }
@@ -768,7 +811,16 @@ const PermitDetail: React.FC = () => {
       setShowCustomForm(false);
       fetchIsolation();
     } catch (error: any) {
-      message.error(error?.response?.data?.error || 'Failed to add custom point');
+      let errorMsg = 'Failed to add custom point';
+      if (error?.response?.data?.error) {
+        const errorData = error.response.data.error;
+        if (typeof errorData === 'object') {
+          errorMsg = errorData.message || errorData.code || errorMsg;
+        } else {
+          errorMsg = String(errorData);
+        }
+      }
+      message.error(String(errorMsg));
     } finally {
       setIsolationLoading(false);
     }
@@ -782,17 +834,26 @@ const PermitDetail: React.FC = () => {
       message.success(`Point ${action}d successfully`);
       fetchIsolation();
     } catch (error: any) {
-      message.error(error?.response?.data?.error || `Failed to ${action} point`);
+      let errorMsg = `Failed to ${action} point`;
+      if (error?.response?.data?.error) {
+        const errorData = error.response.data.error;
+        if (typeof errorData === 'object') {
+          errorMsg = errorData.message || errorData.code || errorMsg;
+        } else {
+          errorMsg = String(errorData);
+        }
+      }
+      message.error(String(errorMsg));
     } finally {
       setIsolationLoading(false);
     }
   };
   
   const getStatusTag = (status: string) => {
-    const statusConfig: Record<string, { color: string, icon: React.ReactNode }> = {
+    const statusConfig: Record<string, { color: string, icon: React.ReactNode, label?: string }> = {
       draft: { color: 'default', icon: <FileTextOutlined /> },
       submitted: { color: 'processing', icon: <ClockCircleOutlined /> },
-      under_review: { color: 'processing', icon: <ClockCircleOutlined /> },
+      under_review: { color: 'processing', icon: <ClockCircleOutlined />, label: 'PENDING APPROVAL' },
       pending_approval: { color: 'orange', icon: <ClockCircleOutlined /> },
       approved: { color: 'green', icon: <CheckCircleOutlined /> },
       rejected: { color: 'red', icon: <CloseCircleOutlined /> },
@@ -805,10 +866,11 @@ const PermitDetail: React.FC = () => {
     };
     
     const config = statusConfig[status] || { color: 'default', icon: null };
+    const displayText = config.label || status.replace('_', ' ').toUpperCase();
     
     return (
       <Tag color={config.color} icon={config.icon}>
-        {status.replace('_', ' ').toUpperCase()}
+        {displayText}
       </Tag>
     );
   };
@@ -895,19 +957,35 @@ const PermitDetail: React.FC = () => {
           </Tooltip>
         )}
 
-        {(status === 'submitted' || status === 'under_review') && canVerifyPermit(permit) && (
+        {status === 'submitted' && canVerifyPermit(permit) && (
           <>
-            <Tooltip title="Verify Permit">
-              <Button 
-                shape="circle" 
-                type="primary" 
-                icon={<CheckCircleOutlined />} 
-                onClick={() => {
-                  fetchAvailableApprovers();
-                  setVerificationModal(true);
-                }}
-              />
-            </Tooltip>
+            {!permit.signatures_by_type?.verifier ? (
+              <Tooltip title="Sign as Verifier">
+                <Button 
+                  shape="circle" 
+                  type="primary" 
+                  icon={<CheckCircleOutlined />} 
+                  onClick={() => handleAddSignature('verifier')}
+                  loading={signatureSaving}
+                />
+              </Tooltip>
+            ) : !permit.approved_by && !permit.approver ? (
+              <Tooltip title="Select Approver">
+                <Button 
+                  shape="circle" 
+                  type="primary" 
+                  icon={<TeamOutlined />} 
+                  onClick={() => {
+                    fetchAvailableApprovers();
+                    setVerificationModal(true);
+                  }}
+                />
+              </Tooltip>
+            ) : (
+              <Tooltip title="Awaiting Approval">
+                <Button shape="circle" disabled icon={<ClockCircleOutlined />} />
+              </Tooltip>
+            )}
             <Tooltip title="Reject Verification">
               <Button 
                 shape="circle" 
@@ -919,13 +997,47 @@ const PermitDetail: React.FC = () => {
           </>
         )}
 
-        {(status === 'draft' || status === 'submitted' || status === 'pending_verification') &&
+        {['pending_approval', 'under_review'].includes(status) && canApprovePermit(permit) && (
+          <>
+            {!permit.signatures_by_type?.approver ? (
+              <Tooltip title="Sign as Approver">
+                <Button 
+                  shape="circle" 
+                  type="primary" 
+                  icon={<CheckCircleOutlined />} 
+                  onClick={() => handleAddSignature('approver')}
+                  loading={signatureSaving}
+                />
+              </Tooltip>
+            ) : (
+              <Tooltip title="Approve Permit">
+                <Button 
+                  shape="circle" 
+                  type="primary" 
+                  icon={<CheckCircleOutlined />} 
+                  onClick={() => setApprovalModal(true)}
+                />
+              </Tooltip>
+            )}
+            <Tooltip title="Reject Permit">
+              <Button 
+                shape="circle" 
+                danger 
+                icon={<CloseCircleOutlined />} 
+                onClick={() => setRejectionModal(true)}
+              />
+            </Tooltip>
+          </>
+        )}
+
+        {(status === 'draft' || status === 'submitted') &&
           permit.created_by === useAuthStore.getState().userId && (
           <Tooltip title={permit.verifier ? 'Change Verifier' : 'Assign Verifier'}>
             <Button 
               shape="circle" 
               icon={<TeamOutlined />} 
               onClick={() => {
+                fetchAvailableVerifiers();
                 Modal.confirm({
                   title: permit.verifier ? 'Change Verifier' : 'Assign Verifier',
                   content: (
@@ -938,15 +1050,22 @@ const PermitDetail: React.FC = () => {
                       ) : (
                         <p>Select a verifier for this permit:</p>
                       )}
-                      <PersonnelSelect 
-                        placeholder="Search by name, department, or designation"
-                        userType="epcuser,clientuser"
-                        grade="B,C"
+                      <Select
+                        placeholder="Select verifier"
                         style={{ width: '100%' }}
+                        showSearch
+                        loading={loadingVerifiers}
+                        optionFilterProp="children"
                         onChange={(verifierId) => {
                           (window as any).selectedVerifierId = verifierId;
                         }}
-                      />
+                      >
+                        {availableVerifiers.map(verifier => (
+                          <Select.Option key={verifier.id} value={verifier.id}>
+                            {getUserDisplayName(verifier)} ({(getUserAdminType(verifier) || 'user').toUpperCase()} - Grade {(getUserGrade(verifier) || '').toUpperCase()})
+                          </Select.Option>
+                        ))}
+                      </Select>
                     </div>
                   ),
                   onOk: async () => {
@@ -971,38 +1090,8 @@ const PermitDetail: React.FC = () => {
           </Tooltip>
         )}
 
-        {(status === 'submitted' || status === 'under_review') && !canVerifyPermit(permit) && (
+        {status === 'submitted' && !canVerifyPermit(permit) && (
           <Tooltip title="Awaiting Verification">
-            <Button shape="circle" disabled icon={<ClockCircleOutlined />} />
-          </Tooltip>
-        )}
-
-        {['pending_approval', 'under_review'].includes(status) && canApprovePermit(permit) && (
-          <>
-            <Tooltip title="Approve Permit">
-              <Button 
-                shape="circle" 
-                type="primary" 
-                icon={<CheckCircleOutlined />} 
-                onClick={() => setApprovalModal(true)}
-              />
-            </Tooltip>
-            <Tooltip title="Reject Permit">
-              <Button 
-                shape="circle" 
-                danger 
-                icon={<CloseCircleOutlined />} 
-                onClick={() => setRejectionModal(true)}
-              />
-            </Tooltip>
-          </>
-        )}
-
-        {['pending_approval', 'under_review'].includes(status) && !canApprovePermit(permit) && (
-          <Tooltip title={permit.approved_by_details ? 
-            `Already approved by ${permit.approved_by_details.name}` : 
-            'Awaiting Approval'
-          }>
             <Button shape="circle" disabled icon={<ClockCircleOutlined />} />
           </Tooltip>
         )}
@@ -1732,8 +1821,46 @@ const PermitDetail: React.FC = () => {
                 const resolveSignatureSrc = (signatureData?: string | null) => {
                   if (!signatureData) return null;
                   const trimmed = signatureData.trim();
+                  if (trimmed.startsWith('{')) {
+                    try {
+                      const jsonData = JSON.parse(trimmed);
+                      if (jsonData?.template_url) {
+                        return jsonData.template_url;
+                      }
+                    } catch (e) {
+                      // Fall through and treat as image data below.
+                    }
+                  }
+                  if (trimmed.startsWith('data:image/png;base64,')) {
+                    try {
+                      const base64Data = trimmed.substring('data:image/png;base64,'.length);
+                      const decoded = atob(base64Data);
+                      const jsonData = JSON.parse(decoded);
+                      if (jsonData?.template_url) {
+                        return jsonData.template_url;
+                      }
+                    } catch (e) {
+                      // Fall through and treat as image data URL below.
+                    }
+                    return trimmed;
+                  }
+                  if (/^[A-Za-z0-9+/=]+$/.test(trimmed)) {
+                    try {
+                      const decoded = atob(trimmed);
+                      const jsonData = JSON.parse(decoded);
+                      if (jsonData?.template_url) {
+                        return jsonData.template_url;
+                      }
+                    } catch (e) {
+                      // Not JSON base64, fall through.
+                    }
+                  }
                   if (trimmed.startsWith('data:image')) return trimmed;
                   if (trimmed.startsWith('http')) return trimmed;
+                  if (trimmed.startsWith('/media/')) {
+                    const baseUrl = window.location.origin;
+                    return `${baseUrl}${trimmed}`;
+                  }
                   if (trimmed.startsWith('<svg')) {
                     return `data:image/svg+xml;utf8,${encodeURIComponent(trimmed)}`;
                   }
@@ -1749,6 +1876,10 @@ const PermitDetail: React.FC = () => {
                 ) => {
                   const isAlreadySigned = Boolean(signature);
                   const shouldShowButton = canSign && !isAlreadySigned;
+                  const signatureSrc =
+                    signature?.signature_template_url ||
+                    resolveSignatureSrc(signature?.signature_data) ||
+                    null;
                   
                   return (
                     <Card size="small" style={{ flex: 1, minWidth: 220 }}>
@@ -1756,9 +1887,9 @@ const PermitDetail: React.FC = () => {
                       <div><Text strong>Name:</Text> {getDisplayName(signature?.signatory_details) || fallbackName}</div>
                       <div><Text strong>Date:</Text> {signature?.signed_at ? dayjs(signature.signed_at).format('YYYY-MM-DD HH:mm') : 'Pending'}</div>
                       <div style={{ marginTop: 8, minHeight: 60, borderBottom: '1px solid #ddd' }}>
-                        {signature?.signature_data ? (
+                        {signatureSrc ? (
                           <Image
-                            src={resolveSignatureSrc(signature.signature_data) || ''}
+                            src={signatureSrc}
                             alt={`${label} Signature`}
                             style={{ maxHeight: 60 }}
                             preview={false}
@@ -1907,7 +2038,7 @@ const PermitDetail: React.FC = () => {
         }}
         confirmLoading={actionLoading}
         width={600}
-        destroyOnHidden
+        destroyOnClose
       >
         <Form form={verificationForm} layout="vertical">
           <Form.Item
@@ -1920,6 +2051,7 @@ const PermitDetail: React.FC = () => {
               loading={loadingApprovers}
               showSearch
               optionFilterProp="children"
+              notFoundContent={loadingApprovers ? 'Loading...' : 'No approvers available'}
             >
               {availableApprovers.map(approver => (
                 <Select.Option key={approver.id} value={approver.id}>
@@ -1937,6 +2069,11 @@ const PermitDetail: React.FC = () => {
             <TextArea rows={4} placeholder="Add any verification comments or conditions" />
           </Form.Item>
         </Form>
+        {availableApprovers.length === 0 && !loadingApprovers && (
+          <div style={{ marginBottom: 16, padding: 8, backgroundColor: '#fff7e6', border: '1px solid #ffd591', borderRadius: 4 }}>
+            <Text type="warning">No approvers available. Please contact your administrator.</Text>
+          </div>
+        )}
       </Modal>
 
       {/* Verification Rejection Modal */}

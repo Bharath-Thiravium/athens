@@ -8,5 +8,5 @@ Belongs here:
 
 Do not place here:
 - Ops scripts, admin utilities, or one-off maintenance tools
-- Infrastructure/configuration definitions (Docker, nginx, systemd)
+- Infrastructure/configuration definitions (nginx, systemd)
 - Documentation or reports

@@ -6,6 +6,7 @@ from io import BytesIO
 from datetime import datetime
 from django.conf import settings
 from django.utils import timezone
+from django.db import models
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.lib.units import inch
 from reportlab.lib import colors
@@ -13,6 +14,71 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 import qrcode
+import os
+
+
+def _get_tenant_company_logo(permit, width=1*inch, height=0.8*inch):
+    """Get the tenant company logo (Prozeal Green Energy Limited)"""
+    try:
+        # Look for a user with admin_type='master' or company_name containing 'Prozeal'
+        from authentication.models import CustomUser
+        
+        # Try to find Prozeal/tenant admin user
+        tenant_user = CustomUser.objects.filter(
+            models.Q(admin_type='master') | 
+            models.Q(company_name__icontains='Prozeal') |
+            models.Q(company_name__icontains='Green Energy')
+        ).first()
+        
+        if tenant_user:
+            return _get_user_company_logo(tenant_user, width, height)
+        
+        # Fallback to project-based tenant logo if available
+        if permit.project and hasattr(permit.project, 'tenant_logo'):
+            logo_path = permit.project.tenant_logo.path
+            if os.path.exists(logo_path):
+                return Image(logo_path, width=width, height=height)
+        
+        return 'Prozeal Green Energy Limited'
+        
+    except Exception:
+        return 'Prozeal Green Energy Limited'
+
+
+def _get_user_company_logo(user, width=0.6*inch, height=0.4*inch):
+    """Helper function to get company logo for a user"""
+    if not user:
+        return 'No user assigned'
+    
+    try:
+        # Try AdminDetail first (more likely to have logos)
+        if hasattr(user, 'admin_detail'):
+            try:
+                admin_detail = user.admin_detail
+                if admin_detail and admin_detail.logo:
+                    logo_path = admin_detail.logo.path
+                    if os.path.exists(logo_path):
+                        return Image(logo_path, width=width, height=height)
+            except Exception:
+                pass
+        
+        # Try CompanyDetail next
+        if hasattr(user, 'company_detail'):
+            try:
+                company_detail = user.company_detail
+                if company_detail and company_detail.company_logo:
+                    logo_path = company_detail.company_logo.path
+                    if os.path.exists(logo_path):
+                        return Image(logo_path, width=width, height=height)
+            except Exception:
+                pass
+        
+        # Return company name as fallback
+        company_name = getattr(user, 'company_name', '') or 'No logo available'
+        return company_name
+        
+    except Exception:
+        return 'Logo unavailable'
 
 
 def generate_audit_ready_pdf(permit, buffer=None):
@@ -89,11 +155,32 @@ def generate_audit_ready_pdf(permit, buffer=None):
 
 
 def _generate_header_section(permit, title_style, styles):
-    """Generate header with permit details and QR code"""
+    """Generate header with permit details, tenant company logo and QR code"""
     elements = []
     
-    # Title
-    elements.append(Paragraph(f"PERMIT TO WORK - {permit.permit_number}", title_style))
+    # Company Logo and Title Row - Use TENANT logo, not permit creator's logo
+    header_data = []
+    
+    # Get tenant company logo (Prozeal Green Energy Limited)
+    tenant_logo = _get_tenant_company_logo(permit, width=1*inch, height=0.8*inch)
+    
+    if isinstance(tenant_logo, Image):
+        header_data.append([tenant_logo, Paragraph(f"PERMIT TO WORK - {permit.permit_number}", title_style)])
+    else:
+        # Fallback to text-only header if no logo available
+        header_data.append(['', Paragraph(f"PERMIT TO WORK - {permit.permit_number}", title_style)])
+    
+    if header_data:
+        header_table = Table(header_data, colWidths=[1.2*inch, 5.8*inch])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (0, 0), 0),
+            ('RIGHTPADDING', (-1, 0), (-1, 0), 0),
+        ]))
+        elements.append(header_table)
+    else:
+        elements.append(Paragraph(f"PERMIT TO WORK - {permit.permit_number}", title_style))
+    
     elements.append(Spacer(1, 0.2*inch))
     
     # QR Code
@@ -144,36 +231,39 @@ def _generate_header_section(permit, title_style, styles):
 
 
 def _generate_people_section(permit, heading_style, styles):
-    """Generate people/roles section"""
+    """Generate people/roles section with key personnel and their company logos"""
     elements = []
     elements.append(Paragraph("Personnel", heading_style))
     
-    people_data = [['Role', 'Name', 'Department']]
+    people_data = [['Role', 'Company Logo', 'Name', 'Department']]
     
-    if permit.created_by:
-        people_data.append(['Created By', f"{permit.created_by.name} {permit.created_by.surname}".strip(), 
-                           getattr(permit.created_by, 'department', 'N/A')])
-    if permit.issuer:
-        people_data.append(['Issuer', f"{permit.issuer.name} {permit.issuer.surname}".strip(), 
-                           permit.issuer_department or 'N/A'])
-    if permit.receiver:
-        people_data.append(['Receiver', f"{permit.receiver.name} {permit.receiver.surname}".strip(), 
-                           permit.receiver_department or 'N/A'])
-    if permit.verifier:
-        people_data.append(['Verifier', f"{permit.verifier.name} {permit.verifier.surname}".strip(), 'N/A'])
-    if permit.approved_by:
-        people_data.append(['Approved By', f"{permit.approved_by.name} {permit.approved_by.surname}".strip(), 'N/A'])
-    if permit.area_incharge:
-        people_data.append(['Area In-charge', f"{permit.area_incharge.name} {permit.area_incharge.surname}".strip(), 'N/A'])
+    # Only include the three key roles
+    personnel = [
+        ('Requestor', permit.created_by),
+        ('Verifier', permit.verifier),
+        ('Approver', permit.approved_by)
+    ]
+    
+    for role, user in personnel:
+        if user:
+            company_logo = _get_user_company_logo(user)
+            
+            people_data.append([
+                role, 
+                company_logo,
+                f"{user.name} {user.surname}".strip(), 
+                getattr(user, 'department', 'N/A')
+            ])
     
     if len(people_data) > 1:
-        table = Table(people_data, colWidths=[1.5*inch, 2.5*inch, 2*inch])
+        table = Table(people_data, colWidths=[1*inch, 1*inch, 2.5*inch, 1.5*inch])
         table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e6f7ff')),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (1, 1), (1, -1), 'CENTER'),  # Center align company logos
         ]))
         elements.append(table)
         elements.append(Spacer(1, 0.15*inch))
@@ -350,30 +440,51 @@ def _generate_closeout_section(permit, heading_style, styles):
 
 
 def _generate_signatures_section(permit, heading_style, styles):
-    """Generate signatures section"""
+    """Generate signatures section with company logos for requestor, verifier, and approver"""
     elements = []
+    elements.append(Paragraph("Digital Signatures", heading_style))
     
-    signatures = permit.signatures.all()
-    if signatures.exists():
-        elements.append(Paragraph("Digital Signatures", heading_style))
+    # Define the three signature types we want to display
+    signature_types = [
+        ('requestor', 'Requestor', permit.created_by),
+        ('verifier', 'Verifier', permit.verifier), 
+        ('approver', 'Approver', permit.approved_by)
+    ]
+    
+    data = [['Type', 'Company Logo', 'Signatory', 'Signed At', 'Status']]
+    
+    for sig_type, label, fallback_user in signature_types:
+        # Find signature by type
+        signature = permit.signatures.filter(signature_type=sig_type).first()
         
-        data = [['Type', 'Signatory', 'Signed At']]
-        for sig in signatures:
-            data.append([
-                sig.get_signature_type_display(),
-                sig.signatory.username,
-                sig.signed_at.strftime('%Y-%m-%d %H:%M:%S')
-            ])
+        if signature:
+            signatory_name = signature.signatory.get_full_name() if signature.signatory else 'Unknown'
+            signed_at = signature.signed_at.strftime('%Y-%m-%d %H:%M:%S')
+            status = 'Signed'
+            user_for_logo = signature.signatory
+        else:
+            # Use fallback user info if no signature exists
+            signatory_name = fallback_user.get_full_name() if fallback_user else 'Not assigned'
+            signed_at = '—'
+            status = 'Awaiting signature'
+            user_for_logo = fallback_user
         
-        table = Table(data, colWidths=[2*inch, 2*inch, 2*inch])
-        table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e6f7ff')),
-        ]))
-        elements.append(table)
-        elements.append(Spacer(1, 0.15*inch))
+        # Get company logo for this user
+        company_logo = _get_user_company_logo(user_for_logo)
+        
+        data.append([label, company_logo, signatory_name, signed_at, status])
+    
+    table = Table(data, colWidths=[1*inch, 1*inch, 1.8*inch, 1.5*inch, 1*inch])
+    table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e6f7ff')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (1, 1), (1, -1), 'CENTER'),  # Center align company logos
+    ]))
+    elements.append(table)
+    elements.append(Spacer(1, 0.15*inch))
     
     return elements
 

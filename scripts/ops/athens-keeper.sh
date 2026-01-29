@@ -48,7 +48,7 @@ start_backend() {
     source venv/bin/activate
     export ATHENS_BACKEND_PORT=$BACKEND_PORT
     python startup_guard.py
-    nohup python -m uvicorn backend.asgi:application --host 0.0.0.0 --port $BACKEND_PORT --workers 2 --limit-concurrency 30 --proxy-headers --forwarded-allow-ips=* > /tmp/backend.log 2>&1 &
+    nohup python -m uvicorn backend.asgi:application --host 0.0.0.0 --port $BACKEND_PORT --workers ${UVICORN_WORKERS:-3} --timeout-keep-alive ${UVICORN_TIMEOUT_KEEP_ALIVE:-70} --limit-concurrency ${UVICORN_LIMIT_CONCURRENCY:-100} --proxy-headers --forwarded-allow-ips=* > /tmp/backend.log 2>&1 &
     sleep 3
     if check_backend; then
         log "Backend started successfully"

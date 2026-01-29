@@ -166,7 +166,6 @@ Create a cutting-edge universal AI translation agent with RAG (Retrieval-Augment
 - **AI/ML**: OpenAI GPT-4, Google Translate, Custom models
 - **Real-time**: WebRTC, WebSocket, Socket.io
 - **Cloud**: AWS/Google Cloud
-- **DevOps**: Docker, Kubernetes, CI/CD
 
 ### AI & Translation Services
 - **Primary AI**: OpenAI GPT-4 Turbo for context understanding

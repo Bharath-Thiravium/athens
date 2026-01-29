@@ -1,17 +1,28 @@
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 
 from .models import CustomUser
 from .usertype_utils import is_master_user, normalize_master_type
 
 
+def apply_custom_claims(token, user: CustomUser):
+    token['admin_type'] = normalize_master_type(user.admin_type)
+    if user.user_type == 'user' and user.admin_type:
+        token['user_type'] = normalize_master_type(user.admin_type)
+    else:
+        token['user_type'] = normalize_master_type(user.user_type)
+    token['is_superadmin'] = (user.user_type == 'superadmin')
+    token['tenant_id'] = str(getattr(user, 'athens_tenant_id', '') or '') or None
+    if user.project:
+        token['project_id'] = user.project.id
+    if user.athens_tenant_id:
+        token['athens_tenant_id'] = str(user.athens_tenant_id)
+    return token
+
+
 def build_token_response(user: CustomUser) -> dict:
     refresh = RefreshToken.for_user(user)
-    refresh['admin_type'] = normalize_master_type(user.admin_type)
-    refresh['user_type'] = normalize_master_type(user.user_type)
-    if user.project:
-        refresh['project_id'] = user.project.id
-    if user.athens_tenant_id:
-        refresh['athens_tenant_id'] = str(user.athens_tenant_id)
+    apply_custom_claims(refresh, user)
 
     data = {
         'refresh': str(refresh),
@@ -54,6 +65,7 @@ def build_token_response(user: CustomUser) -> dict:
     data['department'] = getattr(user, 'department', None)
     data['project_id'] = user.project.id if user.project else None
     data['tenant_id'] = str(user.athens_tenant_id) if user.athens_tenant_id else None
+    data['is_superadmin'] = (user.user_type == 'superadmin')
 
     data['is_approved'] = True
     data['has_submitted_details'] = True
@@ -87,3 +99,9 @@ def build_token_response(user: CustomUser) -> dict:
             data['is_approved'] = False
 
     return data
+
+
+def build_refresh_response(refresh_token: str) -> dict:
+    serializer = TokenRefreshSerializer(data={'refresh': refresh_token})
+    serializer.is_valid(raise_exception=True)
+    return serializer.validated_data

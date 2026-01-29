@@ -100,8 +100,8 @@ export default function PTWRecordPrintPreview({ permitData }: PTWRecordPrintPrev
     return null;
   };
 
-  const getSignatureRenderMode = (sig?: Types.DigitalSignature | null) => (
-    sig?.signature_render_mode === 'raw' ? 'raw' : 'card'
+  const getSignatureRenderMode = (sig?: Types.DigitalSignature | null, signatureImageSrc?: string | null) => (
+    sig?.signature_render_mode === 'raw' && !signatureImageSrc ? 'raw' : 'card'
   );
 
   const resolveSignatureSrc = (signatureData?: string | null) => {
@@ -218,9 +218,12 @@ export default function PTWRecordPrintPreview({ permitData }: PTWRecordPrintPrev
                       (sig.signatory_details?.full_name || sig.signatory_details?.username || 'Unknown');
     const designation = typeof sig.designation === 'string' ? sig.designation : '';
     const employeeId = typeof sig.employee_id === 'string' ? sig.employee_id : '';
+    const department = typeof sig.department === 'string' ? sig.department : '';
     const signedDate = formatDateOnly(sig.signed_at);
-    const signatureImageSrc = resolveSignatureSrc(sig.signature_data);
-    const renderMode = getSignatureRenderMode(sig);
+    const signatureImageSrc =
+      sig.signature_template_url || resolveSignatureSrc(sig.signature_data) || null;
+    const companyLogoUrl = sig.company_logo_url;
+    const renderMode = getSignatureRenderMode(sig, signatureImageSrc);
     
     if (renderMode === 'card') {
       return `
@@ -237,16 +240,19 @@ export default function PTWRecordPrintPreview({ permitData }: PTWRecordPrintPrev
       <div class="signature-box">
         <div class="signature-label">${label}</div>
         <div class="adobe-signature-block signature-raw">
+          ${companyLogoUrl ? `<div class="company-logo-row"><img src="${companyLogoUrl}" alt="Company Logo" class="company-logo-img" /></div>` : ''}
           <div class="signature-partitions">
             <div class="signature-left">
               <div class="signer-name">${escapeHtml(signerName)}</div>
               ${employeeId ? `<div class="employee-id">ID: ${escapeHtml(employeeId)}</div>` : ''}
               ${designation ? `<div class="designation">${escapeHtml(designation)}</div>` : ''}
+              ${department ? `<div class="department">${escapeHtml(department)}</div>` : ''}
             </div>
             <div class="signature-divider"></div>
             <div class="signature-right">
               <div class="signed-by">Digitally signed by ${escapeHtml(signerName)}</div>
-              <div class="signed-at">Date: ${signedDate}</div>
+              <div class="signed-at">${department ? escapeHtml(department) : ''}</div>
+              <div class="signed-at">${signedDate}</div>
             </div>
           </div>
           ${signatureImageSrc ? `<div class="signature-hand-row"><img src="${signatureImageSrc}" alt="${label} Signature" class="signature-hand-img" /></div>` : ''}
@@ -474,6 +480,8 @@ export default function PTWRecordPrintPreview({ permitData }: PTWRecordPrintPrev
             .signature-hand-row { display: flex; align-items: center; justify-content: center; min-height: 50px; padding: 4px 6px; }
             .signature-hand-img { max-width: 100%; max-height: 50px; object-fit: contain; }
             .signature-placeholder { font-size: 8pt; color: #666; }
+            .company-logo-row { display: flex; align-items: center; justify-content: flex-end; padding: 2px 6px; border-bottom: 1px solid #eee; }
+            .company-logo-img { max-width: 60px; max-height: 30px; object-fit: contain; }
             .iso-footer { margin-top: 12px; padding-top: 6px; border-top: 1px solid #bbb; text-align: center; font-size: 7.5pt; color: #555; }
             .controlled-document { font-weight: bold; color: #111; margin-bottom: 2px; }
           </style>

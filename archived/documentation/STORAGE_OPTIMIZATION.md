@@ -28,6 +28,5 @@ cd ../frontedn && npm install
 
 ## Optional Optimizations
 - Use CPU-only PyTorch: `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu`
-- Docker deployment instead of local venv
 - Cloud storage for media files
 - Automated backup cleanup policy

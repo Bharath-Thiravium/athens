@@ -1,12 +1,19 @@
 from celery import shared_task
 from sentence_transformers import SentenceTransformer
+from django.conf import settings
 from django.db import transaction
 from .models import DocEmbedding
+import logging
+
+logger = logging.getLogger(__name__)
 
 # We will import models inside tasks when needed to avoid import-time issues
 
 @shared_task
 def upsert_embedding(module: str, record_id: int, title: str, text: str):
+    if getattr(settings, 'DISABLE_BACKGROUND_JOBS', False):
+        logger.warning("Background jobs disabled; skipping embedding upsert for %s:%s", module, record_id)
+        return
     model_name = 'sentence-transformers/all-MiniLM-L6-v2'
     model = SentenceTransformer(model_name)
     chunks = _chunk_text(text)
@@ -21,6 +28,9 @@ def upsert_embedding(module: str, record_id: int, title: str, text: str):
 @shared_task
 def delete_embedding(module: str, record_id: int):
     """Delete embeddings for a specific module and record"""
+    if getattr(settings, 'DISABLE_BACKGROUND_JOBS', False):
+        logger.warning("Background jobs disabled; skipping embedding delete for %s:%s", module, record_id)
+        return
     try:
         with transaction.atomic():
             DocEmbedding.objects.filter(module=module, record_id=record_id).delete()
@@ -48,4 +58,3 @@ def _chunk_text(text: str, max_tokens: int = 256):
     if cur:
         chunks.append(' '.join(cur))
     return chunks
-

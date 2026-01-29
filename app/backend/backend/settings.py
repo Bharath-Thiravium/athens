@@ -118,17 +118,14 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # MUST be first for CORS to work properly
     'django.middleware.security.SecurityMiddleware',
+    'system.observability_middleware.RequestContextLoggingMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'backend.slow_request_logging.SlowRequestLoggingMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'authentication.company_isolation.CompanyTenantIsolationMiddleware',  # CORRECT: Tenant-based company isolation
     'authentication.tenant_middleware.AthensTenantMiddleware',  # Multi-tenant isolation middleware
-    'authentication.tenant_middleware.TenantPermissionMiddleware',  # Module/menu permission middleware
     'authentication.middleware.ProjectIsolationMiddleware',  # Project isolation middleware
-    'authentication.induction_middleware.InductionTrainingMiddleware',  # Induction training access control
-    'authentication.middleware.SecurityAuditMiddleware',  # Security audit middleware
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -171,7 +168,6 @@ CHANNEL_LAYERS = {
 # Database Configuration - Multiple databases
 db_engine = os.getenv('DB_ENGINE', 'sqlite3')
 RUNNING_TESTS = 'test' in sys.argv
-IS_DOCKER = os.path.exists('/.dockerenv') or os.getenv('DJANGO_IN_DOCKER') == '1'
 
 
 def _env(key: str, default=None):
@@ -182,7 +178,7 @@ def _env(key: str, default=None):
 PG_DB_NAME = _env('PG_DB_NAME', 'athens_ehs')
 PG_DB_USER = _env('PG_DB_USER', 'athens_user')
 PG_DB_PASSWORD = _env('PG_DB_PASSWORD')
-DEFAULT_DB_HOST = 'database' if IS_DOCKER else 'localhost'
+DEFAULT_DB_HOST = 'localhost'
 PG_DB_HOST = _env('PG_DB_HOST', _env('DB_HOST', DEFAULT_DB_HOST))
 PG_DB_PORT = _env('PG_DB_PORT', _env('DB_PORT', '5432'))
 
@@ -191,7 +187,26 @@ CONTROL_DB_USER = _env('CONTROL_DB_USER', PG_DB_USER)
 CONTROL_DB_PASSWORD = _env('CONTROL_DB_PASSWORD', PG_DB_PASSWORD)
 CONTROL_DB_HOST = _env('CONTROL_DB_HOST', PG_DB_HOST)
 CONTROL_DB_PORT = _env('CONTROL_DB_PORT', PG_DB_PORT)
-DB_CONN_MAX_AGE = int(os.getenv('DB_CONN_MAX_AGE', '0'))
+DB_CONN_MAX_AGE = int(os.getenv('DB_CONN_MAX_AGE', '60'))
+DB_CONN_HEALTH_CHECKS = os.getenv('DB_CONN_HEALTH_CHECKS', 'True').lower() in ('1', 'true', 'yes', 'on')
+DB_CONNECT_TIMEOUT = int(os.getenv('DB_CONNECT_TIMEOUT', '5'))
+DB_STATEMENT_TIMEOUT_MS = int(os.getenv('DB_STATEMENT_TIMEOUT_MS', '55000'))
+DB_APPLICATION_NAME = os.getenv('DB_APPLICATION_NAME', 'athens-backend')
+
+DISABLE_MODEL_SIGNALS = os.getenv('DISABLE_MODEL_SIGNALS', 'False').lower() in ('1', 'true', 'yes', 'on')
+DISABLE_BACKGROUND_JOBS = os.getenv('DISABLE_BACKGROUND_JOBS', 'False').lower() in ('1', 'true', 'yes', 'on')
+REQUEST_LOGGING = os.getenv('REQUEST_LOGGING', 'True').lower() in ('1', 'true', 'yes', 'on')
+REQUEST_LOG_DB_CONNECTIONS = os.getenv('REQUEST_LOG_DB_CONNECTIONS', 'True').lower() in ('1', 'true', 'yes', 'on')
+
+
+def _db_options(statement_timeout_ms: int, application_name: str) -> dict:
+    options = {
+        'connect_timeout': DB_CONNECT_TIMEOUT,
+        'application_name': application_name,
+    }
+    if statement_timeout_ms and statement_timeout_ms > 0:
+        options['options'] = f'-c statement_timeout={statement_timeout_ms}'
+    return options
 
 # Primary database (PostgreSQL)
 DATABASES = {
@@ -202,6 +217,9 @@ DATABASES = {
         'PASSWORD': PG_DB_PASSWORD,
         'HOST': PG_DB_HOST,
         'PORT': PG_DB_PORT,
+        'CONN_MAX_AGE': DB_CONN_MAX_AGE,
+        'CONN_HEALTH_CHECKS': DB_CONN_HEALTH_CHECKS,
+        'OPTIONS': _db_options(DB_STATEMENT_TIMEOUT_MS, DB_APPLICATION_NAME),
     },
     'control_plane': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -210,6 +228,9 @@ DATABASES = {
         'PASSWORD': CONTROL_DB_PASSWORD,
         'HOST': CONTROL_DB_HOST,
         'PORT': CONTROL_DB_PORT,
+        'CONN_MAX_AGE': DB_CONN_MAX_AGE,
+        'CONN_HEALTH_CHECKS': DB_CONN_HEALTH_CHECKS,
+        'OPTIONS': _db_options(DB_STATEMENT_TIMEOUT_MS, f"{DB_APPLICATION_NAME}-control"),
     },
     'sqlite_backup': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -469,9 +490,11 @@ LOGGING = {
 }
 
 # Enable persistent DB connections if configured
-if DB_CONN_MAX_AGE:
+if DB_CONN_MAX_AGE is not None:
     DATABASES['default']['CONN_MAX_AGE'] = DB_CONN_MAX_AGE
     DATABASES['control_plane']['CONN_MAX_AGE'] = DB_CONN_MAX_AGE
+    DATABASES['default']['CONN_HEALTH_CHECKS'] = DB_CONN_HEALTH_CHECKS
+    DATABASES['control_plane']['CONN_HEALTH_CHECKS'] = DB_CONN_HEALTH_CHECKS
 
 # Create logs directory if it doesn't exist
 os.makedirs(os.path.join(BASE_DIR, 'logs'), exist_ok=True)
@@ -519,7 +542,10 @@ CELERY_TASK_TIME_LIMIT = 30 * 60
 CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
-CELERY_TASK_ALWAYS_EAGER = False  # Enable async task execution
+CELERY_TASK_ALWAYS_EAGER = DISABLE_BACKGROUND_JOBS or os.getenv(
+    'CELERY_TASK_ALWAYS_EAGER', 'False'
+).lower() in ('1', 'true', 'yes', 'on')
+CELERY_TASK_EAGER_PROPAGATES = DISABLE_BACKGROUND_JOBS
 
 # Celery serialization
 CELERY_ACCEPT_CONTENT = ['json']

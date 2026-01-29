@@ -141,6 +141,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         ('superadmin', 'Superadmin'),
         ('master', 'Master'),
         ('projectadmin', 'Project Admin'),
+        ('user', 'User'),
         ('adminuser', 'Admin User'),
     ]
     
@@ -199,15 +200,27 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ['user_type']
     
     def save(self, *args, **kwargs):
-        if self.created_by and self.user_type != 'projectadmin':
-            self.user_type = 'adminuser'
-            creator_admin_type = self.created_by.admin_type
-            if creator_admin_type == 'client':
-                self.admin_type = 'clientuser'
-            elif creator_admin_type == 'epc':
-                self.admin_type = 'epcuser'
-            elif creator_admin_type == 'contractor':
-                self.admin_type = 'contractoruser'
+        # Auto-assign user_type based on creator hierarchy
+        if self.created_by:
+            creator_user_type = getattr(self.created_by, 'user_type', None)
+            creator_admin_type = getattr(self.created_by, 'admin_type', None)
+            
+            # If created by master admin, make them project admin
+            if creator_admin_type in ['master', 'masteradmin'] or creator_user_type == 'master':
+                self.user_type = 'projectadmin'
+                # Keep the admin_type as set (client, epc, contractor)
+            
+            # If created by project admin, make them regular user
+            elif creator_user_type == 'projectadmin':
+                self.user_type = 'user'
+                # Set admin_type based on creator's admin_type
+                if creator_admin_type == 'client':
+                    self.admin_type = 'clientuser'
+                elif creator_admin_type == 'epc':
+                    self.admin_type = 'epcuser'
+                elif creator_admin_type == 'contractor':
+                    self.admin_type = 'contractoruser'
+        
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -360,6 +373,8 @@ def create_signature_template_on_userdetail_save(sender, instance, created, **kw
     """
     Automatically create signature template when UserDetail is saved with required fields
     """
+    if getattr(settings, 'DISABLE_MODEL_SIGNALS', False):
+        return
     try:
         # Check if user has required information for signature template
         user = instance.user
@@ -393,6 +408,8 @@ def create_signature_template_on_admindetail_save(sender, instance, created, **k
     """
     Automatically create signature template when AdminDetail is saved with required fields
     """
+    if getattr(settings, 'DISABLE_MODEL_SIGNALS', False):
+        return
     try:
         # Check if user has required information for signature template
         user = instance.user

@@ -15,8 +15,7 @@ from . import signature_safe_views
 from . import signature_preview_simple
 from .signature_preview_view import signature_preview
 from .signature_template_generator_view import generate_signature_template
-from rest_framework_simplejwt.views import TokenRefreshView
-from .views import CustomTokenObtainPairView
+from .views import CustomTokenObtainPairView, CustomTokenRefreshView, WebsocketTokenRefreshView
 from .views_attendance import check_in, check_out, get_attendance_status
 from .face_comparison_api import compare_faces_api
 from .face_test_views import test_face_recognition_setup, get_user_face_info
@@ -40,7 +39,8 @@ urlpatterns = [
     path('login/tenant/', TenantLoginAPIView.as_view(), name='tenant_login'),
     # Keep legacy endpoint for other parts of the app
     path('login/legacy/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
+    path('token/refresh/ws/', WebsocketTokenRefreshView.as_view(), name='token_refresh_ws'),
     path('logout/', views.LogoutView.as_view(), name='auth_logout'),
 
     # Project management

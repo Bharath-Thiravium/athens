@@ -171,7 +171,6 @@ CHANNEL_LAYERS = {
 # Database Configuration - Multiple databases
 db_engine = os.getenv('DB_ENGINE', 'sqlite3')
 RUNNING_TESTS = 'test' in sys.argv
-IS_DOCKER = os.path.exists('/.dockerenv') or os.getenv('DJANGO_IN_DOCKER') == '1'
 
 
 def _env(key: str, default=None):
@@ -182,7 +181,6 @@ def _env(key: str, default=None):
 PG_DB_NAME = _env('PG_DB_NAME', 'athens_ehs')
 PG_DB_USER = _env('PG_DB_USER', 'athens_user')
 PG_DB_PASSWORD = _env('PG_DB_PASSWORD')
-DEFAULT_DB_HOST = 'database' if IS_DOCKER else 'localhost'
 PG_DB_HOST = _env('PG_DB_HOST', _env('DB_HOST', DEFAULT_DB_HOST))
 PG_DB_PORT = _env('PG_DB_PORT', _env('DB_PORT', '5432'))
 

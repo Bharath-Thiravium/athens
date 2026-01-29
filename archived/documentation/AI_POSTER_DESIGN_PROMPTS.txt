@@ -128,7 +128,6 @@ TECH STACK ICONS:
 - OpenAI, Anthropic, LangChain
 - Python, TensorFlow, PyTorch
 - React, Django, FastAPI
-- PostgreSQL, Redis, Docker
 
 3. CUSTOM SOFTWARE DEVELOPMENT POSTER
 ====================================

@@ -347,7 +347,6 @@ Each module change must add an entry in this format.
   - Cross-tenant write denied: N/A
   - WebSockets: N/A
   - Tests added/updated: N/A
-  - Test run command + PASS/FAIL summary: docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test tbt.tests.test_function_endpoints -v 2 (FAIL: 1 test ran; test_user_list_is_project_scoped returned 401 instead of 200; test DB created/destroyed successfully)
   - Notes/Risks: Root cause was host port conflict (athens-db using 5433) and test DB provisioning against Postgres; compose dev Postgres now used. Test failure is auth-related (401) and needs follow-up in the test or auth setup.
 
 - MODULE: TBT Function Tests (Auth Setup)
@@ -359,7 +358,6 @@ Each module change must add an entry in this format.
   - Cross-tenant write denied: PASS
   - WebSockets: N/A
   - Tests added/updated: backend/tbt/tests/test_function_endpoints.py
-  - Test run command + PASS/FAIL summary: docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test tbt.tests.test_function_endpoints -v 2 (PASS: 1 test ran)
   - Notes/Risks: Root cause was APIClient-based request not applying JWT auth; switched to APIRequestFactory with SimpleJWT Authorization header for deterministic auth in test.
 
 - MODULE: TBT Function Tests (JWT Helper + Coverage)
@@ -371,7 +369,6 @@ Each module change must add an entry in this format.
   - Cross-tenant write denied: PASS
   - WebSockets: N/A
   - Tests added/updated: backend/tbt/tests/test_function_endpoints.py
-  - Test run command + PASS/FAIL summary: docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test tbt.tests -v 2 (PASS: 3 tests ran); docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test -v 1 (FAIL: 2 import errors in authentication.management.commands.test_company_isolation and mom.tests)
   - Notes/Risks: Added shared JWT request helper; migrated to backend/tests_common/* later; full suite currently blocked by unrelated import errors in existing tests.
 
 - MODULE: Induction Function Tests (JWT Helper + Coverage)
@@ -383,7 +380,6 @@ Each module change must add an entry in this format.
   - Cross-tenant write denied: PASS
   - WebSockets: N/A
   - Tests added/updated: backend/inductiontraining/tests/test_function_endpoints.py
-  - Test run command + PASS/FAIL summary: docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test tbt.tests -v 2 (PASS: 3 tests ran); docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test -v 1 (FAIL: 2 import errors in authentication.management.commands.test_company_isolation and mom.tests)
   - Notes/Risks: Refactored to shared JWT request helper and added auth/project coverage; full suite blocked by unrelated import errors.
 
 - MODULE: Company Isolation Shim + Tests
@@ -395,7 +391,6 @@ Each module change must add an entry in this format.
   - Cross-tenant write denied: N/A
   - WebSockets: N/A
   - Tests added/updated: backend/authentication/tests/test_company_isolation_utils.py
-  - Test run command + PASS/FAIL summary: docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test authentication.tests -v 2 (PASS: 3 tests ran); docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test -v 1 (PASS: 10 tests ran)
   - Notes/Risks: Added get_company_isolated_queryset shim and fixed tenant filtering logic; removed conflicting placeholder tests.py to resolve test discovery.
 
 - MODULE: MOM Tests + Notification Routing
@@ -407,7 +402,6 @@ Each module change must add an entry in this format.
   - Cross-tenant write denied: PASS
   - WebSockets: N/A
   - Tests added/updated: backend/mom/tests.py
-  - Test run command + PASS/FAIL summary: docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test mom.tests -v 2 (PASS: 9 tests ran); docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test -v 1 (PASS: 15 tests ran)
   - Notes/Risks: Standardized MOM test setup with shared helper; migrated to backend/tests_common/* later; added auth/tenant/project coverage and an unauthenticated route smoke test; in-memory channel layer used for notification test.
 
 - MODULE: Shared Test Helpers (Phase 3)
@@ -419,7 +413,6 @@ Each module change must add an entry in this format.
   - Cross-tenant write denied: PASS (unchanged)
   - WebSockets: N/A
   - Tests added/updated: backend/tbt/tests/test_function_endpoints.py, backend/inductiontraining/tests/test_function_endpoints.py, backend/mom/tests.py
-  - Test run command + PASS/FAIL summary: docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test tbt.tests -v 2 (PASS: 3 tests ran); docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test mom.tests -v 2 (PASS: 9 tests ran); docker compose -f docker-compose.dev.yml run --rm --no-deps backend python3 manage.py test -v 1 (PASS: 15 tests ran)
   - Notes/Risks: Migration note: per-app helpers retired in favor of backend/tests_common/*; in-memory channel layer used for MOM notification unit test.
 
 - MODULE: Frontend Dependency Audit (Phase 0)

@@ -388,7 +388,6 @@ Dashboard
 
 ### Environment Requirements
 **Development:**
-- Local development with Docker
 - Hot reload for frontend/backend
 - Debug logging enabled
 

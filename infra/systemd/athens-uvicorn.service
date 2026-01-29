@@ -9,7 +9,10 @@ User=www-data
 WorkingDirectory=/var/www/athens/app/backend
 EnvironmentFile=/var/www/athens/app/backend/.env
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/var/www/athens/app/backend/venv/bin/uvicorn backend.asgi:application --host 127.0.0.1 --port 8001 --workers 1 --proxy-headers --forwarded-allow-ips=*
+Environment=UVICORN_WORKERS=3
+Environment=UVICORN_TIMEOUT_KEEP_ALIVE=70
+Environment=UVICORN_LIMIT_CONCURRENCY=100
+ExecStart=/var/www/athens/app/backend/venv/bin/uvicorn backend.asgi:application --host 127.0.0.1 --port 8001 --workers ${UVICORN_WORKERS} --timeout-keep-alive ${UVICORN_TIMEOUT_KEEP_ALIVE} --limit-concurrency ${UVICORN_LIMIT_CONCURRENCY} --proxy-headers --forwarded-allow-ips=*
 Restart=always
 RestartSec=5
 UMask=0022

@@ -116,6 +116,8 @@ resource envStorage 'Microsoft.App/managedEnvironments/storages@2023-11-02-previ
   }
 }
 
+// Optional reference template — not used in current deployment.
+
 resource acaApp 'Microsoft.App/containerApps@2023-11-02-preview' = {
   name: acaAppName
   location: location

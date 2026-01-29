@@ -43,6 +43,11 @@ const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({ allowedRoles, children 
       
       // Check for contractoruser variations
       if (role?.startsWith('contractor') && allowedRoles.includes('contractoruser')) return true;
+      
+      // Special mapping for admin_type to user roles
+      if (role === 'epcuser' && allowedRoles.includes('epcuser')) return true;
+      if (role === 'clientuser' && allowedRoles.includes('clientuser')) return true;
+      if (role === 'contractoruser' && allowedRoles.includes('contractoruser')) return true;
     }
 
     return false;

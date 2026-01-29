@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, Alert, Descriptions, Spin, Button, Modal, message } from 'antd';
 import { FileImageOutlined, CheckCircleOutlined, ExclamationCircleOutlined, ReloadOutlined, EyeOutlined, DownloadOutlined } from '@ant-design/icons';
 import api from '@common/utils/axiosetup';
+import { normalizeErrorMessage } from '@common/utils/errorHandler';
 import DigitalSignatureBlock from './DigitalSignatureBlock';
 import html2canvas from 'html2canvas';
 import './StandardSignatureTemplate.css';
@@ -66,11 +67,11 @@ const StandardSignatureTemplate: React.FC = () => {
         message.success('Digital signature template generated successfully!');
         await fetchTemplateData();
       } else {
-        message.error(response.data.error || 'Failed to generate template');
+        message.error(normalizeErrorMessage(response.data.error, 'Failed to generate template'));
       }
     } catch (error: any) {
       console.error('Template generation error:', error);
-      message.error(error.response?.data?.error || 'Failed to generate template');
+      message.error(normalizeErrorMessage(error.response?.data?.error, 'Failed to generate template'));
     } finally {
       setGenerating(false);
     }

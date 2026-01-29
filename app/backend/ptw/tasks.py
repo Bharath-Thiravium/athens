@@ -14,12 +14,26 @@ import time
 
 logger = logging.getLogger(__name__)
 
+
+def _background_jobs_disabled() -> bool:
+    return getattr(settings, 'DISABLE_BACKGROUND_JOBS', False)
+
+
+def _skip_if_disabled(task_name: str) -> bool:
+    if _background_jobs_disabled():
+        logger.warning("Background jobs disabled; skipping %s", task_name)
+        return True
+    return False
+
+
 @shared_task(autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, max_retries=3)
 def check_expiring_permits():
     """
     Celery task to check for permits nearing expiration and send alerts
     Runs every 30 minutes
     """
+    if _skip_if_disabled("check_expiring_permits"):
+        return
     start_time = time.monotonic()
     try:
         workflow_manager.check_expiring_permits()
@@ -38,6 +52,8 @@ def check_overdue_workflow_tasks():
     Celery task to check for overdue workflow tasks and send escalation notifications
     Runs every hour
     """
+    if _skip_if_disabled("check_overdue_workflow_tasks"):
+        return
     start_time = time.monotonic()
     if not getattr(settings, 'ESCALATIONS_ENABLED', False):
         logger.info("Escalations disabled, skipping check")
@@ -161,6 +177,8 @@ def auto_expire_permits():
     Celery task to automatically expire permits that have passed their end time
     Runs every hour
     """
+    if _skip_if_disabled("auto_expire_permits"):
+        return
     try:
         expired_permits = Permit.objects.filter(
             status='active',
@@ -195,6 +213,8 @@ def generate_daily_ptw_report():
     Celery task to generate daily PTW summary report
     Runs daily at 6 AM
     """
+    if _skip_if_disabled("generate_daily_ptw_report"):
+        return
     try:
         from django.db.models import Count, Q
         from datetime import date
@@ -239,6 +259,8 @@ def cleanup_old_notifications():
     Celery task to cleanup old PTW notifications
     Runs weekly
     """
+    if _skip_if_disabled("cleanup_old_notifications"):
+        return
     try:
         # Delete notifications older than 30 days
         old_notifications = Notification.objects.filter(
@@ -260,6 +282,8 @@ def check_pending_closeout_and_isolation():
     Celery task to check for permits with pending closeout or isolation
     Runs every 4 hours
     """
+    if _skip_if_disabled("check_pending_closeout_and_isolation"):
+        return
     try:
         from .models import PermitCloseout, PermitIsolationPoint
         
@@ -307,6 +331,8 @@ def check_pending_closeout_and_isolation():
 @shared_task(autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, max_retries=3)
 def deliver_webhook_event(log_id):
     """Deliver webhook payload asynchronously."""
+    if _skip_if_disabled("deliver_webhook_event"):
+        return
     log = WebhookDeliveryLog.objects.select_related('webhook').get(id=log_id)
     if log.status == 'success':
         return

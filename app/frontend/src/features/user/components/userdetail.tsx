@@ -133,6 +133,13 @@ const UserDetail: React.FC<UserDetailProps> = ({ initialMobile }) => {
   
   // --- Data Fetching and Effects ---
   const fetchUserDetail = useCallback(async () => {
+    // Prevent master admins from accessing user details
+    const { django_user_type } = useAuthStore.getState();
+    if (django_user_type === 'masteradmin') {
+      message.error('Master admins do not have access to user profile details.');
+      return;
+    }
+    
     try {
       let data: any;
       if (userToApprove?.user) {

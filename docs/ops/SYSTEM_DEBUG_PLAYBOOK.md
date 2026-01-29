@@ -3,7 +3,6 @@
 ## 🚨 Emergency Response Guide
 
 ### If System is Down:
-1. **Check Docker Status**: `./docker-status.sh`
 2. **Check System Health**: `./diagnose_system.sh`
 3. **Restart Services**: `./setup_https_config.sh`
 4. **Check Logs**: `tail -f backend/backend.log frontend/frontend.log`
@@ -165,14 +164,10 @@ print(f"Enabled modules: {[a.menu_module.name for a in access]}")
 **Quick Fixes**:
 ```bash
 # Restart database
-docker-compose restart db
 
 # Check database status
-docker-compose ps
 
 # Reset database (CAUTION)
-docker-compose down
-docker-compose up -d
 ```
 
 ### File Upload Failures
@@ -194,23 +189,17 @@ chmod -R 755 media/
 df -h
 ```
 
-### Docker Container Issues
 **Symptoms**: Services not starting, port conflicts
 
 **Debug Commands**:
 ```bash
 # Check container status
-docker-compose ps
 
 # View container logs
-docker-compose logs backend
-docker-compose logs frontend
 
 # Restart specific service
-docker-compose restart backend
 
 # Full system restart
-docker-compose down && docker-compose up -d
 ```
 
 ---
@@ -228,10 +217,8 @@ docker-compose down && docker-compose up -d
 **Debug Steps**:
 ```bash
 # Check container memory
-docker stats
 
 # Monitor Python memory
-docker-compose exec backend python -c "import psutil; print(f'Memory: {psutil.virtual_memory().percent}%')"
 ```
 
 ---
@@ -240,7 +227,6 @@ docker-compose exec backend python -c "import psutil; print(f'Memory: {psutil.vi
 
 ### Level 1: System Admin
 - **Issue**: Service restarts, basic configuration
-- **Tools**: Docker commands, log checking
 - **Escalate If**: Database corruption, security breaches
 
 ### Level 2: Technical Lead  
@@ -282,16 +268,12 @@ docker-compose exec backend python -c "import psutil; print(f'Memory: {psutil.vi
 
 ### System Commands:
 - **Health Check**: `./diagnose_system.sh`
-- **Docker Status**: `./docker-status.sh`
 - **System Restart**: `./setup_https_config.sh`
 - **Log Monitoring**: `tail -f backend/backend.log`
 
 ### Emergency Recovery:
 ```bash
 # Complete system reset (LAST RESORT)
-docker-compose down
-docker system prune -f
-docker-compose up -d
 ./setup_https_config.sh
 ```
 

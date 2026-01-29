@@ -1,6 +1,7 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from typing import Optional
+from django.conf import settings
 from .models import DocEmbedding
 
 # Safe imports from apps
@@ -63,8 +64,14 @@ MODEL_MAP = [
     ('project', Project),
 ]
 
+
+def _signals_disabled() -> bool:
+    return getattr(settings, 'DISABLE_MODEL_SIGNALS', False) or getattr(settings, 'DISABLE_BACKGROUND_JOBS', False)
+
 @receiver(post_delete)
 def delete_embeddings(sender, instance, **kwargs):
+    if _signals_disabled():
+        return
     for module, model in MODEL_MAP:
         if model and sender is model:
             DocEmbedding.objects.filter(module=module, record_id=instance.id).delete()
@@ -92,6 +99,8 @@ def delete_embeddings(sender, instance, **kwargs):
 if Incident:
     @receiver(post_save, sender=Incident)
     def upsert_incident(sender, instance, created, **kwargs):
+        if _signals_disabled():
+            return
         from .tasks import upsert_embedding
         title = getattr(instance,'title','')
         text = f"Incident {title} Dept {getattr(instance,'department','')} Loc {getattr(instance,'location','')} Status {getattr(instance,'status','')} Desc {getattr(instance,'description','')}"
@@ -100,6 +109,8 @@ if Incident:
 if Permit:
     @receiver(post_save, sender=Permit)
     def upsert_permit(sender, instance, created, **kwargs):
+        if _signals_disabled():
+            return
         from .tasks import upsert_embedding
         title = getattr(instance,'permit_number','')
         text = f"Permit {title} Title {getattr(instance,'title','')} Status {getattr(instance,'status','')} Location {getattr(instance,'location','')} Desc {getattr(instance,'description','')}"
@@ -117,6 +128,8 @@ if Permit:
 if ManpowerEntry:
     @receiver(post_save, sender=ManpowerEntry)
     def upsert_manpower(sender, instance, created, **kwargs):
+        if _signals_disabled():
+            return
         from .tasks import upsert_embedding
         title = f"{getattr(instance,'category','')} {getattr(instance,'date','')}"
         text = f"Manpower {getattr(instance,'date','')} Category {getattr(instance,'category','')} Gender {getattr(instance,'gender','')} Count {getattr(instance,'count','')} Shift {getattr(instance,'shift','')} Notes {getattr(instance,'notes','')}"
@@ -125,6 +138,8 @@ if ManpowerEntry:
 if Mom:
     @receiver(post_save, sender=Mom)
     def upsert_mom(sender, instance, created, **kwargs):
+        if _signals_disabled():
+            return
         try:
             from .tasks import upsert_embedding
             title = getattr(instance,'title','')
@@ -148,6 +163,8 @@ if Mom:
 if InductionTraining:
     @receiver(post_save, sender=InductionTraining)
     def upsert_induction_training(sender, instance, created, **kwargs):
+        if _signals_disabled():
+            return
         try:
             from .tasks import upsert_embedding
             title = getattr(instance,'title','')
@@ -162,6 +179,8 @@ if InductionTraining:
 if JobTraining:
     @receiver(post_save, sender=JobTraining)
     def upsert_job_training(sender, instance, created, **kwargs):
+        if _signals_disabled():
+            return
         try:
             from .tasks import upsert_embedding
             title = getattr(instance,'title','')
@@ -176,6 +195,8 @@ if JobTraining:
 if ToolboxTalk:
     @receiver(post_save, sender=ToolboxTalk)
     def upsert_toolbox_talk(sender, instance, created, **kwargs):
+        if _signals_disabled():
+            return
         try:
             from .tasks import upsert_embedding
             title = getattr(instance,'title','')
@@ -190,6 +211,8 @@ if ToolboxTalk:
 if PermitType:
     @receiver(post_save, sender=PermitType)
     def upsert_permit_type(sender, instance, created, **kwargs):
+        if _signals_disabled():
+            return
         from .tasks import upsert_embedding
         title = getattr(instance,'name','')
         text = f"PermitType {title} Category {getattr(instance,'category','')} Risk {getattr(instance,'risk_level','')} Desc {getattr(instance,'description','')}"
@@ -198,6 +221,8 @@ if PermitType:
 if HazardLibrary:
     @receiver(post_save, sender=HazardLibrary)
     def upsert_hazard_library(sender, instance, created, **kwargs):
+        if _signals_disabled():
+            return
         from .tasks import upsert_embedding
         title = getattr(instance,'name','')
         text = f"Hazard {title} Category {getattr(instance,'category','')} RiskLevel {getattr(instance,'risk_level','')} Controls {getattr(instance,'control_measures','')} Desc {getattr(instance,'description','')}"
@@ -225,12 +250,16 @@ if HazardLibrary:
 if Incident:
     @receiver(post_delete, sender=Incident)
     def delete_incident_embedding(sender, instance, **kwargs):
+        if _signals_disabled():
+            return
         from .tasks import delete_embedding
         delete_embedding.delay('incident', instance.id)
 
 if Permit:
     @receiver(post_delete, sender=Permit)
     def delete_permit_embedding(sender, instance, **kwargs):
+        if _signals_disabled():
+            return
         from .tasks import delete_embedding
         delete_embedding.delay('permit', instance.id)
 
@@ -244,12 +273,16 @@ if Permit:
 if ManpowerEntry:
     @receiver(post_delete, sender=ManpowerEntry)
     def delete_manpower_entry_embedding(sender, instance, **kwargs):
+        if _signals_disabled():
+            return
         from .tasks import delete_embedding
         delete_embedding.delay('manpowerentry', instance.id)
 
 if Mom:
     @receiver(post_delete, sender=Mom)
     def delete_mom_embedding(sender, instance, **kwargs):
+        if _signals_disabled():
+            return
         try:
             from .tasks import delete_embedding
             delete_embedding.delay('mom', instance.id)
@@ -262,6 +295,8 @@ if Mom:
 if Project:
     @receiver(post_delete, sender=Project)
     def delete_project_embedding(sender, instance, **kwargs):
+        if _signals_disabled():
+            return
         from .tasks import delete_embedding, delete_embedding_sync
         try:
             delete_embedding.delay('project', instance.id)
@@ -272,6 +307,8 @@ if Project:
 if InductionTraining:
     @receiver(post_delete, sender=InductionTraining)
     def delete_induction_training_embedding(sender, instance, **kwargs):
+        if _signals_disabled():
+            return
         try:
             from .tasks import delete_embedding
             delete_embedding.delay('inductiontraining', instance.id)
@@ -284,6 +321,8 @@ if InductionTraining:
 if JobTraining:
     @receiver(post_delete, sender=JobTraining)
     def delete_job_training_embedding(sender, instance, **kwargs):
+        if _signals_disabled():
+            return
         try:
             from .tasks import delete_embedding
             delete_embedding.delay('jobtraining', instance.id)
@@ -296,6 +335,8 @@ if JobTraining:
 if ToolboxTalk:
     @receiver(post_delete, sender=ToolboxTalk)
     def delete_toolbox_talk_embedding(sender, instance, **kwargs):
+        if _signals_disabled():
+            return
         try:
             from .tasks import delete_embedding
             delete_embedding.delay('toolboxtalk', instance.id)
@@ -308,11 +349,15 @@ if ToolboxTalk:
 if PermitType:
     @receiver(post_delete, sender=PermitType)
     def delete_permit_type_embedding(sender, instance, **kwargs):
+        if _signals_disabled():
+            return
         from .tasks import delete_embedding
         delete_embedding.delay('permittype', instance.id)
 
 if HazardLibrary:
     @receiver(post_delete, sender=HazardLibrary)
     def delete_hazard_library_embedding(sender, instance, **kwargs):
+        if _signals_disabled():
+            return
         from .tasks import delete_embedding
         delete_embedding.delay('hazardlibrary', instance.id)

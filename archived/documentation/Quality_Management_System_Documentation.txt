@@ -572,7 +572,6 @@ SYSTEM REQUIREMENTS:
 - Database: PostgreSQL 13+
 - Authentication: JWT-based security
 - File Storage: AWS S3 or local storage
-- Deployment: Docker containers
 
 API ENDPOINTS:
 Quality Templates:

@@ -117,6 +117,8 @@ resource envStorage 'Microsoft.App/managedEnvironments/storages@2023-11-02-previ
   }
 }
 
+// Optional reference template — not used in current deployment.
+
 resource acajob 'Microsoft.App/jobs@2023-11-02-preview' = {
   name: acaJobName
   location: location

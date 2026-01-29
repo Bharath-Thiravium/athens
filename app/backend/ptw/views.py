@@ -672,7 +672,7 @@ class PermitViewSet(PTWBaseViewSet):
 
     @action(detail=True, methods=['post'])
     def add_signature(self, request, pk=None):
-        """Add digital signature to permit using consolidated signature service"""
+        """Add digital signature to permit using consolidated signature service with automatic workflow progression"""
         permit = self.get_object()
         signature_type = request.data.get('signature_type')
         
@@ -683,6 +683,7 @@ class PermitViewSet(PTWBaseViewSet):
             )
         
         try:
+            # Add signature
             signature = signature_service.add_signature(
                 permit=permit,
                 signature_type=signature_type,
@@ -691,9 +692,33 @@ class PermitViewSet(PTWBaseViewSet):
                 device_info=self.get_device_info(request)
             )
             
+            # STREAMLINED WORKFLOW: Signing = Action
+            if signature_type == 'verifier':
+                # Verifier signing = Verification approval
+                canonical_workflow_manager.transition(
+                    permit=permit,
+                    target_status='under_review',
+                    actor=request.user,
+                    comments='Verified via digital signature',
+                    context={'source': 'signature', 'signature_type': signature_type}
+                )
+            elif signature_type == 'approver':
+                # Approver signing = Permit approval
+                canonical_workflow_manager.transition(
+                    permit=permit,
+                    target_status='approved',
+                    actor=request.user,
+                    comments='Approved via digital signature',
+                    context={'source': 'signature', 'signature_type': signature_type}
+                )
+                # Set approved_by field
+                permit.approved_by = request.user
+                permit.approved_at = signature.signed_at
+                permit.save(update_fields=['approved_by', 'approved_at'])
+            
             return ptw_error_handler.create_created_response(
-                data=DigitalSignatureSerializer(signature).data,
-                message='Signature added successfully'
+                data=DigitalSignatureSerializer(signature, context={'request': request}).data,
+                message=f'Signature added and {signature_type} action completed successfully'
             )
             
         except (PTWSignatureError, PTWPermissionError, PTWValidationError) as e:
@@ -1391,16 +1416,16 @@ class PermitViewSet(PTWBaseViewSet):
             )
         
         # Check if permit allows approver changes
-        if permit.status not in ['verified', 'under_review', 'pending_approval']:
+        if permit.status not in ['verified', 'under_review', 'pending_approval', 'submitted']:
             return Response(
                 {'error': 'Cannot change approver before verification or after approval is completed'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Check if user is the verifier
-        if permit.verifier != request.user:
+        # Allow both verifier and users with appropriate permissions to assign approver
+        if permit.verifier != request.user and not ptw_permissions.can_edit_permit(request.user, permit):
             return Response(
-                {'error': 'Only the permit verifier can assign approver'},
+                {'error': 'Only the permit verifier or authorized users can assign approver'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -1480,6 +1505,7 @@ class PermitViewSet(PTWBaseViewSet):
         
         action = request.data.get('action')
         comments = request.data.get('comments', '')
+        selected_approver_id = request.data.get('selected_approver_id')
         
         if action not in ['approve', 'reject']:
             ptw_error_handler.handle_validation_error('Invalid action. Must be approve or reject', 'action')
@@ -1493,14 +1519,34 @@ class PermitViewSet(PTWBaseViewSet):
                 signature_service.validate_signature_for_workflow(permit, 'verify', request.user)
             
             # Use canonical workflow manager for verification
-            new_status = 'under_review' if action == 'approve' else 'rejected'
-            canonical_workflow_manager.transition(
-                permit=permit,
-                target_status=new_status,
-                actor=request.user,
-                comments=comments,
-                context={'source': 'verify', 'action': action}
-            )
+            if action == 'approve':
+                # First transition to under_review (verified state)
+                canonical_workflow_manager.transition(
+                    permit=permit,
+                    target_status='under_review',
+                    actor=request.user,
+                    comments=comments,
+                    context={'source': 'verify', 'action': action}
+                )
+                
+                # If approver is selected, assign them
+                if selected_approver_id:
+                    try:
+                        approver = CustomUser.objects.get(id=selected_approver_id)
+                        permit.approver = approver
+                        permit.save()
+                    except CustomUser.DoesNotExist:
+                        pass  # Continue without approver assignment
+                        
+            else:
+                # Reject verification
+                canonical_workflow_manager.transition(
+                    permit=permit,
+                    target_status='rejected',
+                    actor=request.user,
+                    comments=comments,
+                    context={'source': 'verify', 'action': action}
+                )
             
             message = 'Permit verified successfully' if action == 'approve' else 'Permit verification rejected'
             return ptw_error_handler.create_success_response(message=message)

@@ -2,19 +2,7 @@
 
 ## Quick Start
 
-### Docker Setup (Recommended)
-```bash
-# Interactive setup
-./docker-setup.sh
-
-# Or manual development setup
-docker-compose -f docker-compose.dev.yml up -d
-
-# Check status
-./docker-status.sh
-```
-
-### Development (Traditional)
+### Quick Start
 ```bash
 # Backend
 export ATHENS_BACKEND_PORT=8001
@@ -27,12 +15,10 @@ cd frontend && npm run dev
 
 ### Production
 ```bash
-# Docker (Recommended)
-./docker-setup.sh
-
-# Traditional
 ./setup_https_config.sh
 ```
+
+This project does not use Docker at runtime. Any remaining references are vendor text or optional infra templates.
 
 ## Troubleshooting & Maintenance
 
@@ -87,16 +73,11 @@ systemctl restart nginx
 - `setup_https_config.sh` - Automated HTTPS setup
 - `diagnose_system.sh` - System health checker
 - `docs/ops/SYSTEM_STATUS.md` - Current system status
-- `docs/ops/DOCKER_SETUP_GUIDE.md` - Complete Docker setup guide
-- `docker-setup.sh` - Interactive Docker setup script
-- `docker-status.sh` - Docker container monitoring
-- `validate-docker.sh` - Docker environment validation
-- `compare-environments.sh` - venv vs Docker comparison
 
 ## Repository Layout
 
 - `app/` - Runtime application code (backend, frontend, plugins)
-- `infra/` - Docker, nginx, systemd, deployment scaffolding
+- `infra/` - nginx, systemd, deployment scaffolding
 - `scripts/` - Ops, admin, maintenance, and debug utilities
 - `tests/` - Manual test and validation scripts
 - `docs/` - Architecture, runbooks, and reports

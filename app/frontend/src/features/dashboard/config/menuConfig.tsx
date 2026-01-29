@@ -624,8 +624,8 @@ export const getMenuItemsForUser = (
     return baseMenuItems;
   }
 
-  // User-level access (clientuser, epcuser, contractoruser)
-  if (['clientuser', 'epcuser', 'contractoruser'].includes(safeDjangoUserType ?? '')) {
+  // User-level access (clientuser, epcuser, contractoruser, user)
+  if (['clientuser', 'epcuser', 'contractoruser', 'user'].includes(safeDjangoUserType ?? '')) {
     return [
       { key: '/dashboard', icon: <DashboardOutlined />, label: 'Overview' },
       { key: '/dashboard/analytics', icon: <BarChartOutlined />, label: 'Analytics' },

@@ -117,7 +117,8 @@ const Dashboard: React.FC = () => {
         grade,
         isApproved: authIsApproved,
         hasSubmittedDetails: authHasSubmittedDetails,
-        restoreUserDataFromToken
+        restoreUserDataFromToken,
+        forceTokenSync
     } = useAuthStore();
 
     // Load menu items based on user type (no API call)
@@ -213,12 +214,18 @@ const Dashboard: React.FC = () => {
             authHasSubmittedDetails
         });
         
+        // Force sync with JWT token data if user types don't match
+        if (usertype === 'user' || django_user_type === 'user') {
+            console.log('User type is generic "user", forcing token sync...');
+            forceTokenSync();
+        }
+        
         // Try to restore user data from token if missing
         if (!usertype || !django_user_type) {
             console.log('User data missing, attempting to restore from token...');
             restoreUserDataFromToken();
         }
-    }, [username, usertype, django_user_type, department, grade, authIsApproved, authHasSubmittedDetails, restoreUserDataFromToken]);
+    }, [username, usertype, django_user_type, department, grade, authIsApproved, authHasSubmittedDetails, restoreUserDataFromToken, forceTokenSync]);
 
 
     const getSelectedKey = () => location.pathname;
@@ -285,6 +292,14 @@ const Dashboard: React.FC = () => {
 
     const handleMenuClick = (e: any) => {
         console.log('Menu clicked:', e.key, e.keyPath);
+        console.log('Current location:', location.pathname);
+        console.log('About to navigate to:', e.key);
+        
+        // Prevent navigation if key is invalid
+        if (!e.key || e.key === location.pathname) {
+            console.log('Skipping navigation - same path or invalid key');
+            return;
+        }
         
         // Special handling for inspection reports
         if (e.key === '/dashboard/inspection/reports') {
@@ -293,8 +308,14 @@ const Dashboard: React.FC = () => {
             return;
         }
         
-        // Default navigation
-        navigate(e.key);
+        // Default navigation with error handling
+        try {
+            console.log('Executing navigate to:', e.key);
+            navigate(e.key);
+            console.log('Navigation completed to:', e.key);
+        } catch (error) {
+            console.error('Navigation error:', error);
+        }
     };
 
 
@@ -796,11 +817,12 @@ const Dashboard: React.FC = () => {
                                 label: 'Training Check-in',
                                 icon: <QrcodeOutlined />
                             },
-                            {
+                            // Only show Profile Settings for non-master users
+                            ...(django_user_type !== 'masteradmin' && usertype !== 'masteradmin' ? [{
                                 key: '/dashboard/profile',
                                 label: 'Profile Settings',
                                 icon: <UserOutlined />
-                            },
+                            }] : []),
                             ...(usertype === 'masteradmin' ? [{
                                 key: '/dashboard/settings',
                                 label: 'Company Settings',
