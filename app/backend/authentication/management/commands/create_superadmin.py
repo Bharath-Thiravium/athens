@@ -47,6 +47,8 @@ class Command(BaseCommand):
                 is_active=True,
                 athens_tenant_id=None,
                 project=None,
+                can_reset_password=True,  # Superadmin can always reset password
+                password_set_by_superadmin=False,  # Superadmin sets their own password
             )
         else:
             user.email = email
@@ -56,6 +58,8 @@ class Command(BaseCommand):
             user.is_active = True
             user.athens_tenant_id = None
             user.project_id = None
+            user.can_reset_password = True  # Superadmin can always reset password
+            user.password_set_by_superadmin = False  # Superadmin sets their own password
             user.set_password(password)
             user.save()
 

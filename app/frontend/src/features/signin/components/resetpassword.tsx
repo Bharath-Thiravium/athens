@@ -15,6 +15,7 @@ const ResetPassword: React.FC = () => {
   const username = useAuthStore((state) => state.username);
   const userId = useAuthStore((state) => state.userId) as string | number | null;
   const djangoUserType = useAuthStore((state) => state.django_user_type);
+  const usertype = useAuthStore((state) => state.usertype);
 
   useEffect(() => {
     if (!useAuthStore.getState().isAuthenticated()) {
@@ -36,13 +37,18 @@ const ResetPassword: React.FC = () => {
           username, // Include username for projectadmin
           new_password: values.newPassword, // Use new_password to match AdminCreation.tsx
         });
+      } else if (usertype === 'masteradmin') {
+        // Master admin self-reset
+        await api.put('/authentication/master-admin/reset-password/', {
+          new_password: values.newPassword,
+        });
       } else if (djangoUserType === 'adminuser' && userId) {
         // Admin user self-reset (must use userId, not username)
         await api.put(`/authentication/projectadminuser/reset-password/${userId}/`, {
           password: values.newPassword, // This endpoint uses password instead of new_password
         });
       } else {
-        message.error('User type not supported for password reset.');
+        message.error(`Usertype not supported for Password Reset: ${usertype || djangoUserType}`);
         setLoading(false);
         return;
       }

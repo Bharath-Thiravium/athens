@@ -9,11 +9,13 @@ import base64
 import io
 import json
 from .models import UserSignature, FormSignature, SignatureAuditLog, UserDetail, AdminDetail
+from .tenant_scoped_utils import enforce_scope_or_403
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def save_signature(request):
     """Save user's digital signature"""
+    enforce_scope_or_403(request)
     try:
         signature_data = request.data.get('signature')
         if not signature_data:
@@ -96,6 +98,7 @@ def get_signature(request):
 @permission_classes([IsAuthenticated])
 def sign_form(request):
     """Sign a specific form"""
+    enforce_scope_or_403(request)
     try:
         form_type = request.data.get('form_type')
         form_id = request.data.get('form_id')
@@ -215,6 +218,7 @@ def get_form_signature(request):
 @permission_classes([IsAuthenticated])
 def log_print_action(request):
     """Log when a document is printed"""
+    enforce_scope_or_403(request)
     try:
         form_type = request.data.get('form_type')
         form_id = request.data.get('form_id')

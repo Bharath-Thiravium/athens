@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import UserDetail, AdminDetail
 from .signature_template_generator_new import SignatureTemplateGenerator, create_signature_template
+from .tenant_scoped_utils import enforce_scope_or_403
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,7 @@ def template_data(request):
 @permission_classes([IsAuthenticated])
 def generate_template(request):
     """Generate new signature template"""
+    enforce_scope_or_403(request)
     try:
         user = request.user
         
@@ -161,6 +163,7 @@ def preview_template(request):
 @permission_classes([IsAuthenticated])
 def reset_template(request):
     """Reset and regenerate signature template"""
+    enforce_scope_or_403(request)
     try:
         user = request.user
         

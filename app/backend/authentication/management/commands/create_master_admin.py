@@ -38,6 +38,8 @@ class Command(BaseCommand):
             is_superuser=True,  # Give superuser permissions
             project=None,  # Master admin doesn't belong to a specific project
             company_name='Master Admin',  # Provide a default company name
+            can_reset_password=False,  # Initially disable password reset
+            password_set_by_superadmin=False,  # Not set by superadmin initially
         )
         user.set_password(password)
         user.save()

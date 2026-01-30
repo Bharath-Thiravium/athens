@@ -17,6 +17,7 @@ from io import BytesIO
 from PIL import Image
 import os
 import logging
+from .tenant_scoped_utils import enforce_scope_or_403
 
 # Set up logging for face recognition debugging
 logger = logging.getLogger(__name__)
@@ -198,6 +199,7 @@ def compare_faces_basic_strict(known_image_path, unknown_image_file) -> bool:
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def check_in(request):
+    enforce_scope_or_403(request)
     user = request.user
     if user.user_type not in ['projectadmin', 'adminuser']:
         return Response({'error': 'User not authorized to check in.'}, status=status.HTTP_403_FORBIDDEN)
@@ -303,6 +305,7 @@ def check_in(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def check_out(request):
+    enforce_scope_or_403(request)
     user = request.user
     if user.user_type not in ['projectadmin', 'adminuser']:
         return Response({'error': 'User not authorized to check out.'}, status=status.HTTP_403_FORBIDDEN)

@@ -4,11 +4,12 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .models import CustomUser
 from .permissions import IsMasterAdmin
+from .tenant_scoped_utils import ScopedWriteMixin, enforce_object_scope_or_403
 import logging
 
 logger = logging.getLogger(__name__)
 
-class MasterAdminDeleteAdminUserView(APIView):
+class MasterAdminDeleteAdminUserView(ScopedWriteMixin, APIView):
     """
     Master admin can delete admin users (clientuser, epcuser, contractoruser)
     """
@@ -19,6 +20,7 @@ class MasterAdminDeleteAdminUserView(APIView):
             user = CustomUser.objects.get(id=user_id, user_type='adminuser')
         except CustomUser.DoesNotExist:
             return Response({'error': 'Admin user not found'}, status=status.HTTP_404_NOT_FOUND)
+        enforce_object_scope_or_403(request, user, tenant_attr="athens_tenant_id", project_attr="project_id")
         
         try:
             username = user.username

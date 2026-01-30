@@ -8,6 +8,7 @@ import os
 import logging
 import numpy as np
 from PIL import Image
+from .tenant_scoped_utils import enforce_scope_or_403
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ def compare_faces_api(request):
     Compare captured photo with reference photo for training attendance
     Uses strict face recognition with proper validation
     """
+    enforce_scope_or_403(request)
     captured_photo = request.FILES.get('captured_photo')
     reference_photo_url = request.data.get('reference_photo_url')
     

@@ -190,6 +190,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     
+    # Master admin password reset control
+    can_reset_password = models.BooleanField(default=True, help_text="Whether user can reset their password")
+    password_set_by_superadmin = models.BooleanField(default=False, help_text="Whether current password was set by superadmin")
+    
     # ESG specific fields
     esg_role = models.CharField(max_length=30, choices=ESG_ROLE_CHOICES, null=True, blank=True)
     esg_assigned_sites = models.JSONField(default=list, blank=True)

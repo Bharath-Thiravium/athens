@@ -5,11 +5,13 @@ from rest_framework.response import Response
 from django.utils import timezone
 from .models import SignatureRequest
 from authentication.notification_views import NotificationCreateView
+from .tenant_scoped_utils import enforce_scope_or_403
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def request_signature(request):
     """Request signature approval from specific user"""
+    enforce_scope_or_403(request)
     try:
         form_type = request.data.get('form_type')
         form_id = request.data.get('form_id')
@@ -67,6 +69,7 @@ def request_signature(request):
 @permission_classes([IsAuthenticated])
 def approve_signature(request, request_id):
     """Approve signature request"""
+    enforce_scope_or_403(request)
     try:
         sig_request = SignatureRequest.objects.get(
             id=request_id,
@@ -121,6 +124,7 @@ def approve_signature(request, request_id):
 @permission_classes([IsAuthenticated])
 def reject_signature(request, request_id):
     """Reject signature request"""
+    enforce_scope_or_403(request)
     try:
         sig_request = SignatureRequest.objects.get(
             id=request_id,
@@ -143,6 +147,7 @@ def reject_signature(request, request_id):
 @permission_classes([IsAuthenticated])
 def mark_worker_verified(request):
     """Mark worker as photo/image verified (no digital signature)"""
+    enforce_scope_or_403(request)
     try:
         form_type = request.data.get('form_type')
         form_id = request.data.get('form_id')

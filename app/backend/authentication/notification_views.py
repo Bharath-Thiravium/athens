@@ -10,6 +10,7 @@ from asgiref.sync import async_to_sync
 import logging
 
 from .models_notification import Notification, NotificationPreference
+from .tenant_scoped_utils import ScopedWriteMixin, enforce_object_scope_or_403
 from .notification_utils import (
     send_websocket_notification,
     mark_notification_read,
@@ -67,34 +68,35 @@ class NotificationListView(APIView):
         return True
 
 
-class NotificationCreateView(APIView):
+class NotificationCreateView(ScopedWriteMixin, APIView):
     """
     Create a notification for a specific user
     """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        user_id = request.data.get('user_id')
+        title = request.data.get('title')
+        message = request.data.get('message')
+        notification_type = request.data.get('type', 'general')
+        data = request.data.get('data', {})
+        link = request.data.get('link')
+
+        if not all([user_id, title, message]):
+            return Response({
+                'error': 'user_id, title, and message are required.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            
-            user_id = request.data.get('user_id')
-            title = request.data.get('title')
-            message = request.data.get('message')
-            notification_type = request.data.get('type', 'general')
-            data = request.data.get('data', {})
-            link = request.data.get('link')
-            
-            if not all([user_id, title, message]):
-                return Response({
-                    'error': 'user_id, title, and message are required.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            try:
-                target_user = User.objects.get(id=user_id)
-            except User.DoesNotExist:
-                return Response({
-                    'error': f'User with id {user_id} does not exist.'
-                }, status=status.HTTP_404_NOT_FOUND)
-            
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({
+                'error': f'User with id {user_id} does not exist.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        enforce_object_scope_or_403(request, target_user, tenant_attr="athens_tenant_id", project_attr="project_id")
+
+        try:
             notification = send_websocket_notification(
                 user_id=user_id,
                 title=title,
@@ -104,95 +106,91 @@ class NotificationCreateView(APIView):
                 link=link,
                 sender_id=request.user.id
             )
-            
+
             if notification:
                 return Response({
                     'success': True,
                     'notification_id': notification.id
                 }, status=status.HTTP_201_CREATED)
-            else:
-                return Response({
-                    'error': 'Failed to create notification.'
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
+            return Response({
+                'error': 'Failed to create notification.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             return Response({
                 'error': f'Error creating notification: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class NotificationMarkReadView(APIView):
+class NotificationMarkReadView(ScopedWriteMixin, APIView):
     """
     Mark a specific notification as read
     """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, notification_id):
+        enforce_object_scope_or_403(request, request.user, tenant_attr="athens_tenant_id", project_attr="project_id")
         try:
             success = mark_notification_read(notification_id, request.user.id)
-            
+
             if success:
                 return Response({
                     'success': True,
                     'message': 'Notification marked as read'
                 }, status=status.HTTP_200_OK)
-            else:
-                return Response({
-                    'error': 'Notification not found or access denied'
-                }, status=status.HTTP_404_NOT_FOUND)
-                
+            return Response({
+                'error': 'Notification not found or access denied'
+            }, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({
                 'error': f'Error marking notification as read: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class NotificationMarkAllReadView(APIView):
+class NotificationMarkAllReadView(ScopedWriteMixin, APIView):
     """
     Mark all notifications as read for the authenticated user
     """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        enforce_object_scope_or_403(request, request.user, tenant_attr="athens_tenant_id", project_attr="project_id")
         try:
             success = mark_all_notifications_read(request.user.id)
-            
+
             if success:
                 return Response({
                     'success': True,
                     'message': 'All notifications marked as read'
                 }, status=status.HTTP_200_OK)
-            else:
-                return Response({
-                    'error': 'Failed to mark notifications as read'
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
+            return Response({
+                'error': 'Failed to mark notifications as read'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             return Response({
                 'error': f'Error marking notifications as read: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class NotificationDeleteView(APIView):
+class NotificationDeleteView(ScopedWriteMixin, APIView):
     """
     Delete a specific notification
     """
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, notification_id):
+        notification = get_object_or_404(
+            Notification,
+            id=notification_id,
+            user=request.user
+        )
+        enforce_object_scope_or_403(request, notification)
         try:
-            notification = get_object_or_404(
-                Notification, 
-                id=notification_id, 
-                user=request.user
-            )
             notification.delete()
-            
+
             return Response({
                 'success': True,
                 'message': 'Notification deleted successfully'
             }, status=status.HTTP_200_OK)
-            
         except Exception as e:
             return Response({
                 'error': f'Error deleting notification: {str(e)}'
@@ -219,18 +217,19 @@ class NotificationUnreadCountView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class NotificationPreferenceView(APIView):
+class NotificationPreferenceView(ScopedWriteMixin, APIView):
     """
     Get and update notification preferences for the authenticated user
     """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        enforce_object_scope_or_403(request, request.user, tenant_attr="athens_tenant_id", project_attr="project_id")
         try:
             preferences, created = NotificationPreference.objects.get_or_create(
                 user=request.user
             )
-            
+
             return Response({
                 'email_notifications': preferences.email_notifications,
                 'push_notifications': preferences.push_notifications,
@@ -238,18 +237,19 @@ class NotificationPreferenceView(APIView):
                 'approval_notifications': preferences.approval_notifications,
                 'general_notifications': preferences.general_notifications,
             }, status=status.HTTP_200_OK)
-            
+
         except Exception as e:
             return Response({
                 'error': f'Error fetching preferences: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def put(self, request):
+        enforce_object_scope_or_403(request, request.user, tenant_attr="athens_tenant_id", project_attr="project_id")
         try:
             preferences, created = NotificationPreference.objects.get_or_create(
                 user=request.user
             )
-            
+
             # Update preferences
             preferences.email_notifications = request.data.get(
                 'email_notifications', preferences.email_notifications
@@ -266,9 +266,9 @@ class NotificationPreferenceView(APIView):
             preferences.general_notifications = request.data.get(
                 'general_notifications', preferences.general_notifications
             )
-            
+
             preferences.save()
-            
+
             return Response({
                 'success': True,
                 'message': 'Preferences updated successfully',
@@ -278,14 +278,13 @@ class NotificationPreferenceView(APIView):
                 'approval_notifications': preferences.approval_notifications,
                 'general_notifications': preferences.general_notifications,
             }, status=status.HTTP_200_OK)
-            
         except Exception as e:
             return Response({
                 'error': f'Error updating preferences: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class NotificationBroadcastView(APIView):
+class NotificationBroadcastView(ScopedWriteMixin, APIView):
     """
     Send a notification to multiple users (admin only)
     """
@@ -321,6 +320,8 @@ class NotificationBroadcastView(APIView):
 
             for user_id in user_ids:
                 try:
+                    target_user = User.objects.get(id=user_id)
+                    enforce_object_scope_or_403(request, target_user, tenant_attr="athens_tenant_id", project_attr="project_id")
                     notification = send_websocket_notification(
                         user_id=user_id,
                         title=title,
@@ -360,4 +361,3 @@ class NotificationBroadcastView(APIView):
             return Response({
                 'error': f'Error broadcasting notifications: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-

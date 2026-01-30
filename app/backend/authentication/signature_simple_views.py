@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .models import CustomUser, UserDetail, AdminDetail
+from .tenant_scoped_utils import enforce_scope_or_403
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,6 +12,7 @@ logger = logging.getLogger(__name__)
 @permission_classes([IsAuthenticated])
 def create_signature_template_simple(request):
     """Simple template creation that works"""
+    enforce_scope_or_403(request)
     try:
         user = request.user
         

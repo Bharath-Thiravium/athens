@@ -25,11 +25,11 @@ router.register(r'permit-isolation-points', views.PermitIsolationPointViewSet)
 router.register(r'webhooks', WebhookEndpointViewSet, basename='webhook')
 
 urlpatterns = [
+    # Workflow URLs (must come before router to avoid conflicts)
+    path('', include('ptw.workflow_urls')),
+    
     # Include router URLs
     path('', include(router.urls)),
-    
-    # Workflow URLs
-    path('', include('ptw.workflow_urls')),
     
     # Additional API endpoints
     path('sync-offline-data/', views.sync_offline_data, name='sync-offline-data'),

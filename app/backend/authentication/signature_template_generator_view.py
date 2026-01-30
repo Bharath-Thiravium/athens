@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import UserDetail, AdminDetail
 from .signature_template_generator_new import create_signature_template
+from .tenant_scoped_utils import enforce_scope_or_403
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 @permission_classes([IsAuthenticated])
 def generate_signature_template(request):
     """Generate digital signature template image"""
+    enforce_scope_or_403(request)
     try:
         user = request.user
         logger.info(f"Signature generation requested by user {user.id} - {user.username}")

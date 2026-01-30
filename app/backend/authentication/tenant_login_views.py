@@ -5,9 +5,10 @@ from rest_framework import status
 from control_plane.services.tenant_db import get_tenant_db_alias
 from .services.tenant_auth import authenticate_tenant_user
 from .tokens import build_token_response
+from .tenant_scoped_utils import ScopedWriteMixin
 
 
-class TenantLoginAPIView(APIView):
+class TenantLoginAPIView(ScopedWriteMixin, APIView):
     authentication_classes = []
     permission_classes = []
 

@@ -197,6 +197,9 @@ DISABLE_MODEL_SIGNALS = os.getenv('DISABLE_MODEL_SIGNALS', 'False').lower() in (
 DISABLE_BACKGROUND_JOBS = os.getenv('DISABLE_BACKGROUND_JOBS', 'False').lower() in ('1', 'true', 'yes', 'on')
 REQUEST_LOGGING = os.getenv('REQUEST_LOGGING', 'True').lower() in ('1', 'true', 'yes', 'on')
 REQUEST_LOG_DB_CONNECTIONS = os.getenv('REQUEST_LOG_DB_CONNECTIONS', 'True').lower() in ('1', 'true', 'yes', 'on')
+FEATURE_FLAGS = {
+    'FF_TENANT_SCOPE_V2': os.getenv('FEATURE_FLAGS__FF_TENANT_SCOPE_V2', 'False').lower() in ('1', 'true', 'yes', 'on'),
+}
 
 
 def _db_options(statement_timeout_ms: int, application_name: str) -> dict:

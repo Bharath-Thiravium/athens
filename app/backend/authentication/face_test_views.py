@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 import logging
 import os
+from .tenant_scoped_utils import enforce_scope_or_403
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +14,7 @@ def test_face_recognition_setup(request):
     """
     Test face recognition library setup and basic functionality
     """
+    enforce_scope_or_403(request)
     try:
         # Test face_recognition library import
         try:

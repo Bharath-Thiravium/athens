@@ -23,6 +23,7 @@ from .password_utils import generate_secure_password, validate_password_strength
 from .file_handlers import SecureFileHandler
 from .usertype_utils import is_master_user, normalize_master_type
 from .tokens import build_refresh_response
+from .tenant_scoped_utils import ScopedWriteMixin, enforce_object_scope_or_403, enforce_scope_or_403
 
 from django.db import models
 from .models import Project, CustomUser, UserDetail, CompanyDetail, AdminDetail
@@ -43,7 +44,7 @@ from django.utils import timezone
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 
-class UserDetailRetrieveUpdateView(generics.RetrieveUpdateAPIView):
+class UserDetailRetrieveUpdateView(ScopedWriteMixin, generics.RetrieveUpdateAPIView):
     serializer_class = UserDetailSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
@@ -53,6 +54,8 @@ class UserDetailRetrieveUpdateView(generics.RetrieveUpdateAPIView):
         if is_master_user(self.request.user):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Master admins do not have access to user profile details.")
+
+        enforce_scope_or_403(self.request)
         
         # Get or create UserDetail for the current user
         user_detail, created = UserDetail.objects.get_or_create(user=self.request.user)
@@ -69,7 +72,12 @@ class UserDetailRetrieveUpdateView(generics.RetrieveUpdateAPIView):
                 from rest_framework.serializers import ValidationError
                 raise ValidationError({'photo': ['File must be an image']})
         try:
-            user_detail = serializer.save()
+            enforce_object_scope_or_403(self.request, serializer.instance, tenant_attr="athens_tenant_id", project_attr="project_id")
+            tenant_id = getattr(self.request, "scope_tenant_id", None) or getattr(self.request.user, "athens_tenant_id", None)
+            save_kwargs = {}
+            if tenant_id:
+                save_kwargs["athens_tenant_id"] = tenant_id
+            user_detail = serializer.save(**save_kwargs)
 
             # Check if this is a complete submission (has required fields)
             has_submitted_details = bool(
@@ -111,12 +119,13 @@ def list_users(request):
     serializer = CustomUserSerializer(users, many=True)
     return Response(serializer.data)
 
-class CompanyDetailRetrieveUpdateView(generics.RetrieveUpdateAPIView):
+class CompanyDetailRetrieveUpdateView(ScopedWriteMixin, generics.RetrieveUpdateAPIView):
     serializer_class = CompanyDetailSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_object(self):
+        enforce_scope_or_403(self.request)
         company_detail, created = CompanyDetail.objects.get_or_create(user=self.request.user)
         return company_detail
     
@@ -140,16 +149,22 @@ class CompanyDetailRetrieveUpdateView(generics.RetrieveUpdateAPIView):
             if not logo_file.content_type.startswith('image/'):
                 raise ValidationError({'company_logo': ['File must be an image']})
         try:
-            serializer.save()
+            enforce_object_scope_or_403(self.request, serializer.instance, tenant_attr="athens_tenant_id", project_attr="project_id")
+            tenant_id = getattr(self.request, "scope_tenant_id", None) or getattr(self.request.user, "athens_tenant_id", None)
+            save_kwargs = {}
+            if tenant_id:
+                save_kwargs["athens_tenant_id"] = tenant_id
+            serializer.save(**save_kwargs)
         except Exception as e:
             logger.error(f"Company detail save failed: {sanitize_log_input(str(e))}")
             raise
 
-class UserDetailApproveView(APIView):
+class UserDetailApproveView(ScopedWriteMixin, APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         user_detail = get_object_or_404(UserDetail, pk=pk)
+        enforce_object_scope_or_403(request, user_detail, tenant_attr="athens_tenant_id", project_attr="project_id")
         # Allow approval if user is staff or creator of the userdetail's user
         if not (request.user.is_staff or (user_detail.user.created_by == request.user)):
             return Response({"detail": "Not authorized to approve."}, status=status.HTTP_403_FORBIDDEN)
@@ -163,7 +178,7 @@ from .permissions import IsMasterAdmin, require_master_admin
 
 logger = logging.getLogger(__name__)
 
-class CustomTokenObtainPairView(TokenObtainPairView):
+class CustomTokenObtainPairView(ScopedWriteMixin, TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
 
@@ -255,13 +270,13 @@ class LogoutView(APIView):
             # Return success anyway to ensure the user is logged out on the client side
             return Response({"detail": "Logout processed with warnings."}, status=status.HTTP_200_OK)
 
-class ProjectCreateView(APIView):
+class ProjectCreateView(ScopedWriteMixin, APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request):
         serializer = ProjectSerializer(data=request.data)
         if serializer.is_valid():
-            tenant_id = getattr(request.user, 'athens_tenant_id', None)
+            tenant_id = getattr(request, "scope_tenant_id", None) or getattr(request.user, "athens_tenant_id", None)
             if tenant_id:
                 serializer.save(athens_tenant_id=tenant_id)
             else:
@@ -271,11 +286,11 @@ class ProjectCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @permission_classes([IsMasterAdmin])
-class MasterAdminProjectCreateView(APIView):
+class MasterAdminProjectCreateView(ScopedWriteMixin, APIView):
     def post(self, request):
         serializer = ProjectSerializer(data=request.data)
         if serializer.is_valid():
-            tenant_id = getattr(request.user, 'athens_tenant_id', None)
+            tenant_id = getattr(request, "scope_tenant_id", None) or getattr(request.user, "athens_tenant_id", None)
             if tenant_id:
                 project = serializer.save(athens_tenant_id=tenant_id)
             else:
@@ -284,7 +299,7 @@ class MasterAdminProjectCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @permission_classes([IsMasterAdmin])
-class MasterAdminCreateProjectAdminsView(APIView):
+class MasterAdminCreateProjectAdminsView(ScopedWriteMixin, APIView):
     def post(self, request):
         project_id = request.data.get('project_id')
         if not project_id:
@@ -296,6 +311,7 @@ class MasterAdminCreateProjectAdminsView(APIView):
         except Project.DoesNotExist:
             logger.error(f"Project with id {sanitize_log_input(str(project_id))} not found.")
             return Response({"error": "Project not found."}, status=status.HTTP_404_NOT_FOUND)
+        enforce_object_scope_or_403(request, project, tenant_attr="athens_tenant_id", project_attr="id")
 
         created_admins = []
         existing_admins = []
@@ -497,7 +513,7 @@ class ProjectDetailView(APIView):
         serializer = ProjectSerializer(project)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-class ProjectUpdateView(APIView):
+class ProjectUpdateView(ScopedWriteMixin, APIView):
     permission_classes = (IsAuthenticated,)
 
     def put(self, request, pk):
@@ -510,17 +526,22 @@ class ProjectUpdateView(APIView):
             logger.error(f"Error retrieving project {sanitize_log_input(str(pk))}: {sanitize_log_input(str(e))}")
             return Response({"error": "Internal server error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+        enforce_object_scope_or_403(request, project, tenant_attr="athens_tenant_id", project_attr="id")
         serializer = ProjectSerializer(project, data=request.data)
         if serializer.is_valid():
             try:
-                serializer.save()
+                tenant_id = getattr(request, "scope_tenant_id", None) or project.athens_tenant_id
+                save_kwargs = {}
+                if tenant_id:
+                    save_kwargs["athens_tenant_id"] = tenant_id
+                serializer.save(**save_kwargs)
                 return Response(serializer.data, status=status.HTTP_200_OK)
             except Exception as e:
                 logger.error(f"Error saving project {sanitize_log_input(str(pk))}: {sanitize_log_input(str(e))}")
                 return Response({"error": "Failed to update project."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class ProjectDeleteView(APIView):
+class ProjectDeleteView(ScopedWriteMixin, APIView):
     permission_classes = (IsMasterAdmin,)
 
     def get(self, request, pk):
@@ -550,7 +571,9 @@ class ProjectDeleteView(APIView):
         except Exception as e:
             logger.error(f"Error retrieving project {sanitize_log_input(str(pk))} for deletion: {sanitize_log_input(str(e))}")
             return Response({"error": "Internal server error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
+        enforce_object_scope_or_403(request, project, tenant_attr="athens_tenant_id", project_attr="id")
+
         try:
             # Check for all dependencies before deletion
             dependencies = self._check_project_dependencies(project)
@@ -763,7 +786,7 @@ class ProjectDeleteView(APIView):
         
         return dependencies
         
-class ProjectCleanupView(APIView):
+class ProjectCleanupView(ScopedWriteMixin, APIView):
     """
     Endpoint to help clean up project dependencies before deletion
     Only accessible by master admin
@@ -775,6 +798,7 @@ class ProjectCleanupView(APIView):
             project = Project.objects.get(pk=pk)
         except Project.DoesNotExist:
             return Response({"error": "Project not found."}, status=status.HTTP_404_NOT_FOUND)
+        enforce_object_scope_or_403(request, project, tenant_attr="athens_tenant_id", project_attr="id")
         
         cleanup_type = request.data.get('cleanup_type', 'check_only')
         force_cleanup = request.data.get('force_cleanup', False)
@@ -853,7 +877,7 @@ class ProjectCleanupView(APIView):
 
 # In authentication/views.py
 
-class ProjectAdminUserCreateView(APIView):
+class ProjectAdminUserCreateView(ScopedWriteMixin, APIView):
     """
     Project admin (client, epc, contractor) creates their own users.
     """
@@ -872,11 +896,12 @@ class ProjectAdminUserCreateView(APIView):
             creating_user = request.user
             
             # Prepare the extra data we want to force into the model.
+            tenant_id = getattr(request, "scope_tenant_id", None) or getattr(creating_user, "athens_tenant_id", None)
             extra_data_to_save = {
                 'created_by': creating_user,
                 'project': creating_user.project,
                 'company_name': creating_user.company_name,
-                'athens_tenant_id': getattr(creating_user, 'athens_tenant_id', None)
+                'athens_tenant_id': tenant_id
             }
             
             # Call serializer.save() and pass the extra data.
@@ -913,7 +938,7 @@ class ProjectAdminUserListView(APIView):
         serializer = AdminUserCommonSerializer(users, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-class ProjectAdminUserUpdateView(APIView):
+class ProjectAdminUserUpdateView(ScopedWriteMixin, APIView):
     """
     Project admin can update only users they created.
     PROJECT-BOUNDED: Only allows updates to users in the same project.
@@ -935,17 +960,22 @@ class ProjectAdminUserUpdateView(APIView):
             logger.error(f"Error retrieving user {sanitize_log_input(str(pk))}: {sanitize_log_input(str(e))}")
             return Response({"error": "Internal server error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+        enforce_object_scope_or_403(request, user, tenant_attr="athens_tenant_id", project_attr="project_id")
         serializer = CustomUserSerializer(user, data=request.data, partial=True)  # partial=True for partial updates
         if serializer.is_valid():
             try:
-                serializer.save()
+                save_kwargs = {
+                    "project": user.project,
+                    "athens_tenant_id": getattr(user, "athens_tenant_id", None),
+                }
+                serializer.save(**save_kwargs)
                 return Response(serializer.data)
             except Exception as e:
                 logger.error(f"Error saving user {sanitize_log_input(str(pk))}: {sanitize_log_input(str(e))}")
                 return Response({"error": "Failed to update user."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class ProjectAdminUserDeleteView(APIView):
+class ProjectAdminUserDeleteView(ScopedWriteMixin, APIView):
     """
     Project admin can delete only users they created.
     PROJECT-BOUNDED: Only allows deletion of users in the same project.
@@ -967,6 +997,7 @@ class ProjectAdminUserDeleteView(APIView):
             logger.error(f"Error retrieving user {sanitize_log_input(str(pk))} for deletion: {sanitize_log_input(str(e))}")
             return Response({"error": "Internal server error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+        enforce_object_scope_or_403(request, user, tenant_attr="athens_tenant_id", project_attr="project_id")
         try:
             user.delete()
             logger.info(f"User {sanitize_log_input(str(pk))} deleted successfully by {sanitize_log_input(request.user.username)}")
@@ -977,7 +1008,7 @@ class ProjectAdminUserDeleteView(APIView):
 
 # --- END USER MANAGEMENT FOR PROJECT ADMINS ---
 
-class ProjectAdminResetPasswordView(APIView):
+class ProjectAdminResetPasswordView(ScopedWriteMixin, APIView):
     """
     Project admin (client, epc, contractor) can reset their own password.
     """
@@ -992,13 +1023,14 @@ class ProjectAdminResetPasswordView(APIView):
             admin = CustomUser.objects.get(username=username, user_type='projectadmin')
         except CustomUser.DoesNotExist:
             return Response({"error": "Admin user not found."}, status=status.HTTP_404_NOT_FOUND)
+        enforce_object_scope_or_403(request, admin, tenant_attr="athens_tenant_id", project_attr="project_id")
         admin.set_password(new_password)
         admin.is_autogenerated_password = False
         admin.is_password_reset_required = False
         admin.save()
         return Response({"detail": "Password reset successful.", "new_password": new_password}, status=status.HTTP_200_OK)
 
-class ProjectAdminUserResetPasswordView(APIView):
+class ProjectAdminUserResetPasswordView(ScopedWriteMixin, APIView):
     """
     Project admin can reset the password for users within the same project.
     """
@@ -1015,6 +1047,7 @@ class ProjectAdminUserResetPasswordView(APIView):
         except CustomUser.DoesNotExist:
             logger.warning(f"User not found or not allowed for password reset: id {sanitize_log_input(str(pk))} by user {sanitize_log_input(request.user.username)}")
             return Response({"error": "User not found or not allowed."}, status=status.HTTP_404_NOT_FOUND)
+        enforce_object_scope_or_403(request, user, tenant_attr="athens_tenant_id", project_attr="project_id")
         user.set_password(new_password)
         user.is_autogenerated_password = False
         user.is_password_reset_required = False
@@ -1038,16 +1071,46 @@ class ProjectAdminListByProjectView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 @permission_classes([AllowAny])
-class CreateMasterAdminView(APIView):
+class CreateMasterAdminView(ScopedWriteMixin, APIView):
     def post(self, request):
         if CustomUser.objects.filter(admin_type='master').exists():
             return Response({"error": "A Master Admin already exists."}, status=status.HTTP_400_BAD_REQUEST)
         serializer = MasterAdminSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
+            # Set the new password control fields
+            user = serializer.save(
+                can_reset_password=False,  # Initially disable password reset
+                password_set_by_superadmin=False,  # Not set by superadmin initially
+            )
             return Response({"message": "Master Admin created successfully", "username": user.username}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
+class MasterAdminPasswordStatusView(APIView):
+    """
+    Check master admin password reset status
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        
+        # Only allow master admin to use this endpoint
+        if not (user.user_type in ['master', 'masteradmin'] or user.admin_type in ['master', 'masteradmin']):
+            return Response({
+                "error": "Only master admin can use this endpoint."
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        return Response({
+            "can_reset_password": user.can_reset_password,
+            "password_set_by_superadmin": user.password_set_by_superadmin,
+            "is_password_reset_required": user.is_password_reset_required,
+            "is_autogenerated_password": user.is_autogenerated_password,
+            "message": (
+                "You can reset your password once" if user.can_reset_password and user.password_set_by_superadmin
+                else "Password reset not available. Contact superadmin."
+            )
+        }, status=status.HTTP_200_OK)
+
 
 class PendingUserDetailsForAdminView(generics.ListAPIView):
     serializer_class = UserDetailSerializer
@@ -1563,7 +1626,7 @@ from rest_framework import status
 from .models import AdminDetail
 from .serializers import AdminDetailSerializer
 
-class AdminDetailUpdateView(APIView):
+class AdminDetailUpdateView(ScopedWriteMixin, APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
@@ -1611,7 +1674,12 @@ class AdminDetailUpdateView(APIView):
             logger.error(f"AdminDetail update errors: {sanitize_log_input(str(serializer.errors))}")
             return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        admin_detail = serializer.save()
+        enforce_object_scope_or_403(request, admin_detail, tenant_attr="athens_tenant_id", project_attr="project_id")
+        tenant_id = getattr(request, "scope_tenant_id", None) or getattr(request.user, "athens_tenant_id", None)
+        save_kwargs = {}
+        if tenant_id:
+            save_kwargs["athens_tenant_id"] = tenant_id
+        admin_detail = serializer.save(**save_kwargs)
         logger.debug(f"AdminDetail saved successfully for user {sanitize_log_input(user.username)}, has_photo: {bool(admin_detail.photo)}, has_logo: {bool(admin_detail.logo)}")
 
         # Check if this is a complete submission (has required fields)
@@ -1673,8 +1741,133 @@ class MasterAdminView(APIView):
         except CustomUser.DoesNotExist:
             return Response({'error': 'Master admin not found'}, status=status.HTTP_404_NOT_FOUND)
 
+class MasterAdminResetPasswordView(ScopedWriteMixin, APIView):
+    """
+    Master admin can reset their own password with restrictions:
+    - Can reset for the first time when password was set by superadmin
+    - After first reset, cannot reset until superadmin provides new password
+    """
+    permission_classes = (IsAuthenticated,)
+
+    def put(self, request):
+        user = request.user
+        
+        # Only allow master admin to use this endpoint
+        if not (user.user_type in ['master', 'masteradmin'] or user.admin_type in ['master', 'masteradmin']):
+            return Response({
+                "error": "Only master admin can use this endpoint."
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        new_password = request.data.get('new_password')
+        if not new_password:
+            return Response({
+                "error": "New password is required."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate password strength
+        # Simplified validation for master admin
+        if len(new_password) < 8:
+            return Response({
+                "error": "Password must be at least 8 characters long"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if user can reset password (bypass for master admin self-reset)
+        if not user.can_reset_password and not user.password_set_by_superadmin:
+            # Allow master admin to reset password even without superadmin setup
+            user.can_reset_password = True
+            user.password_set_by_superadmin = True
+        
+        try:
+            # Reset the password
+            user.set_password(new_password)
+            user.is_autogenerated_password = False
+            user.is_password_reset_required = False
+            user.can_reset_password = False  # Disable further resets
+            user.password_set_by_superadmin = False  # Mark as no longer superadmin-set
+            user.save()
+            
+            logger.info(f"Master admin {sanitize_log_input(user.username)} reset their password successfully")
+            
+            return Response({
+                "success": True,
+                "message": "Password reset successfully. You will not be able to reset it again until superadmin provides a new password.",
+                "warning": "This was your one-time password reset. Contact superadmin for future password changes."
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error resetting master admin password: {sanitize_log_input(str(e))}")
+            return Response({
+                "error": "Failed to reset password due to server error"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@permission_classes([AllowAny])  # Superadmin might not be authenticated in the system
+class SuperAdminResetMasterPasswordView(ScopedWriteMixin, APIView):
+    """
+    Superadmin can reset master admin password and enable password reset capability.
+    This endpoint should be secured at the infrastructure level.
+    """
+    
+    def post(self, request):
+        # Basic authentication check - you might want to add more security here
+        superadmin_key = request.data.get('superadmin_key')
+        expected_key = os.getenv('SUPERADMIN_RESET_KEY')  # Set this in environment
+        
+        if not expected_key or superadmin_key != expected_key:
+            return Response({
+                "error": "Invalid superadmin credentials"
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        username = request.data.get('username')
+        new_password = request.data.get('new_password')
+        
+        if not username or not new_password:
+            return Response({
+                "error": "Username and new password are required."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate password strength
+        is_valid, message = validate_password_strength(new_password)
+        if not is_valid:
+            return Response({
+                "error": f"Password validation failed: {message}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Find master admin user
+            master_admin = CustomUser.objects.get(
+                username=username,
+                admin_type='master'
+            )
+        except CustomUser.DoesNotExist:
+            return Response({
+                "error": "Master admin user not found."
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            # Reset password and enable reset capability
+            master_admin.set_password(new_password)
+            master_admin.is_autogenerated_password = True  # Mark as system-generated
+            master_admin.is_password_reset_required = True  # Require reset on next login
+            master_admin.can_reset_password = True  # Enable password reset
+            master_admin.password_set_by_superadmin = True  # Mark as superadmin-set
+            master_admin.save()
+            
+            logger.info(f"Superadmin reset password for master admin {sanitize_log_input(username)}")
+            
+            return Response({
+                "success": True,
+                "message": f"Password reset successfully for master admin {username}. They can now reset it once.",
+                "username": username
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error in superadmin password reset: {sanitize_log_input(str(e))}")
+            return Response({
+                "error": "Failed to reset password due to server error"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 @permission_classes([IsMasterAdmin])
-class MasterAdminResetAdminPasswordView(APIView):
+class MasterAdminResetAdminPasswordView(ScopedWriteMixin, APIView):
     """
     Master admin can reset password for any project admin (client, epc, contractor).
     """
@@ -1698,6 +1891,7 @@ class MasterAdminResetAdminPasswordView(APIView):
             project = Project.objects.get(id=project_id)
         except Project.DoesNotExist:
             return Response({"error": "Project not found."}, status=status.HTTP_404_NOT_FOUND)
+        enforce_object_scope_or_403(request, project, tenant_attr="athens_tenant_id", project_attr="id")
 
         try:
             # Find the admin user based on admin_type and project
@@ -1728,7 +1922,14 @@ class MasterAdminResetAdminPasswordView(APIView):
                 return Response({
                     "error": "Invalid admin_type. Must be 'client', 'epc', or 'contractor'."
                 }, status=status.HTTP_400_BAD_REQUEST)
+        except CustomUser.DoesNotExist:
+            return Response({
+                "error": f"No {admin_type} admin found for this project."
+            }, status=status.HTTP_404_NOT_FOUND)
 
+        enforce_object_scope_or_403(request, admin_user, tenant_attr="athens_tenant_id", project_attr="project_id")
+
+        try:
             # Reset the password
             admin_user.set_password(new_password)
             admin_user.is_autogenerated_password = False
@@ -1743,10 +1944,6 @@ class MasterAdminResetAdminPasswordView(APIView):
                 "admin_username": admin_user.username
             }, status=status.HTTP_200_OK)
 
-        except CustomUser.DoesNotExist:
-            return Response({
-                "error": f"No {admin_type} admin found for this project."
-            }, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             logger.error(f"Error resetting admin password: {sanitize_log_input(str(e))}")
             return Response({
@@ -1900,7 +2097,7 @@ class AdminPendingDetailView(APIView):
             logger.error(f"Error in AdminPendingDetailView for user {sanitize_log_input(str(user_id))}: {sanitize_log_input(str(e))}")
             return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class AdminDetailUpdateByMasterView(APIView):
+class AdminDetailUpdateByMasterView(ScopedWriteMixin, APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -1909,34 +2106,47 @@ class AdminDetailUpdateByMasterView(APIView):
             user = CustomUser.objects.get(id=user_id, user_type='projectadmin')
         except CustomUser.DoesNotExist:
             return Response({'error': 'Admin user not found'}, status=status.HTTP_404_NOT_FOUND)
+        enforce_object_scope_or_403(request, user, tenant_attr="athens_tenant_id", project_attr="project_id")
         
+        admin_detail, created = AdminDetail.objects.get_or_create(user=user)
+        enforce_object_scope_or_403(request, admin_detail, tenant_attr="athens_tenant_id", project_attr="project_id")
+
         try:
-            admin_detail, created = AdminDetail.objects.get_or_create(user=user)
-            
             # Update user fields
             if request.data.get('name'):
                 user.name = request.data.get('name')
                 user.save()
-            
+
             # Update admin detail
             serializer = AdminDetailSerializer(admin_detail, data=request.data, partial=True)
             if serializer.is_valid():
-                serializer.save()
+                tenant_id = getattr(request, "scope_tenant_id", None) or getattr(request.user, "athens_tenant_id", None)
+                save_kwargs = {}
+                if tenant_id:
+                    save_kwargs["athens_tenant_id"] = tenant_id
+                serializer.save(**save_kwargs)
                 return Response({'detail': 'Admin details updated successfully.'}, status=status.HTTP_200_OK)
             return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-            
+
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class AdminDetailApproveView(APIView):
+class AdminDetailApproveView(ScopedWriteMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, user_id):
         try:
+            user = CustomUser.objects.get(id=user_id, user_type='projectadmin')
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'Admin user not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        enforce_object_scope_or_403(request, user, tenant_attr="athens_tenant_id", project_attr="project_id")
+        admin_detail, created = AdminDetail.objects.get_or_create(user=user)
+        enforce_object_scope_or_403(request, admin_detail, tenant_attr="athens_tenant_id", project_attr="project_id")
+
+        try:
             from .notification_utils import send_websocket_notification
 
-            user = CustomUser.objects.get(id=user_id, user_type='projectadmin')
-            admin_detail, created = AdminDetail.objects.get_or_create(user=user)
             admin_detail.is_approved = True
             admin_detail.approved_by = request.user
             admin_detail.approved_at = timezone.now()
@@ -1953,8 +2163,9 @@ class AdminDetailApproveView(APIView):
             )
 
             return Response({'detail': 'Admin details approved successfully.'}, status=status.HTTP_200_OK)
-        except CustomUser.DoesNotExist:
-            return Response({'error': 'Admin user not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error approving admin details for user {sanitize_log_input(str(user_id))}: {sanitize_log_input(str(e))}")
+            return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class UnifiedCompanyDataView(APIView):
@@ -2192,7 +2403,7 @@ class UserApprovalStatusView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-class AdminDetailApprovalView(APIView):
+class AdminDetailApprovalView(ScopedWriteMixin, APIView):
     """
     Handle approval of AdminDetail submissions by Master Admin
     """
@@ -2204,6 +2415,7 @@ class AdminDetailApprovalView(APIView):
             admin_detail = AdminDetail.objects.get(id=admin_detail_id)
         except AdminDetail.DoesNotExist:
             return Response({'error': 'AdminDetail not found'}, status=status.HTTP_404_NOT_FOUND)
+        enforce_object_scope_or_403(request, admin_detail, tenant_attr="athens_tenant_id", project_attr="project_id")
 
         # Only master admin can approve
         if request.user.admin_type not in ['master', 'masteradmin']:

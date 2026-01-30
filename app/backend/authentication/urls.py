@@ -128,6 +128,9 @@ urlpatterns = [
     
     # Master admin endpoint
     path('master-admin/', views.MasterAdminView.as_view(), name='master_admin'),
+    path('master-admin/reset-password/', views.MasterAdminResetPasswordView.as_view(), name='master_admin_reset_password'),
+    path('master-admin/password-status/', views.MasterAdminPasswordStatusView.as_view(), name='master_admin_password_status'),
+    path('superadmin/reset-master-password/', views.SuperAdminResetMasterPasswordView.as_view(), name='superadmin_reset_master_password'),
     path('admin/pending/<int:user_id>/', views.AdminPendingDetailView.as_view(), name='admin_pending_detail'),
     path('admin/detail/<int:user_id>/', views.AdminDetailView.as_view(), name='admin_detail'),
     path('admin/detail/update-by-master/<int:user_id>/', views.AdminDetailUpdateByMasterView.as_view(), name='admin_detail_update_by_master'),

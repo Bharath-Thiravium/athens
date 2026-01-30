@@ -12,7 +12,7 @@ from .api_errors import ptw_api_errors
 from .serializers import PermitSerializer, WorkflowStepSerializer, AssignVerifierSerializer
 from .signature_service import signature_service
 from .workflow_manager import workflow_manager
-from .unified_error_handling import PTWValidationError, PTWPermissionError, PTWWorkflowError
+# from .unified_error_handling import PTWValidationError, PTWPermissionError, PTWWorkflowError
 from authentication.models import CustomUser
 from authentication.serializers import AdminUserCommonSerializer
 from .status_utils import normalize_permit_status
@@ -88,73 +88,86 @@ def assign_verifier(request, permit_id):
     """Assign verifier to permit (for EPC/Client created permits)"""
     try:
         permit = get_object_or_404(Permit, id=permit_id, project=request.user.project)
-        serializer = AssignVerifierSerializer(data=request.data)
-        if not serializer.is_valid():
-            return ptw_api_errors.validation_error(
-                "Verifier ID is required",
-                field="verifier_id",
-                details=serializer.errors,
+        
+        # Handle both verifier_id and verifier fields for backward compatibility
+        verifier_id = request.data.get('verifier_id') or request.data.get('verifier')
+        if not verifier_id:
+            return Response(
+                {'error': 'Verifier ID is required', 'field': 'verifier_id'},
+                status=status.HTTP_400_BAD_REQUEST
             )
-        verifier_id = serializer.validated_data["verifier_id"]
 
         current_status = normalize_permit_status(permit.status)
         if current_status not in ['draft', 'submitted']:
-            return ptw_api_errors.validation_error(
-                'Cannot change verifier after verification is completed',
-                field='status',
-                details={'status': permit.status},
-            )
-
-        # Get assigner's admin profile
-        try:
-            assigner = request.user
-        except Exception:
             return Response(
-                {'error': 'User profile not found'},
+                {'error': 'Cannot change verifier after verification is completed', 'field': 'status'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Check permissions
-        if not ptw_permissions.can_select_verifier(request.user, permit):
-            return ptw_api_errors.permission_error(
-                'Only permit creator can assign verifier',
-                action='assign_verifier',
+        # Check permissions - only permit creator can assign verifier
+        if permit.created_by != request.user:
+            return Response(
+                {'error': 'Only permit creator can assign verifier'},
+                status=status.HTTP_403_FORBIDDEN
             )
 
         verifier = CustomUser.objects.filter(id=verifier_id, project=permit.project).first()
         if not verifier:
-            return ptw_api_errors.validation_error(
-                'Verifier not found for this project',
-                field='verifier_id',
+            return Response(
+                {'error': 'Verifier not found for this project', 'field': 'verifier_id'},
+                status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Ensure workflow exists, then assign verifier via workflow manager
-        try:
-            permit.workflow
-        except WorkflowInstance.DoesNotExist:
-            workflow_manager.initiate_workflow(permit, assigner)
-            permit.refresh_from_db()
-
-        verification_step = workflow_manager.assign_verifier(permit, verifier, assigner)
+        # Assign verifier directly to permit
+        permit.verifier = verifier
+        permit.save(update_fields=['verifier'])
         
-        # Send notification
-        from .notification_utils import notify_verifier_assigned
-        notify_verifier_assigned(permit, verifier.id)
+        # Ensure workflow exists and update it
+        try:
+            workflow = permit.workflow
+        except WorkflowInstance.DoesNotExist:
+            workflow = WorkflowInstance.objects.create(
+                permit=permit,
+                current_step=1,
+                status='active'
+            )
+        
+        # Update or create verification step
+        verification_step, created = WorkflowStep.objects.get_or_create(
+            workflow=workflow,
+            step_id='verification',
+            defaults={
+                'name': 'Verification',
+                'step_type': 'approval',
+                'assignee': verifier,
+                'role': 'verifier',
+                'order': 1,
+                'required': True,
+                'status': 'pending'
+            }
+        )
+        if not created:
+            verification_step.assignee = verifier
+            verification_step.status = 'pending'
+            verification_step.save(update_fields=['assignee', 'status'])
         
         return Response({
             'message': 'Verifier assigned successfully',
-            'verifier': AdminUserCommonSerializer(verifier).data,
+            'verifier': {
+                'id': verifier.id,
+                'username': verifier.username,
+                'name': verifier.name,
+                'surname': verifier.surname,
+                'email': verifier.email
+            },
             'permit_status': permit.status
         }, status=status.HTTP_200_OK)
         
     except Http404:
-        return ptw_api_errors.not_found_error('Permit not found', resource='permit')
-    except ValueError as e:
-        return ptw_api_errors.validation_error(str(e))
-    except PTWPermissionError as e:
-        return ptw_api_errors.permission_error(str(e))
-    except (PTWValidationError, PTWWorkflowError) as e:
-        return ptw_api_errors.validation_error(str(e))
+        return Response(
+            {'error': 'Permit not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
     except Exception as e:
         logger.error(f"Error assigning verifier: {str(e)}")
         return Response(

@@ -11,6 +11,7 @@ from rest_framework import status
 from django.conf import settings
 from .models import UserDetail, AdminDetail
 from .signature_template_generator_new import SignatureTemplateGenerator
+from .tenant_scoped_utils import enforce_scope_or_403
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ def generate_verification_token(user_id, signed_at, context="signature"):
 @permission_classes([IsAuthenticated])
 def signature_json_data(request):
     """Get signature data as JSON (no image generation/storage)"""
+    enforce_scope_or_403(request)
     try:
         user = request.user
         
@@ -112,6 +114,7 @@ def signature_json_data(request):
 @permission_classes([IsAuthenticated])
 def sign_document_json(request):
     """Record document signing with JSON audit (no image storage)"""
+    enforce_scope_or_403(request)
     try:
         user = request.user
         

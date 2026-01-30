@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -8,6 +8,19 @@ from tests_common.fixtures import create_test_project
 from ptw.models import Permit, PermitType, WorkflowInstance, WorkflowStep
 
 
+@override_settings(
+    SECURE_SSL_REDIRECT=False,
+    MIDDLEWARE=[
+        'corsheaders.middleware.CorsMiddleware',
+        'django.middleware.security.SecurityMiddleware',
+        'django.contrib.sessions.middleware.SessionMiddleware',
+        'django.middleware.common.CommonMiddleware',
+        'django.middleware.csrf.CsrfViewMiddleware',
+        'django.contrib.auth.middleware.AuthenticationMiddleware',
+        'django.contrib.messages.middleware.MessageMiddleware',
+        'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    ]
+)
 class AssignVerifierAPITests(TestCase):
     def setUp(self):
         self.client = APIClient()
