@@ -72,16 +72,25 @@ class DigitalSignatureSerializer(serializers.ModelSerializer):
     designation = serializers.SerializerMethodField()
     department = serializers.SerializerMethodField()
     company_logo_url = serializers.SerializerMethodField()
-    signature_render_mode = serializers.SerializerMethodField()
-    signature_template_url = serializers.SerializerMethodField()
     
     class Meta:
         model = DigitalSignature
         fields = ['id', 'signature_type', 'signatory', 'signatory_details', 
-                  'signature_data', 'signed_at', 'ip_address', 'device_info',
-                  'signer_name', 'employee_id', 'designation', 'department', 'company_logo_url',
-                  'signature_render_mode', 'signature_template_url']
+                  'signature_payload', 'payload_version', 'signed_at', 'ip_address', 'device_info',
+                  'signer_name', 'employee_id', 'designation', 'department', 'company_logo_url']
         read_only_fields = ['signed_at']
+    
+    def to_representation(self, instance):
+        """Ensure only JSON payload fields are returned - NO legacy image fields"""
+        data = super().to_representation(instance)
+        
+        # HARD REMOVAL: Never return legacy fields
+        legacy_fields = ['signature_data', 'signature_image_url', 'signature_render_mode', 
+                        'card_image', 'signature_image', 'card_url', 'template_url']
+        for field in legacy_fields:
+            data.pop(field, None)
+        
+        return data
     
     def get_signer_name(self, obj):
         user = obj.signatory
@@ -124,32 +133,6 @@ class DigitalSignatureSerializer(serializers.ModelSerializer):
         if logo:
             return request.build_absolute_uri(logo.url)
         return None
-
-    def get_signature_template_url(self, obj):
-        user = obj.signatory
-        if not user:
-            return None
-
-        request = self.context.get('request')
-        if not request:
-            return None
-
-        template = None
-        try:
-            if hasattr(user, 'user_detail') and user.user_detail and user.user_detail.signature_template:
-                template = user.user_detail.signature_template
-            elif hasattr(user, 'admin_detail') and user.admin_detail and user.admin_detail.signature_template:
-                template = user.admin_detail.signature_template
-        except Exception:
-            template = None
-
-        if not template:
-            return None
-
-        try:
-            return request.build_absolute_uri(template.url)
-        except Exception:
-            return template.url
     
     def _get_company_logo(self, user):
         """Get individual user's company logo (not tenant logo)"""
@@ -190,17 +173,6 @@ class DigitalSignatureSerializer(serializers.ModelSerializer):
                 pass
         
         return None
-
-    def get_signature_render_mode(self, obj):
-        # Check if signature_data contains precomposed card indicators
-        if obj.signature_data:
-            signature_data = str(obj.signature_data)
-            # If contains placeholder text or is a template-generated card, it's a card
-            if ('[TO_BE_FILLED]' in signature_data or 
-                'Digitally signed by' in signature_data or
-                signature_data.startswith('data:image/png;base64,')):
-                return 'card'
-        return 'raw'
 
 
 class PermitWorkerSerializer(serializers.ModelSerializer):
@@ -559,6 +531,7 @@ class PermitSerializer(serializers.ModelSerializer):
         return None
 
     def get_signatures_by_type(self, obj):
+        """Get signatures organized by type - JSON-only, no legacy image fields"""
         serializer = DigitalSignatureSerializer
         signatures = list(obj.signatures.all())
         by_type = {}
@@ -569,7 +542,13 @@ class PermitSerializer(serializers.ModelSerializer):
             for signature_type in types:
                 items = by_type.get(signature_type) or []
                 if items:
-                    return serializer(items[0], context=self.context).data
+                    sig_data = serializer(items[0], context=self.context).data
+                    # ENFORCE JSON-ONLY: Remove any legacy fields that might slip through
+                    legacy_fields = ['signature_data', 'signature_image_url', 'signature_render_mode', 
+                                   'card_image', 'signature_image', 'card_url', 'template_url']
+                    for field in legacy_fields:
+                        sig_data.pop(field, None)
+                    return sig_data
             return None
 
         return {

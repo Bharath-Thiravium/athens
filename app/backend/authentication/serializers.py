@@ -206,6 +206,15 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return apply_custom_claims(token, user)
 
     def validate(self, attrs):
+        # If email is provided instead of username, try to find user by email first
+        if not attrs.get('username') and attrs.get('email'):
+            try:
+                user = CustomUser.objects.get(email=attrs['email'])
+                attrs['username'] = user.username
+                logger.debug(f"Found user by email, converted to username: {user.username}")
+            except CustomUser.DoesNotExist:
+                logger.warning(f"No user found with email: {attrs.get('email')}")
+        
         logger.debug(f"Validating token obtain pair for username: {attrs.get('username')}")
         
         # Use Django's built-in authentication but handle password validation more gracefully

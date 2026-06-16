@@ -14,6 +14,7 @@ from . import signature_simple_views
 from . import signature_safe_views
 from . import signature_preview_simple
 from .signature_preview_view import signature_preview
+from .deprecated_signature_views import deprecated_signature_generate
 from .signature_template_generator_view import generate_signature_template
 from .views import CustomTokenObtainPairView, CustomTokenRefreshView, WebsocketTokenRefreshView
 from .views_attendance import check_in, check_out, get_attendance_status
@@ -162,7 +163,8 @@ urlpatterns = [
     # Standardized Digital Signature Template endpoints
     path('signature/template-data/', template_data, name='signature_template_data'),
     path('signature/generate-template/', generate_template, name='generate_signature_template'),
-    path('signature/generate/', generate_template, name='signature_generate'),  # Backward compatibility
+    # Deprecated signature generation endpoint (returns 410 Gone)
+    path('signature/generate/', deprecated_signature_generate, name='signature_generate_deprecated'),
     path('signature/preview-template/', preview_template, name='preview_signature_template'),
     path('signature/preview-template-legacy/', preview_template_legacy, name='preview_signature_template_legacy'),
     path('signature/reset-template/', reset_template, name='reset_signature_template'),

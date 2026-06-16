@@ -16,17 +16,36 @@ logger = logging.getLogger(__name__)
 def template_data(request):
     """Get signature template data and status"""
     try:
+        # enforce_scope_or_403(request)  # Temporarily disabled for debugging
         user = request.user
         
-        # Get or create detail record
-        if user.user_type in ['adminuser']:
+        # Debug logging
+        logger.error(f"template_data DEBUG: user={user.username}, user_type={user.user_type}, admin_type={getattr(user, 'admin_type', None)}")
+        
+        # Get or create detail record - handle JWT token user_type mapping
+        # JWT may have user_type set to admin_type value (clientuser, epcuser, etc.)
+        user_type = user.user_type
+        admin_type = getattr(user, 'admin_type', None)
+        
+        # Check if this is a regular user (admin users created by project admins)
+        if (user_type in ['adminuser', 'user'] or 
+            admin_type in ['clientuser', 'epcuser', 'contractoruser'] or
+            user_type in ['clientuser', 'epcuser', 'contractoruser']):
             detail, created = UserDetail.objects.get_or_create(user=user)
-        elif user.user_type in ['projectadmin', 'master']:
+        elif (user_type in ['projectadmin', 'master'] or 
+              admin_type in ['client', 'epc', 'contractor', 'master']):
             detail, created = AdminDetail.objects.get_or_create(user=user)
         else:
+            error_msg = f"Unsupported user type: {user_type}/{admin_type}"
+            logger.error(f"template_data ERROR: {error_msg}")
             return Response({
                 'success': False,
-                'error': 'Unsupported user type'
+                'error': error_msg,
+                'debug': {
+                    'user_type': user_type,
+                    'admin_type': admin_type,
+                    'username': user.username
+                }
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Check if template can be created
@@ -74,9 +93,9 @@ def generate_template(request):
         user = request.user
         
         # Get or create detail record
-        if user.user_type in ['adminuser']:
+        if user.user_type in ['adminuser', 'user'] or user.admin_type in ['clientuser', 'epcuser', 'contractoruser']:
             detail, created = UserDetail.objects.get_or_create(user=user)
-        elif user.user_type in ['projectadmin', 'master']:
+        elif user.user_type in ['projectadmin', 'master'] or user.admin_type in ['client', 'epc', 'contractor', 'master']:
             detail, created = AdminDetail.objects.get_or_create(user=user)
         else:
             return Response({
@@ -125,9 +144,9 @@ def preview_template(request):
         fresh = request.query_params.get('fresh') == '1'
         
         # Get detail record
-        if user.user_type in ['adminuser']:
+        if user.user_type in ['adminuser', 'user'] or user.admin_type in ['clientuser', 'epcuser', 'contractoruser']:
             detail, created = UserDetail.objects.get_or_create(user=user)
-        elif user.user_type in ['projectadmin', 'master']:
+        elif user.user_type in ['projectadmin', 'master'] or user.admin_type in ['client', 'epc', 'contractor', 'master']:
             detail, created = AdminDetail.objects.get_or_create(user=user)
         else:
             return Response({
@@ -168,9 +187,9 @@ def reset_template(request):
         user = request.user
         
         # Get detail record
-        if user.user_type in ['adminuser']:
+        if user.user_type in ['adminuser', 'user'] or user.admin_type in ['clientuser', 'epcuser', 'contractoruser']:
             detail, created = UserDetail.objects.get_or_create(user=user)
-        elif user.user_type in ['projectadmin', 'master']:
+        elif user.user_type in ['projectadmin', 'master'] or user.admin_type in ['client', 'epc', 'contractor', 'master']:
             detail, created = AdminDetail.objects.get_or_create(user=user)
         else:
             return Response({

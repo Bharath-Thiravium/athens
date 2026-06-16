@@ -80,7 +80,11 @@ class SecureCompatibleLoginAPIView(APIView):
                 return Response({'detail': f'Invalid credentials format: {str(e)}'}, status=400)
         else:
             login_data = request.data
-        
+
+        # Backward compatibility: allow email field from newer frontend
+        if not login_data.get('username') and login_data.get('email'):
+            login_data = {**login_data, 'username': login_data.get('email')}
+
         # Log the login attempt (without password)
         logger.info(f"Login attempt for username: {login_data.get('username')}")
         

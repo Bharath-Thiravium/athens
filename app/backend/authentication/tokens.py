@@ -29,11 +29,11 @@ def build_token_response(user: CustomUser) -> dict:
         'access': str(refresh.access_token),
     }
 
-    if is_master_user(user):
-        data['usertype'] = 'masteradmin'
-        data['username'] = user.username
-    elif user.user_type == 'superadmin':
+    if user.user_type == 'superadmin':
         data['usertype'] = 'superadmin'
+        data['username'] = user.username
+    elif is_master_user(user):
+        data['usertype'] = 'masteradmin'
         data['username'] = user.username
     elif user.user_type == 'projectadmin':
         if user.admin_type == 'contractor' and user.project:

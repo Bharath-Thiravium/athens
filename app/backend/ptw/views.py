@@ -672,9 +672,10 @@ class PermitViewSet(PTWBaseViewSet):
 
     @action(detail=True, methods=['post'])
     def add_signature(self, request, pk=None):
-        """Add digital signature to permit using consolidated signature service with automatic workflow progression"""
+        """Add digital signature to permit using JSON-only payload"""
         permit = self.get_object()
         signature_type = request.data.get('signature_type')
+        signature_payload = request.data.get('signature_payload')
         
         if not signature_type:
             return Response(
@@ -682,50 +683,124 @@ class PermitViewSet(PTWBaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        try:
-            # Add signature
-            signature = signature_service.add_signature(
-                permit=permit,
-                signature_type=signature_type,
-                user=request.user,
-                ip_address=self.get_client_ip(request),
-                device_info=self.get_device_info(request)
-            )
-            
-            # STREAMLINED WORKFLOW: Signing = Action
-            if signature_type == 'verifier':
-                # Verifier signing = Verification approval
-                canonical_workflow_manager.transition(
-                    permit=permit,
-                    target_status='under_review',
-                    actor=request.user,
-                    comments='Verified via digital signature',
-                    context={'source': 'signature', 'signature_type': signature_type}
-                )
-            elif signature_type == 'approver':
-                # Approver signing = Permit approval
-                canonical_workflow_manager.transition(
-                    permit=permit,
-                    target_status='approved',
-                    actor=request.user,
-                    comments='Approved via digital signature',
-                    context={'source': 'signature', 'signature_type': signature_type}
-                )
-                # Set approved_by field
-                permit.approved_by = request.user
-                permit.approved_at = signature.signed_at
-                permit.save(update_fields=['approved_by', 'approved_at'])
-            
-            return ptw_error_handler.create_created_response(
-                data=DigitalSignatureSerializer(signature, context={'request': request}).data,
-                message=f'Signature added and {signature_type} action completed successfully'
-            )
-            
-        except (PTWSignatureError, PTWPermissionError, PTWValidationError) as e:
+        if signature_type not in ['requestor', 'verifier', 'approver']:
             return Response(
-                {'error': {'code': e.code, 'message': e.message, 'details': e.details}},
-                status=status.HTTP_400_BAD_REQUEST if isinstance(e, (PTWSignatureError, PTWValidationError)) else status.HTTP_403_FORBIDDEN
+                {'error': {'code': 'INVALID_SIGNATURE_TYPE', 'message': 'Invalid signature type'}},
+                status=status.HTTP_400_BAD_REQUEST
             )
+        
+        if not signature_payload or not signature_payload.get('strokes'):
+            return Response(
+                {'error': {'code': 'MISSING_SIGNATURE_PAYLOAD', 'message': 'Signature payload with strokes is required'}},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Role enforcement
+            if signature_type == 'requestor' and permit.created_by != request.user:
+                return Response(
+                    {'error': {'code': 'PERMISSION_DENIED', 'message': 'Only permit creator can sign as requestor'}},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            elif signature_type == 'verifier' and permit.verifier != request.user:
+                return Response(
+                    {'error': {'code': 'PERMISSION_DENIED', 'message': 'Only assigned verifier can sign as verifier'}},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            elif signature_type == 'approver' and permit.approver != request.user:
+                return Response(
+                    {'error': {'code': 'PERMISSION_DENIED', 'message': 'Only assigned approver can sign as approver'}},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Status enforcement
+            current_status = normalize_permit_status(permit.status)
+            if signature_type == 'requestor' and current_status not in ['draft', 'submitted', 'pending_verification']:
+                return Response(
+                    {'error': {'code': 'INVALID_STATUS', 'message': 'Requestor signature not allowed in current status'}},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            elif signature_type == 'verifier' and current_status not in ['pending_verification', 'under_review']:
+                return Response(
+                    {'error': {'code': 'INVALID_STATUS', 'message': 'Verifier signature not allowed in current status'}},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            elif signature_type == 'approver' and current_status not in ['pending_approval', 'under_review']:
+                return Response(
+                    {'error': {'code': 'INVALID_STATUS', 'message': 'Approver signature not allowed in current status'}},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Validate payload structure
+            if not isinstance(signature_payload, dict) or signature_payload.get('type') != 'stroke_v1':
+                return Response(
+                    {'error': {'code': 'INVALID_PAYLOAD', 'message': 'Invalid signature payload format'}},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Validate JSON payload structure
+            if not signature_payload.get('strokes') or not isinstance(signature_payload['strokes'], list):
+                return Response(
+                    {'error': {'code': 'INVALID_STROKES', 'message': 'Signature payload must contain valid strokes array'}},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Compute payload hash for integrity
+            import json
+            import hashlib
+            canonical_json = json.dumps(signature_payload, sort_keys=True, separators=(',', ':'))
+            payload_hash = hashlib.sha256(canonical_json.encode()).hexdigest()
+            signature_payload['payload_hash'] = payload_hash
+            
+            with transaction.atomic():
+                # Create or update signature - JSON-only storage
+                signature, created = DigitalSignature.objects.update_or_create(
+                    permit=permit,
+                    signature_type=signature_type,
+                    signatory=request.user,
+                    defaults={
+                        'signature_payload': signature_payload,
+                        'payload_version': 1,
+                        'signature_data': '',  # Clear legacy field
+                        'ip_address': self.get_client_ip(request),
+                        'device_info': self.get_device_info(request)
+                    }
+                )
+                
+                # STREAMLINED WORKFLOW: Signing = Action
+                if signature_type == 'verifier':
+                    # Verifier signing = Verification approval
+                    canonical_workflow_manager.transition(
+                        permit=permit,
+                        target_status='under_review',
+                        actor=request.user,
+                        comments='Verified via digital signature',
+                        context={'source': 'signature', 'signature_type': signature_type}
+                    )
+                elif signature_type == 'approver':
+                    # Approver signing = Permit approval
+                    canonical_workflow_manager.transition(
+                        permit=permit,
+                        target_status='approved',
+                        actor=request.user,
+                        comments='Approved via digital signature',
+                        context={'source': 'signature', 'signature_type': signature_type}
+                    )
+                    # Set approved_by field
+                    permit.approved_by = request.user
+                    permit.approved_at = signature.signed_at
+                    permit.save(update_fields=['approved_by', 'approved_at'])
+                
+                # Get updated signatures_by_type
+                permit.refresh_from_db()
+                serializer = PermitSerializer(permit, context={'request': request})
+                signatures_by_type = serializer.data.get('signatures_by_type', {})
+                
+                return Response({
+                    'message': f'{signature_type.title()} signature added successfully',
+                    'signatures_by_type': signatures_by_type
+                }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+            
         except Exception as e:
             ptw_error_handler.log_error(e, {'permit_id': permit.id, 'signature_type': signature_type})
             return Response(

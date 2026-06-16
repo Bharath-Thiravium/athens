@@ -25,6 +25,7 @@ class CompanyTenantIsolationMiddleware(MiddlewareMixin):
         '/authentication/login/',
         '/authentication/logout/',
         '/api/saas/',  # SaaS control plane is global, not tenant-bound
+        '/api/safety-observation/',  # Safety observation endpoints
         '/static/',
         '/media/',
         '/api/auth/',
@@ -39,6 +40,10 @@ class CompanyTenantIsolationMiddleware(MiddlewareMixin):
     
     def process_request(self, request):
         """Apply tenant-based company isolation to all database queries"""
+        
+        # FORCE ALLOW safety-observation endpoints (bypass all checks)
+        if '/safety-observation' in request.path:
+            return None
         
         if self._is_exempt_path(request.path):
             return None

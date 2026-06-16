@@ -34,9 +34,9 @@ def signature_json_data(request):
         user = request.user
         
         # Get or create detail record
-        if user.user_type in ['adminuser']:
+        if user.user_type in ['adminuser', 'user'] or user.admin_type in ['clientuser', 'epcuser', 'contractoruser'] or user.user_type in ['clientuser', 'epcuser', 'contractoruser']:
             detail, created = UserDetail.objects.get_or_create(user=user)
-        elif user.user_type in ['projectadmin', 'master']:
+        elif user.user_type in ['projectadmin', 'master'] or user.admin_type in ['client', 'epc', 'contractor', 'master']:
             detail, created = AdminDetail.objects.get_or_create(user=user)
         else:
             return Response({
@@ -124,9 +124,9 @@ def sign_document_json(request):
         context = request.data.get('context', 'signature')
         
         # Get or create detail record
-        if user.user_type in ['adminuser']:
+        if user.user_type in ['adminuser', 'user'] or user.admin_type in ['clientuser', 'epcuser', 'contractoruser'] or user.user_type in ['clientuser', 'epcuser', 'contractoruser']:
             detail, created = UserDetail.objects.get_or_create(user=user)
-        elif user.user_type in ['projectadmin', 'master']:
+        elif user.user_type in ['projectadmin', 'master'] or user.admin_type in ['client', 'epc', 'contractor', 'master']:
             detail, created = AdminDetail.objects.get_or_create(user=user)
         else:
             return Response({
@@ -200,9 +200,9 @@ def preview_signature_json(request):
         user = request.user
         
         # Get detail record
-        if user.user_type in ['adminuser']:
+        if user.user_type in ['adminuser', 'user'] or user.admin_type in ['clientuser', 'epcuser', 'contractoruser'] or user.user_type in ['clientuser', 'epcuser', 'contractoruser']:
             detail, created = UserDetail.objects.get_or_create(user=user)
-        elif user.user_type in ['projectadmin', 'master']:
+        elif user.user_type in ['projectadmin', 'master'] or user.admin_type in ['client', 'epc', 'contractor', 'master']:
             detail, created = AdminDetail.objects.get_or_create(user=user)
         else:
             return Response({
@@ -262,9 +262,9 @@ def preview_template_legacy(request):
         fresh = request.query_params.get('fresh') == '1'
         
         # Get detail record
-        if user.user_type in ['adminuser']:
+        if user.user_type in ['adminuser', 'user'] or user.admin_type in ['clientuser', 'epcuser', 'contractoruser'] or user.user_type in ['clientuser', 'epcuser', 'contractoruser']:
             detail, created = UserDetail.objects.get_or_create(user=user)
-        elif user.user_type in ['projectadmin', 'master']:
+        elif user.user_type in ['projectadmin', 'master'] or user.admin_type in ['client', 'epc', 'contractor', 'master']:
             detail, created = AdminDetail.objects.get_or_create(user=user)
         else:
             return Response({

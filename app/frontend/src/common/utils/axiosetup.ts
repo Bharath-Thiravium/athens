@@ -37,14 +37,36 @@ api.interceptors.request.use(
     const authState = useAuthStore.getState();
     const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     const rawToken = authState.token || storedToken;
-    const token = rawToken && rawToken !== 'true' && rawToken !== 'false' ? rawToken : null;
+    
+    // Fix: Handle case where token is stored as boolean 'true' instead of actual JWT
+    let token = null;
+    if (rawToken && rawToken !== 'true' && rawToken !== 'false' && typeof rawToken === 'string' && rawToken.includes('.')) {
+      token = rawToken;
+    }
     
     // Debug logging for authentication issues
+    let tenantId = 'None';
+    if (token && config.headers) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        tenantId = payload.tenant_id || payload.athens_tenant_id || 'None';
+      } catch (e) {
+        tenantId = 'Parse Error';
+      }
+    }
+    
     console.log('Request interceptor:', {
       url: config.url,
       hasToken: !!token,
+      rawToken: rawToken,
+      tokenType: typeof rawToken,
+      isValidJWT: token && token.includes('.'),
       projectId: authState?.projectId,
-      headers: config.headers
+      extractedTenantId: tenantId,
+      headers: {
+        Authorization: config.headers?.Authorization ? 'Bearer [REDACTED]' : 'None',
+        'X-Athens-Tenant-ID': config.headers?.['X-Athens-Tenant-ID'] || 'None'
+      }
     });
     
     if (!config.headers) {
@@ -56,9 +78,32 @@ api.interceptors.request.use(
     }
 
     // Add tenant ID for multi-tenant support
-    if (authState?.projectId && config.headers) {
-      // Send project ID directly - backend will convert to UUID format
-      config.headers['X-Athens-Tenant-ID'] = authState.projectId.toString();
+    if (config.headers) {
+      // Try to get tenant ID from JWT token first
+      if (token) {
+        try {
+          // Decode JWT token to get tenant_id (without verification for client-side)
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const tenantId = payload.tenant_id || payload.athens_tenant_id;
+          if (tenantId) {
+            config.headers['X-Athens-Tenant-ID'] = tenantId;
+          } else if (authState?.projectId) {
+            // Fallback to project ID conversion if no tenant_id in token
+            const tenantUuid = `00000000-0000-0000-0000-${authState.projectId.toString().padStart(12, '0')}`;
+            config.headers['X-Athens-Tenant-ID'] = tenantUuid;
+          }
+        } catch (e) {
+          // If token decode fails, fall back to project ID conversion
+          if (authState?.projectId) {
+            const tenantUuid = `00000000-0000-0000-0000-${authState.projectId.toString().padStart(12, '0')}`;
+            config.headers['X-Athens-Tenant-ID'] = tenantUuid;
+          }
+        }
+      } else if (authState?.projectId) {
+        // No token but have project ID
+        const tenantUuid = `00000000-0000-0000-0000-${authState.projectId.toString().padStart(12, '0')}`;
+        config.headers['X-Athens-Tenant-ID'] = tenantUuid;
+      }
     }
 
     // Ensure we don't send requests without proper authentication context

@@ -977,12 +977,12 @@ const EnhancedPermitForm: React.FC = () => {
     }
   };
 
-  // Digital Signature Component
+  // Digital Signature Component - JSON-only
   const DigitalSignature = ({ onSign }: { onSign: (signature: string) => void }) => (
     <div style={{ border: '1px dashed #d9d9d9', padding: 20, textAlign: 'center' }}>
       <SignatureOutlined style={{ fontSize: 24, marginBottom: 8 }} />
       <div>Click to add digital signature</div>
-      <Button type="link" onClick={() => onSign('signature_data')}>
+      <Button type="link" onClick={() => onSign('json_signature')}>
         Sign Here
       </Button>
     </div>

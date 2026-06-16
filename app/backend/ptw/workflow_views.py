@@ -12,7 +12,7 @@ from .api_errors import ptw_api_errors
 from .serializers import PermitSerializer, WorkflowStepSerializer, AssignVerifierSerializer
 from .signature_service import signature_service
 from .workflow_manager import workflow_manager
-# from .unified_error_handling import PTWValidationError, PTWPermissionError, PTWWorkflowError
+from .unified_error_handling import PTWValidationError, PTWPermissionError, PTWWorkflowError
 from authentication.models import CustomUser
 from authentication.serializers import AdminUserCommonSerializer
 from .status_utils import normalize_permit_status

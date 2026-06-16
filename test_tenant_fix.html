@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Tenant ID Fix</title>
+</head>
+<body>
+    <h1>Testing Tenant ID Fix</h1>
+    <div id="results"></div>
+    
+    <script>
+        // Test JWT token parsing
+        function testJWTTenantExtraction() {
+            // Mock JWT token with tenant_id
+            const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' + 
+                btoa(JSON.stringify({
+                    user_id: 56,
+                    username: 'arjun.reddy',
+                    tenant_id: '5218a856-ce05-45d6-bc29-8d9e73855631',
+                    project_id: 23,
+                    admin_type: 'clientuser'
+                })) + '.signature';
+            
+            try {
+                // Simulate the axios interceptor logic
+                const payload = JSON.parse(atob(mockToken.split('.')[1]));
+                const tenantId = payload.tenant_id || payload.athens_tenant_id;
+                
+                document.getElementById('results').innerHTML = `
+                    <h2>Test Results:</h2>
+                    <p><strong>JWT Payload:</strong> ${JSON.stringify(payload, null, 2)}</p>
+                    <p><strong>Extracted Tenant ID:</strong> ${tenantId}</p>
+                    <p><strong>Status:</strong> ${tenantId ? 'SUCCESS - Tenant ID extracted correctly' : 'FAILED - No tenant ID found'}</p>
+                `;
+                
+                console.log('Tenant ID extraction test:', {
+                    payload,
+                    extractedTenantId: tenantId,
+                    success: !!tenantId
+                });
+                
+            } catch (e) {
+                document.getElementById('results').innerHTML = `
+                    <h2>Test Results:</h2>
+                    <p><strong>Error:</strong> ${e.message}</p>
+                    <p><strong>Status:</strong> FAILED - Token parsing error</p>
+                `;
+                console.error('Token parsing error:', e);
+            }
+        }
+        
+        // Run test when page loads
+        testJWTTenantExtraction();
+    </script>
+</body>
+</html>

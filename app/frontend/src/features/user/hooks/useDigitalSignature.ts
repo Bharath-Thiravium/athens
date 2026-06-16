@@ -15,6 +15,9 @@ interface UseDigitalSignatureReturn {
 /**
  * Hook for generating digital signatures for document signing
  * 
+ * DEPRECATED: This hook uses the old image-based signature system.
+ * For new implementations, use JSON-only signatures with PTW add_signature endpoint.
+ * 
  * Usage:
  * ```tsx
  * const { generateSignature, loading } = useDigitalSignature();
@@ -43,6 +46,7 @@ export const useDigitalSignature = (): UseDigitalSignatureReturn => {
         payload.sign_datetime = options.customDateTime;
       }
 
+      // This endpoint now returns 410 Gone - signatures are JSON-only
       const response = await api.post('/authentication/signature/generate/', payload, {
         responseType: 'blob' // Important: we're receiving an image
       });
@@ -57,7 +61,9 @@ export const useDigitalSignature = (): UseDigitalSignatureReturn => {
       
       let errorMessage = 'Failed to generate digital signature';
       
-      if (error.response?.status === 404) {
+      if (error.response?.status === 410) {
+        errorMessage = 'Signature generation deprecated. Use JSON-only signatures instead.';
+      } else if (error.response?.status === 404) {
         errorMessage = 'No signature template found. Please create one in your profile.';
       } else if (error.response?.data) {
         try {

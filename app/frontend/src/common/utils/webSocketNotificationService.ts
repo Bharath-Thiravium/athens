@@ -55,6 +55,9 @@ const resolveWebSocketOrigin = (): string | null => {
 };
 
 export const useWebSocketNotificationService = () => {
+  // Check if WebSocket is disabled via environment variable
+  const isWebSocketDisabled = import.meta.env.VITE_DISABLE_WEBSOCKET === 'true';
+  
   // Clear old notification cache on service initialization
   useEffect(() => {
     const now = Date.now();
@@ -76,7 +79,8 @@ export const useWebSocketNotificationService = () => {
   
   // Update the WebSocket URL to ensure it's correctly formatted
   const webSocketUrl = useMemo(() => {
-    if (!token || !wsOrigin) {
+    // Return null if WebSocket is disabled
+    if (isWebSocketDisabled || !token || !wsOrigin) {
       return null;
     }
 
@@ -91,7 +95,7 @@ export const useWebSocketNotificationService = () => {
       // Return null to prevent connection attempts with invalid URLs
       return null;
     }
-  }, [token, wsOrigin]);
+  }, [token, wsOrigin, isWebSocketDisabled]);
 
   const { 
     lastMessage, 
@@ -104,6 +108,26 @@ export const useWebSocketNotificationService = () => {
     requestNotifications,
     reconnect 
   } = useWebSocket(webSocketUrl);
+
+  // Add REST API method to fetch notifications when WebSocket is disabled
+  const fetchNotificationsViaREST = async () => {
+    try {
+      const response = await api.get('/authentication/notifications/');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch notifications via REST:', error);
+      return null;
+    }
+  };
+
+  // Enhanced requestNotifications that works with or without WebSocket
+  const enhancedRequestNotifications = async () => {
+    if (isWebSocketDisabled || !isConnected) {
+      return await fetchNotificationsViaREST();
+    } else {
+      return requestNotifications();
+    }
+  };
 
   const sendApprovalNotification = (
     userId: string | number,
@@ -254,7 +278,7 @@ export const useWebSocketNotificationService = () => {
     markAsRead: markNotificationAsRead,
     markAllAsRead: markAllNotificationsAsRead,
     deleteNotification,
-    requestNotifications,
+    requestNotifications: enhancedRequestNotifications,
     reconnect,
   };
 };

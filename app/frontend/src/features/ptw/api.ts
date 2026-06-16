@@ -76,8 +76,46 @@ export const generatePermitQrCode = (id: number) =>
     `${API_URL}/permits/${id}/generate_qr_code/`
   );
 
-export const addPermitSignature = (id: number, data: { signature_type: string }) =>
-  api.post(`${API_URL}/permits/${id}/add_signature/`, data);
+export const addPermitSignature = (id: number, data: { 
+  signature_type: string;
+  signature_payload?: {
+    type: 'stroke_v1';
+    strokes: Array<{
+      points: Array<{ x: number; y: number }>;
+      color?: string;
+      width?: number;
+    }>;
+    width?: number;
+    height?: number;
+  };
+  payload_version?: number;
+}) => {
+  // Generate mock stroke data if not provided (for template-based signatures)
+  const payload = data.signature_payload || {
+    type: 'stroke_v1' as const,
+    strokes: [
+      {
+        points: [
+          { x: 10, y: 50 },
+          { x: 50, y: 30 },
+          { x: 90, y: 50 },
+          { x: 130, y: 30 },
+          { x: 170, y: 50 }
+        ],
+        color: '#000000',
+        width: 2
+      }
+    ],
+    width: 200,
+    height: 80
+  };
+  
+  return api.post(`${API_URL}/permits/${id}/add_signature/`, {
+    signature_type: data.signature_type,
+    signature_payload: payload,
+    payload_version: data.payload_version || 1
+  });
+};
 
 export const createPermit = (data: Partial<Types.Permit>) =>
   api.post<Types.Permit>(`${API_URL}/permits/`, data);

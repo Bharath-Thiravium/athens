@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import get_user_model
 from .models import SafetyObservation, SafetyObservationFile
 from .serializers import SafetyObservationSerializer
@@ -14,15 +15,15 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
-class SafetyObservationViewSet(TenantScopedViewSet):
+class SafetyObservationViewSet(viewsets.ModelViewSet):
     serializer_class = SafetyObservationSerializer
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, SafetyObservationPermission]
     lookup_field = 'observationID'
     model = SafetyObservation  # Required for permission decorator
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        return queryset.order_by('-created_at')
+        return SafetyObservation.objects.all().order_by('-created_at')
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

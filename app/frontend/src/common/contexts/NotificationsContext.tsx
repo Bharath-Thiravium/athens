@@ -26,25 +26,23 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
 
   const webSocketService = useWebSocketNotificationService();
 
-  // Request notifications when connected
+  // Request notifications when connected or when WebSocket is disabled
   useEffect(() => {
-    if (webSocketService.isConnected) {
-      setConnectionError(null);
+    const fetchNotifications = async () => {
       try {
-        webSocketService.requestNotifications();
-      } catch (err) {
-        setConnectionError('Failed to request notifications');
-      }
-    } else {
-      // Set a connection error if WebSocket is not connected after some time
-      const timeout = setTimeout(() => {
-        if (!webSocketService.isConnected) {
-          setConnectionError('WebSocket connection failed. Notifications may not work properly.');
+        const result = await webSocketService.requestNotifications();
+        if (result && result.notifications) {
+          setNotifications(result.notifications);
+          setUnreadCount(result.unread_count || 0);
         }
-      }, 5000); // Wait 5 seconds before showing error
+        setConnectionError(null);
+      } catch (err) {
+        setConnectionError('Failed to fetch notifications');
+      }
+    };
 
-      return () => clearTimeout(timeout);
-    }
+    // Always try to fetch notifications, regardless of WebSocket connection
+    fetchNotifications();
   }, [webSocketService.isConnected]);
 
   // Handle incoming WebSocket messages

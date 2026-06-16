@@ -8,13 +8,14 @@ interface DigitalSignatureProps {
   department?: string;
   signedAt?: string; // ISO string
   companyLogoUrl?: string;
-  signatureImageUrl?: string;
-  signatureImageData?: string;
+  signaturePayload?: any; // JSON strokes
+  mode?: 'view' | 'placeholder';
 }
 
 /**
- * Standardized Adobe-like signature block component
- * Used across all modules for consistent signature appearance
+ * Digital Signature Standard v1 (JSON-only)
+ * Adobe-like signature block with JSON stroke rendering
+ * NEVER renders <img> for signatures - only SVG from JSON strokes
  */
 const DigitalSignature: React.FC<DigitalSignatureProps> = ({
   signerName,
@@ -23,8 +24,8 @@ const DigitalSignature: React.FC<DigitalSignatureProps> = ({
   department,
   signedAt,
   companyLogoUrl,
-  signatureImageUrl,
-  signatureImageData
+  signaturePayload,
+  mode = 'view'
 }) => {
   const formatDateTime = (isoString?: string) => {
     if (!isoString) return 'N/A';
@@ -52,7 +53,7 @@ const DigitalSignature: React.FC<DigitalSignatureProps> = ({
       const year = get('year');
       const hour = get('hour');
       const minute = get('minute');
-      const dayPeriod = get('dayPeriod') || ''; // AM/PM (best effort)
+      const dayPeriod = get('dayPeriod') || '';
 
       const core = `${day} ${month} ${year}, ${hour}:${minute} ${dayPeriod}`.trim();
       return core ? `${core} IST` : `${isoString} IST`;
@@ -61,48 +62,99 @@ const DigitalSignature: React.FC<DigitalSignatureProps> = ({
     }
   };
 
-  // Get signature image source with precedence
-  const getSignatureImageSrc = () => {
-    if (signatureImageUrl) return signatureImageUrl;
-    if (signatureImageData) {
-      return signatureImageData.startsWith('data:') 
-        ? signatureImageData 
-        : `data:image/png;base64,${signatureImageData}`;
+  // Render signature strokes from JSON into SVG
+  const renderSignatureStrokes = () => {
+    if (!signaturePayload || !signaturePayload.strokes || !Array.isArray(signaturePayload.strokes)) {
+      return null;
     }
-    return null;
+
+    const { width = 300, height = 100, strokes } = signaturePayload;
+    const viewBoxWidth = Math.max(width, 300);
+    const viewBoxHeight = Math.max(height, 100);
+
+    return (
+      <svg 
+        className="signature-strokes" 
+        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {strokes.map((stroke: any, index: number) => {
+          if (!stroke.points || !Array.isArray(stroke.points)) return null;
+          
+          const pathData = stroke.points.reduce((path: string, point: any, i: number) => {
+            const x = point.x || 0;
+            const y = point.y || 0;
+            return path + (i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
+          }, '');
+
+          return (
+            <path
+              key={index}
+              d={pathData}
+              stroke={stroke.color || '#000'}
+              strokeWidth={stroke.width || 2}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          );
+        })}
+      </svg>
+    );
   };
 
-  const signatureImageSrc = getSignatureImageSrc();
+  if (mode === 'placeholder') {
+    return (
+      <div className="ds-card">
+        <div className="ds-watermark-layer">
+          {companyLogoUrl && (
+            <img className="ds-watermark" src={companyLogoUrl} alt="" />
+          )}
+        </div>
+        <div className="ds-content" style={{ zIndex: 1 }}>
+          <div className="ds-left-partition">
+            <div className="ds-signer-name">{signerName}</div>
+            <div className="ds-designation">Awaiting signature</div>
+          </div>
+          <div className="ds-divider"></div>
+          <div className="ds-right-partition">
+            <div className="ds-signed-by">Awaiting signature</div>
+            <div className="ds-signed-at">Date: —</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="digital-signature-container">
-      <div className="signature-content">
-        {/* Company logo watermark at 50% opacity */}
+    <div className="ds-card">
+      <div className="ds-watermark-layer">
         {companyLogoUrl && (
-          <img className="signature-logo-watermark" src={companyLogoUrl} alt="" />
+          <img className="ds-watermark" src={companyLogoUrl} alt="" />
         )}
-        
+      </div>
+      <div className="ds-content" style={{ zIndex: 1 }}>
         {/* Left partition - Identity */}
-        <div className="signature-left-partition">
-          <div className="signer-name">{signerName}</div>
-          {employeeId && <div className="employee-id">ID: {employeeId}</div>}
-          {designation && <div className="designation">{designation}</div>}
+        <div className="ds-left-partition">
+          <div className="ds-signer-name">{signerName}</div>
+          {employeeId && <div className="ds-employee-id">ID: {employeeId}</div>}
+          {designation && <div className="ds-designation">{designation}</div>}
         </div>
         
         {/* Divider */}
-        <div className="signature-divider"></div>
+        <div className="ds-divider"></div>
         
         {/* Right partition - Signing proof */}
-        <div className="signature-right-partition">
-          <div className="signed-by-text">Digitally signed by {signerName}</div>
-          {department && <div className="department">{department}</div>}
-          <div className="signed-at">{formatDateTime(signedAt)}</div>
+        <div className="ds-right-partition">
+          <div className="ds-signed-by">Digitally signed by {signerName}</div>
+          {department && <div className="ds-department">{department}</div>}
+          <div className="ds-signed-at">{formatDateTime(signedAt)}</div>
         </div>
         
-        {/* Signature image spanning both partitions */}
-        {signatureImageSrc && (
-          <div className="signature-image-area">
-            <img src={signatureImageSrc} alt="Signature" className="signature-image" />
+        {/* Signature strokes area */}
+        {signaturePayload && (
+          <div className="ds-signature-area">
+            {renderSignatureStrokes()}
           </div>
         )}
       </div>

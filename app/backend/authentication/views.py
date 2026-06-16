@@ -2296,31 +2296,32 @@ class UnifiedCompanyDataView(APIView):
             except Exception as e:
                 logger.debug(f"Error accessing admin detail: {sanitize_log_input(str(e))}")
 
-        # For admin users: inherit from creator or use EPC logic
-        if user.user_type == 'adminuser' and user.created_by:
-            # Client and contractor users inherit from their creator
-            if user.admin_type in ['clientuser', 'contractoruser']:
-                return self._get_company_data_for_user(user.created_by)
-            
-            # EPC users always inherit from master (handled above)
-            # This is a fallback in case the above EPC logic didn't work
-            if user.admin_type == 'epcuser':
-                try:
-                    # Find master admin - check both user_type='master' and admin_type='master'
-                    master_admin = CustomUser.objects.filter(
-                        models.Q(user_type='master') | models.Q(admin_type='master')
-                    ).first()
-                    if master_admin:
-                        company_detail = CompanyDetail.objects.filter(user=master_admin).first()
-                        if company_detail:
-                            logo_url = self._get_secure_file_url(company_detail.company_logo) if company_detail.company_logo else None
-                            return {
-                                'company_name': company_detail.company_name or user.company_name or '',
-                                'company_logo': logo_url,
-                                'source': 'master_company_detail_epcuser_fallback'
-                            }
-                except Exception as e:
-                    logger.debug(f"Error in EPC user fallback: {sanitize_log_input(str(e))}")
+        # For admin users: inherit from creator
+        if user.user_type == 'adminuser' or user.admin_type in ['clientuser', 'contractoruser', 'epcuser']:
+            if user.created_by:
+                # Client and contractor users inherit from their creator
+                if user.admin_type in ['clientuser', 'contractoruser']:
+                    return self._get_company_data_for_user(user.created_by)
+                
+                # EPC users always inherit from master (handled above)
+                # This is a fallback in case the above EPC logic didn't work
+                if user.admin_type == 'epcuser':
+                    try:
+                        # Find master admin - check both user_type='master' and admin_type='master'
+                        master_admin = CustomUser.objects.filter(
+                            models.Q(user_type='master') | models.Q(admin_type='master')
+                        ).first()
+                        if master_admin:
+                            company_detail = CompanyDetail.objects.filter(user=master_admin).first()
+                            if company_detail:
+                                logo_url = self._get_secure_file_url(company_detail.company_logo) if company_detail.company_logo else None
+                                return {
+                                    'company_name': company_detail.company_name or user.company_name or '',
+                                    'company_logo': logo_url,
+                                    'source': 'master_company_detail_epcuser_fallback'
+                                }
+                    except Exception as e:
+                        logger.debug(f"Error in EPC user fallback: {sanitize_log_input(str(e))}")
 
         # Default fallback
         return {

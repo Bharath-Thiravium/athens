@@ -100,49 +100,7 @@ export default function PTWRecordPrintPreview({ permitData }: PTWRecordPrintPrev
     return null;
   };
 
-  const getSignatureRenderMode = (sig?: Types.DigitalSignature | null, signatureImageSrc?: string | null) => (
-    sig?.signature_render_mode === 'raw' && !signatureImageSrc ? 'raw' : 'card'
-  );
-
-  const resolveSignatureSrc = (signatureData?: string | null) => {
-    if (!signatureData) return null;
-    const trimmed = signatureData.trim();
-    
-    // Handle data URL format (base64)
-    if (trimmed.startsWith('data:image/png;base64,')) {
-      try {
-        // Extract base64 part and decode JSON
-        const base64Data = trimmed.substring('data:image/png;base64,'.length);
-        const decoded = atob(base64Data);
-        const jsonData = JSON.parse(decoded);
-        
-        // If it's a JSON with template_url, use that
-        if (jsonData.template_url) {
-          return jsonData.template_url;
-        }
-      } catch (e) {
-        // If JSON parsing fails, treat as regular data URL
-      }
-      return trimmed;
-    }
-    
-    // Handle HTTP URLs
-    if (trimmed.startsWith('http')) return trimmed;
-    
-    // Handle media paths
-    if (trimmed.startsWith('/media/')) {
-      const baseUrl = window.location.origin;
-      return `${baseUrl}${trimmed}`;
-    }
-    
-    // Handle SVG content
-    if (trimmed.startsWith('<svg')) {
-      return `data:image/svg+xml;utf8,${encodeURIComponent(trimmed)}`;
-    }
-    
-    // Assume base64 without prefix
-    return `data:image/png;base64,${trimmed}`;
-  };
+  // JSON-only signature rendering - no legacy image support
     if (!value) return emptyText;
     if (Array.isArray(value)) {
       const items = value
@@ -196,16 +154,16 @@ export default function PTWRecordPrintPreview({ permitData }: PTWRecordPrintPrev
       return `
         <div class="signature-box">
           <div class="signature-label">${label}</div>
-          <div class="adobe-signature-block">
-            <div class="signature-partitions">
-              <div class="signature-left">
-                <div class="signer-name">${label}</div>
-                <div class="designation">Not signed</div>
+          <div class="ds-card">
+            <div class="ds-content">
+              <div class="ds-left-partition">
+                <div class="ds-signer-name">${label}</div>
+                <div class="ds-designation">Awaiting signature</div>
               </div>
-              <div class="signature-divider"></div>
-              <div class="signature-right">
-                <div class="signed-by">Awaiting signature</div>
-                <div class="signed-at">Date: —</div>
+              <div class="ds-divider"></div>
+              <div class="ds-right-partition">
+                <div class="ds-signed-by">Awaiting signature</div>
+                <div class="ds-signed-at">Date: —</div>
               </div>
             </div>
           </div>
@@ -220,42 +178,51 @@ export default function PTWRecordPrintPreview({ permitData }: PTWRecordPrintPrev
     const employeeId = typeof sig.employee_id === 'string' ? sig.employee_id : '';
     const department = typeof sig.department === 'string' ? sig.department : '';
     const signedDate = formatDateOnly(sig.signed_at);
-    const signatureImageSrc =
-      sig.signature_template_url || resolveSignatureSrc(sig.signature_data) || null;
     const companyLogoUrl = sig.company_logo_url;
-    const renderMode = getSignatureRenderMode(sig, signatureImageSrc);
     
-    if (renderMode === 'card') {
-      return `
-        <div class="signature-box">
-          <div class="signature-label">${label}</div>
-          <div class="signature-card-only">
-            ${signatureImageSrc ? `<img src="${signatureImageSrc}" alt="${label} Signature" class="signature-card-image" />` : '<div class="signature-placeholder">Signature on file</div>'}
-          </div>
-        </div>
-      `;
+    // Render signature strokes from JSON payload
+    let strokesSvg = '';
+    if (sig.signature_payload && sig.signature_payload.strokes) {
+      const { width = 300, height = 100, strokes } = sig.signature_payload;
+      const viewBoxWidth = Math.max(width, 300);
+      const viewBoxHeight = Math.max(height, 100);
+      
+      const pathElements = strokes.map((stroke, index) => {
+        if (!stroke.points || !Array.isArray(stroke.points)) return '';
+        
+        const pathData = stroke.points.reduce((path, point, i) => {
+          const x = point.x || 0;
+          const y = point.y || 0;
+          return path + (i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
+        }, '');
+
+        return `<path d="${pathData}" stroke="${stroke.color || '#000'}" stroke-width="${stroke.width || 2}" fill="none" stroke-linecap="round" stroke-linejoin="round" />`;
+      }).join('');
+      
+      strokesSvg = `<svg class="signature-strokes" viewBox="0 0 ${viewBoxWidth} ${viewBoxHeight}" preserveAspectRatio="xMidYMid meet">${pathElements}</svg>`;
     }
 
     return `
       <div class="signature-box">
         <div class="signature-label">${label}</div>
-        <div class="adobe-signature-block signature-raw">
-          ${companyLogoUrl ? `<div class="company-logo-row"><img src="${companyLogoUrl}" alt="Company Logo" class="company-logo-img" /></div>` : ''}
-          <div class="signature-partitions">
-            <div class="signature-left">
-              <div class="signer-name">${escapeHtml(signerName)}</div>
-              ${employeeId ? `<div class="employee-id">ID: ${escapeHtml(employeeId)}</div>` : ''}
-              ${designation ? `<div class="designation">${escapeHtml(designation)}</div>` : ''}
-              ${department ? `<div class="department">${escapeHtml(department)}</div>` : ''}
+        <div class="ds-card">
+          <div class="ds-watermark-layer">
+            ${companyLogoUrl ? `<img class="ds-watermark" src="${companyLogoUrl}" alt="" />` : ''}
+          </div>
+          <div class="ds-content">
+            <div class="ds-left-partition">
+              <div class="ds-signer-name">${escapeHtml(signerName)}</div>
+              ${employeeId ? `<div class="ds-employee-id">ID: ${escapeHtml(employeeId)}</div>` : ''}
+              ${designation ? `<div class="ds-designation">${escapeHtml(designation)}</div>` : ''}
             </div>
-            <div class="signature-divider"></div>
-            <div class="signature-right">
-              <div class="signed-by">Digitally signed by ${escapeHtml(signerName)}</div>
-              <div class="signed-at">${department ? escapeHtml(department) : ''}</div>
-              <div class="signed-at">${signedDate}</div>
+            <div class="ds-divider"></div>
+            <div class="ds-right-partition">
+              <div class="ds-signed-by">Digitally signed by ${escapeHtml(signerName)}</div>
+              ${department ? `<div class="ds-department">${escapeHtml(department)}</div>` : ''}
+              <div class="ds-signed-at">${signedDate}</div>
             </div>
           </div>
-          ${signatureImageSrc ? `<div class="signature-hand-row"><img src="${signatureImageSrc}" alt="${label} Signature" class="signature-hand-img" /></div>` : ''}
+          ${strokesSvg ? `<div class="ds-signature-area">${strokesSvg}</div>` : ''}
         </div>
       </div>
     `;
@@ -464,24 +431,20 @@ export default function PTWRecordPrintPreview({ permitData }: PTWRecordPrintPrev
             .signature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
             .signature-box { border: 1px solid #111; padding: 6px; text-align: left; min-height: 90px; }
             .signature-label { font-weight: bold; margin-bottom: 4px; font-size: 8pt; text-align: center; }
-            .adobe-signature-block { position: relative; min-height: 70px; border: 1px solid #ddd; background: #fff; }
-            .signature-raw { display: flex; flex-direction: column; }
-            .signature-watermark { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-repeat: no-repeat; background-position: center; background-size: contain; pointer-events: none; }
-            .signature-partitions { display: flex; align-items: stretch; min-height: 70px; padding: 6px; position: relative; z-index: 1; }
-            .signature-left { flex: 1; padding-right: 6px; }
-            .signature-divider { width: 1px; background: #111; margin: 0 6px; }
-            .signature-right { flex: 1; padding-left: 6px; font-size: 7pt; }
-            .signer-name { font-weight: bold; font-size: 9pt; margin-bottom: 2px; }
-            .employee-id, .designation { font-size: 7pt; color: #666; margin-bottom: 1px; }
-            .signed-by { font-weight: 500; margin-bottom: 2px; }
-            .department { font-size: 6pt; color: #888; margin-bottom: 1px; }
-            .signature-card-only { display: flex; align-items: center; justify-content: center; min-height: 70px; border: 1px solid #ddd; background: #fff; }
-            .signature-card-image { max-width: 100%; max-height: 80px; object-fit: contain; }
-            .signature-hand-row { display: flex; align-items: center; justify-content: center; min-height: 50px; padding: 4px 6px; }
-            .signature-hand-img { max-width: 100%; max-height: 50px; object-fit: contain; }
-            .signature-placeholder { font-size: 8pt; color: #666; }
-            .company-logo-row { display: flex; align-items: center; justify-content: flex-end; padding: 2px 6px; border-bottom: 1px solid #eee; }
-            .company-logo-img { max-width: 60px; max-height: 30px; object-fit: contain; }
+            .ds-card { display: inline-block; position: relative; overflow: hidden; border: 1px solid #ddd; background: #fff; min-width: 200px; min-height: 70px; width: 100%; }
+            .ds-watermark-layer { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 0; }
+            .ds-watermark { max-width: 85%; max-height: 70%; object-fit: contain; opacity: 0.3; }
+            .ds-content { position: relative; z-index: 1; display: flex; align-items: stretch; min-height: 70px; padding: 6px; }
+            .ds-left-partition { flex: 1; padding-right: 6px; display: flex; flex-direction: column; justify-content: center; }
+            .ds-divider { width: 1px; background: #111; margin: 0 6px; }
+            .ds-right-partition { flex: 1; padding-left: 6px; display: flex; flex-direction: column; justify-content: center; font-size: 0.85em; }
+            .ds-signer-name { font-weight: bold; font-size: 9pt; margin-bottom: 2px; color: #333; }
+            .ds-employee-id, .ds-designation { font-size: 7pt; color: #666; margin-bottom: 1px; }
+            .ds-signed-by { font-weight: 500; margin-bottom: 2px; color: #333; }
+            .ds-department { font-size: 6pt; color: #888; margin-bottom: 1px; }
+            .ds-signed-at { font-size: 7pt; color: #555; }
+            .ds-signature-area { position: absolute; bottom: 2px; left: 6px; right: 6px; height: 25px; display: flex; align-items: center; justify-content: center; z-index: 2; }
+            .signature-strokes { max-width: 100%; max-height: 100%; opacity: 0.8; }
             .iso-footer { margin-top: 12px; padding-top: 6px; border-top: 1px solid #bbb; text-align: center; font-size: 7.5pt; color: #555; }
             .controlled-document { font-weight: bold; color: #111; margin-bottom: 2px; }
           </style>

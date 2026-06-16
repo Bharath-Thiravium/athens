@@ -580,7 +580,9 @@ class DigitalSignature(models.Model):
     permit = models.ForeignKey(Permit, on_delete=models.CASCADE, related_name='signatures')
     signature_type = models.CharField(max_length=20, choices=SIGNATURE_TYPE_CHOICES)
     signatory = models.ForeignKey(User, on_delete=models.CASCADE, related_name='signatures')
-    signature_data = models.TextField()  # Base64 encoded signature
+    signature_data = models.TextField()  # Base64 encoded signature (legacy)
+    signature_payload = models.JSONField(null=True, blank=True)  # JSON strokes + metadata
+    payload_version = models.PositiveSmallIntegerField(default=1)
     signed_at = models.DateTimeField(auto_now_add=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     device_info = models.JSONField(default=dict, blank=True)

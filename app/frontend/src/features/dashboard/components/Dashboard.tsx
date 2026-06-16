@@ -376,13 +376,23 @@ const Dashboard: React.FC = () => {
     useEffect(() => {
         const fetchCompanyDetails = async () => {
           try {
-            // Use unified endpoint for all user types
+            console.log('Fetching company details with auth state:', {
+              usertype,
+              projectId: useAuthStore.getState().projectId,
+              hasToken: !!useAuthStore.getState().token,
+              tokenValue: useAuthStore.getState().token,
+              tokenType: typeof useAuthStore.getState().token
+            });
+            
+            // Force API call even if token validation fails
             const response = await api.get('/authentication/company-data/');
             console.log('Company data response:', {
               usertype,
               responseSuccess: response.data.success,
               hasLogo: !!response.data.company_logo,
-              logoValue: response.data.company_logo
+              logoValue: response.data.company_logo,
+              companyName: response.data.company_name,
+              fullResponse: response.data
             });
 
             if (response.data.success) {
@@ -395,8 +405,10 @@ const Dashboard: React.FC = () => {
                 if (!logoUrl.startsWith('http')) {
                   logoUrl = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}${logoUrl.startsWith('/') ? logoUrl : '/' + logoUrl}`;
                 }
+                console.log('Setting company logo URL:', logoUrl);
                 setCompanyLogoUrl(logoUrl);
               } else {
+                console.log('No company logo in response');
                 setCompanyLogoUrl(null);
               }
 
@@ -408,6 +420,13 @@ const Dashboard: React.FC = () => {
               }
             }
           } catch (error) {
+            console.error('Company data fetch error:', {
+              error: error.message,
+              status: error.response?.status,
+              data: error.response?.data,
+              headers: error.response?.headers
+            });
+            
             // Silently handle company data fetch failure
             // Fallback to old endpoints if unified endpoint fails
             try {
@@ -437,6 +456,7 @@ const Dashboard: React.FC = () => {
                 }
               }
             } catch (fallbackError) {
+              console.error('Fallback company data fetch error:', fallbackError);
               // Silently handle fallback fetch failure
             }
           }
@@ -444,8 +464,22 @@ const Dashboard: React.FC = () => {
 
         const fetchUserProfilePic = async () => {
           try {
+            console.log('Fetching user profile with auth state:', {
+              usertype,
+              username,
+              hasToken: !!useAuthStore.getState().token,
+              tokenValue: useAuthStore.getState().token
+            });
+            
             // Use the new unified profile endpoint
             const profileResponse = await api.get('/authentication/current-user-profile/');
+            console.log('Profile response:', {
+              status: profileResponse.status,
+              hasProfilePic: !!profileResponse.data.profile_picture_url,
+              profilePicUrl: profileResponse.data.profile_picture_url,
+              fullResponse: profileResponse.data
+            });
+            
             const profileData = profileResponse.data;
             
             if (profileData) {
@@ -483,8 +517,11 @@ const Dashboard: React.FC = () => {
 
         // Only fetch if we have user type information
         if (usertype && username) {
+          console.log('Starting data fetch for user:', { usertype, username });
           fetchCompanyDetails();
           fetchUserProfilePic();
+        } else {
+          console.warn('Missing user data, skipping fetch:', { usertype, username });
         }
       }, [usertype, username, django_user_type]);
 

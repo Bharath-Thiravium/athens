@@ -99,58 +99,8 @@ const PTWStandardPrint: React.FC = () => {
   };
 
   const resolveSignatureSrc = (signatureData?: string | null) => {
-    if (!signatureData) return null;
-    const trimmed = signatureData.trim();
-
-    if (trimmed.startsWith('{')) {
-      try {
-        const jsonData = JSON.parse(trimmed);
-        if (jsonData?.template_url) {
-          return jsonData.template_url;
-        }
-      } catch (e) {
-        // Fall through and treat as image data below.
-      }
-    }
-
-    if (trimmed.startsWith('data:image/png;base64,')) {
-      try {
-        const base64Data = trimmed.substring('data:image/png;base64,'.length);
-        const decoded = atob(base64Data);
-        const jsonData = JSON.parse(decoded);
-        if (jsonData?.template_url) {
-          return jsonData.template_url;
-        }
-      } catch (e) {
-        // Fall through and treat as image data URL below.
-      }
-      return trimmed;
-    }
-
-    if (/^[A-Za-z0-9+/=]+$/.test(trimmed)) {
-      try {
-        const decoded = atob(trimmed);
-        const jsonData = JSON.parse(decoded);
-        if (jsonData?.template_url) {
-          return jsonData.template_url;
-        }
-      } catch (e) {
-        // Not JSON base64, fall through.
-      }
-    }
-
-    if (trimmed.startsWith('http')) return trimmed;
-
-    if (trimmed.startsWith('/media/')) {
-      const baseUrl = window.location.origin;
-      return `${baseUrl}${trimmed}`;
-    }
-
-    if (trimmed.startsWith('<svg')) {
-      return `data:image/svg+xml;utf8,${encodeURIComponent(trimmed)}`;
-    }
-
-    return `data:image/png;base64,${trimmed}`;
+    // JSON-only signatures - no legacy image support
+    return null;
   };
 
   const findSignatureByType = (signatures: any, type: string) => {
@@ -204,11 +154,17 @@ const PTWStandardPrint: React.FC = () => {
   );
 
   const signatureMap = permit.signatures_by_type || {};
+  const isSignatureTemplateUrl = (url?: string | null) =>
+    typeof url === 'string' &&
+    (url.includes('/signature_templates/') || url.includes('/admin_signature_templates/'));
+  const sanitizeLogoUrl = (url?: string | null) =>
+    url && !isSignatureTemplateUrl(url) ? url : undefined;
+
   const signatureLogo =
-    permit.tenant_company_logo_url ||
-    signatureMap.requestor?.company_logo_url ||
-    signatureMap.verifier?.company_logo_url ||
-    signatureMap.approver?.company_logo_url;
+    sanitizeLogoUrl(permit.tenant_company_logo_url) ||
+    sanitizeLogoUrl(signatureMap.requestor?.company_logo_url) ||
+    sanitizeLogoUrl(signatureMap.verifier?.company_logo_url) ||
+    sanitizeLogoUrl(signatureMap.approver?.company_logo_url);
 
   return (
     <div className="ptw-standard-print">
@@ -443,69 +399,83 @@ const PTWStandardPrint: React.FC = () => {
               const department = sig?.department || fallbackUser?.department || '';
               const employeeId = sig?.employee_id || fallbackUser?.employee_id || '';
               const signedDate = sig ? formatDateOnly(sig.signed_at) : '—';
-              const signatureImageSrc = sig
-                ? (sig.signature_template_url || resolveSignatureSrc(sig.signature_data) || null)
-                : null;
-              const companyLogo = sig?.company_logo_url || fallbackUser?.company_logo_url;
-              const renderMode = sig?.signature_render_mode === 'raw' && !signatureImageSrc ? 'raw' : 'card';
+              // JSON-only signatures - no legacy image support
+              const companyLogo = sanitizeLogoUrl(sig?.company_logo_url || fallbackUser?.company_logo_url);
               
               return (
                 <div key={entry.type} className="ptw-signature-card">
                   <div className="ptw-signature-label">{entry.label}</div>
                   <div className="ptw-signature-image-container">
-                    {renderMode === 'card' ? (
-                      <div className="ptw-signature-card-only">
-                        {signatureImageSrc ? (
-                          <img
-                            src={signatureImageSrc}
-                            alt={`${entry.label} Signature`}
-                            className="ptw-signature-card-image"
-                          />
-                        ) : (
-                          <div className="ptw-signature-placeholder">Signature on file</div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="ptw-adobe-signature-block" style={{ position: 'relative' }}>
-                        {companyLogo && (
-                          <div style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            backgroundImage: `url(${companyLogo})`,
-                            backgroundRepeat: 'no-repeat',
-                            backgroundPosition: 'center',
-                            backgroundSize: 'contain',
-                            opacity: 0.4,
-                            pointerEvents: 'none'
-                          }} />
-                        )}
-                        <div className="ptw-signature-partitions" style={{ position: 'relative', zIndex: 1 }}>
-                          <div className="ptw-signature-left">
-                            <div className="ptw-signer-name">{signerName}</div>
-                            {employeeId && <div className="ptw-employee-id">ID: {employeeId}</div>}
-                            {designation && <div className="ptw-designation">{designation}</div>}
-                          </div>
-                          <div className="ptw-signature-divider"></div>
-                          <div className="ptw-signature-right">
-                            {sig ? (
-                              <>
-                                <div className="ptw-signed-by">Digitally signed by {signerName}</div>
-                                {department && <div className="ptw-department">{department}</div>}
-                                <div className="ptw-signed-at">{formatDateTime(sig.signed_at)}</div>
-                              </>
-                            ) : (
-                              <>
-                                <div className="ptw-signed-by">Awaiting signature</div>
-                                <div className="ptw-signed-at">Date: —</div>
-                              </>
-                            )}
-                          </div>
+                    <div className="ptw-adobe-signature-block" style={{ position: 'relative' }}>
+                      {companyLogo && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          backgroundImage: `url(${companyLogo})`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'center',
+                          backgroundSize: 'contain',
+                          opacity: 0.4,
+                          pointerEvents: 'none'
+                        }} />
+                      )}
+                      <div className="ptw-signature-partitions" style={{ position: 'relative', zIndex: 1 }}>
+                        <div className="ptw-signature-left">
+                          <div className="ptw-signer-name">{signerName}</div>
+                          {employeeId && <div className="ptw-employee-id">ID: {employeeId}</div>}
+                          {designation && <div className="ptw-designation">{designation}</div>}
+                        </div>
+                        <div className="ptw-signature-divider"></div>
+                        <div className="ptw-signature-right">
+                          {sig ? (
+                            <>
+                              <div className="ptw-signed-by">Digitally signed by {signerName}</div>
+                              {department && <div className="ptw-department">{department}</div>}
+                              <div className="ptw-signed-at">{formatDateTime(sig.signed_at)}</div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="ptw-signed-by">Awaiting signature</div>
+                              <div className="ptw-signed-at">Date: —</div>
+                            </>
+                          )}
                         </div>
                       </div>
-                    )}
+                      {sig?.signature_payload?.strokes && (
+                        <div className="ptw-signature-strokes" style={{ position: 'absolute', bottom: '2px', left: '6px', right: '6px', height: '25px', zIndex: 2 }}>
+                          <svg 
+                            viewBox="0 0 300 100" 
+                            style={{ width: '100%', height: '100%', opacity: 0.8 }}
+                            preserveAspectRatio="xMidYMid meet"
+                          >
+                            {sig.signature_payload.strokes.map((stroke: any, index: number) => {
+                              if (!stroke.points || !Array.isArray(stroke.points)) return null;
+                              
+                              const pathData = stroke.points.reduce((path: string, point: any, i: number) => {
+                                const x = point.x || 0;
+                                const y = point.y || 0;
+                                return path + (i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
+                              }, '');
+
+                              return (
+                                <path
+                                  key={index}
+                                  d={pathData}
+                                  stroke={stroke.color || '#000'}
+                                  strokeWidth={stroke.width || 2}
+                                  fill="none"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              );
+                            })}
+                          </svg>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

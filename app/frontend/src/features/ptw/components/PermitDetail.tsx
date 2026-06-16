@@ -1818,55 +1818,6 @@ const PermitDetail: React.FC = () => {
                 const canSignVerifier = Number(currentUserId) === Number(permit.verifier) && permit.verifier;
                 const canSignApprover = Number(currentUserId) === Number(permit.approver || permit.approved_by);
 
-                const resolveSignatureSrc = (signatureData?: string | null) => {
-                  if (!signatureData) return null;
-                  const trimmed = signatureData.trim();
-                  if (trimmed.startsWith('{')) {
-                    try {
-                      const jsonData = JSON.parse(trimmed);
-                      if (jsonData?.template_url) {
-                        return jsonData.template_url;
-                      }
-                    } catch (e) {
-                      // Fall through and treat as image data below.
-                    }
-                  }
-                  if (trimmed.startsWith('data:image/png;base64,')) {
-                    try {
-                      const base64Data = trimmed.substring('data:image/png;base64,'.length);
-                      const decoded = atob(base64Data);
-                      const jsonData = JSON.parse(decoded);
-                      if (jsonData?.template_url) {
-                        return jsonData.template_url;
-                      }
-                    } catch (e) {
-                      // Fall through and treat as image data URL below.
-                    }
-                    return trimmed;
-                  }
-                  if (/^[A-Za-z0-9+/=]+$/.test(trimmed)) {
-                    try {
-                      const decoded = atob(trimmed);
-                      const jsonData = JSON.parse(decoded);
-                      if (jsonData?.template_url) {
-                        return jsonData.template_url;
-                      }
-                    } catch (e) {
-                      // Not JSON base64, fall through.
-                    }
-                  }
-                  if (trimmed.startsWith('data:image')) return trimmed;
-                  if (trimmed.startsWith('http')) return trimmed;
-                  if (trimmed.startsWith('/media/')) {
-                    const baseUrl = window.location.origin;
-                    return `${baseUrl}${trimmed}`;
-                  }
-                  if (trimmed.startsWith('<svg')) {
-                    return `data:image/svg+xml;utf8,${encodeURIComponent(trimmed)}`;
-                  }
-                  return `data:image/png;base64,${trimmed}`;
-                };
-
                 const renderSignatureCard = (
                   label: string,
                   signature: Types.DigitalSignature | null | undefined,
@@ -1876,10 +1827,6 @@ const PermitDetail: React.FC = () => {
                 ) => {
                   const isAlreadySigned = Boolean(signature);
                   const shouldShowButton = canSign && !isAlreadySigned;
-                  const signatureSrc =
-                    signature?.signature_template_url ||
-                    resolveSignatureSrc(signature?.signature_data) ||
-                    null;
                   
                   return (
                     <Card size="small" style={{ flex: 1, minWidth: 220 }}>
@@ -1887,13 +1834,36 @@ const PermitDetail: React.FC = () => {
                       <div><Text strong>Name:</Text> {getDisplayName(signature?.signatory_details) || fallbackName}</div>
                       <div><Text strong>Date:</Text> {signature?.signed_at ? dayjs(signature.signed_at).format('YYYY-MM-DD HH:mm') : 'Pending'}</div>
                       <div style={{ marginTop: 8, minHeight: 60, borderBottom: '1px solid #ddd' }}>
-                        {signatureSrc ? (
-                          <Image
-                            src={signatureSrc}
-                            alt={`${label} Signature`}
-                            style={{ maxHeight: 60 }}
-                            preview={false}
-                          />
+                        {signature?.signature_payload ? (
+                          <div className="signature-json-display">
+                            <svg 
+                              viewBox="0 0 300 100" 
+                              style={{ width: '100%', maxHeight: '60px', border: '1px solid #ddd' }}
+                              preserveAspectRatio="xMidYMid meet"
+                            >
+                              {signature.signature_payload.strokes?.map((stroke: any, index: number) => {
+                                if (!stroke.points || !Array.isArray(stroke.points)) return null;
+                                
+                                const pathData = stroke.points.reduce((path: string, point: any, i: number) => {
+                                  const x = point.x || 0;
+                                  const y = point.y || 0;
+                                  return path + (i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
+                                }, '');
+
+                                return (
+                                  <path
+                                    key={index}
+                                    d={pathData}
+                                    stroke={stroke.color || '#000'}
+                                    strokeWidth={stroke.width || 2}
+                                    fill="none"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                );
+                              })}
+                            </svg>
+                          </div>
                         ) : (
                           <Text type="secondary">Signature: __________________</Text>
                         )}
